@@ -1,126 +1,110 @@
 # Nautica — Master Brief (ETHGlobal Lisbon 2026)
 
-Kondensiert aus der Recherche-KB (Files 01–11) am 24.07.2026, abends. Team: **A (carluzh)** = Story/Pitch/UI/Brand + World-Testing-Dokus; **C** = Senior-Solidity/DeFi-Dev. Deadline **So 26.07. 09:00 WEST (hart)**, Hacking-Start Fr ~21:00.
+Rewritten 24.07.2026. This version throws out prediction markets entirely (see "Why we pivoted" below) and settles on a citizen-science leveling game. Sponsors locked: **World ID + 0G + The Graph**. Team: A (carluzh) = story/pitch/UI/brand/testing docs. C = senior Solidity/DeFi dev. Deadline So 26.07. 09:00 WEST (hard). Hacking start Fr ~21:00.
 
-> Offen zum Zeitpunkt der Extraktion: Ein laufender Recherche-Workflow liefert noch **Markttyp-Entscheid (LMSR vs. Alternativen), Verteidigungs-System (Stake/Dispute/Slashing mit Zahlen), dritter Sponsor-Slot, End-to-End-Architektur + 36h-Stundenplan + Demo-Drehbuch**. Wird nach Fertigstellung hier ergänzt.
+## 0. Why we pivoted (keep for Q&A)
 
----
+Earlier versions resolved prediction markets from user-submitted photos of real finds. That path is unfixable: you cannot prove an image is authentic and taken at a place (analog hole for content, unauthenticated GPS for location, both permanent). With money on a market, one verified human could submit a fake claim and drain the other side, and neither World ID, AI fake-detection, nor GPS stops it. So we removed the adversarial money layer. In a leveling game the free tiers stake only XP (no exploit worth the effort), and the paid tier is small, partner-defined, and sybil-gated, which makes the residual fraud tolerable and auditable instead of fatal.
 
-## 1. Die Idee (final, verbindlich)
+## 1. The idea (final, verbindlich)
 
-**Nautica** = Plattform, die Menschen incentiviert, Informationen aus realen meeresgebundenen Räumen zu sammeln und zu teilen. Zweischneidige Value Proposition:
+**Nautica = a citizen-science mobile game.** Users log in with World ID, complete daily nature-photo quests to earn XP and level up, and at Level 5 unlock a paid quest tier funded by research partners. 0G's verifiable AI checks every submission, and The Graph powers leaderboards and the public sightings feed. The output is a growing, proof-of-humanity-gated, AI-verified marine and coastal biodiversity dataset (GBIF-compatible), and the game is the engine that produces it.
 
-1. **Risiko-Seite:** Prediction Markets auf marine Ereignisse (z. B. „Physalia/Portugiesische-Galeere-Meldung an Strand X vor Datum Y?"), die sich **durch die eigenen verifizierten Funde der Plattform** auflösen — das ist gewollt und der Incentive-Motor: Ein Spotter kann sich positionieren und dann per verifiziertem Fund den Markt auflösen (Informationsvorsprung → Geld). Hedger = Küstenbetriebe (Strandrestaurants, Liegenvermieter, Tauchschulen, Fischer), die sich gegen Wohlfahrtsverluste absichern; Underwriter tragen das Risiko gegen Prämie.
-2. **Citizen-Science-Seite:** Alle Funde + Markt-Wahrscheinlichkeiten werden **öffentlich** dargestellt (Forschungs-Feed, GBIF-kompatible Haltung). Extern interessant für Staat/NGOs als Geldgeber.
+Two things make it more than a photo app: contributions come from provably-unique humans (World ID), and each contribution's quality is provably checked (0G TEE attestation). That is what lets research partners trust the data enough to pay for it.
 
-**Roadmap (Pitch-Folie, nicht bauen):** Erweiterung auf weitere Spezies · Korallen/Seegras/Verschmutzung tracken · Strandsäuberungen incentivieren (Vorher/Nachher-Verifikation hat eigene Betrugsvektoren).
+## 2. Core loop and mechanics
 
-**Ehrlicher Neuheits-Claim:** „Wir kombinieren zwei bewiesene Modelle — bezahlte marine Frühwarnung (Shark Spotters) und bezahlte Taucher-Leistung (Lionfish-Bounties) — mit einem Risikomarkt, in einem Feld, wo das niemand tut." NICHT behaupten, bezahlte Quallen-Sichtung existiere bereits (tut sie nirgends).
+**Login and tiers.** User authenticates with World ID and picks a verification tier. The 3 tiers are World's own credential strengths:
 
----
+1. **Device** (basic): play the free game, earn XP, level up.
+2. **Document / Passport** (Identity Check): required to reach the paid tier.
+3. **Orb** (Selfie Check, strongest): required to claim paid-quest payouts above a threshold.
 
-## 2. Design-Regeln (aus Recherche, verbindlich)
+Rationale, stated in the pitch: stronger action needs stronger proof of humanity. Earning XP is cheap to allow; being paid real money must be hard to sybil-farm.
 
-1. **Oracle-Trennung:** Märkte lösen sich primär über offizielle Quellen auf (IPMA/GelAvista, NDBC-Bojen); Plattform-Funde nur sekundär, mit Dispute-Fenster + Stake. Wer in einem Markt handelt, ist nicht zugleich der auflösende Melder (Verzögerung + unabhängige Bestätigung). Pitch: „Wir sind bewusst nicht das alleinige Oracle."
-2. **Anti-Hoarding:** Erstmelde-Bounty muss attraktiver sein als der Handels-Edge aus Zurückhalten — sonst incentiviert der Markt verspätete Warnungen.
-3. **Underwriter-Kaltstart offen deklarieren:** Am Demo-Tag stellt das Team die Gegenseite (wie jeder junge Versicherungsmarkt). Vorbereitete Q&A-Antwort.
-4. **Regulatorik:** Für den Hackathon egal (Testnet + Disclaimer). Ereigniswahl neutral/positiv (Schwellen, Ankünfte); Quallen = Belästigung, nicht Katastrophe (umgeht die Wildfire-Kontroverse Juli 2026).
-5. **Framing:** Hedger-first („sichere deine Saison ab"), keine Wett-Sprache. Verifizierte Zahlen als Anker: Katalonien ~422 M€/Jahr Wohlfahrtsverlust durch Quallenblüten (Modellschätzung! so kennzeichnen), 3,20 €/Strandbesuch Zahlungsbereitschaft, Physalia-Strandschließungen Portugal März 2025, GelAvista >12.300 Meldungen, Lionfish >195.000 Fische, Shark Spotters 43 Angestellte/70 % Stadt-finanziert.
-6. **Daten offen:** Funde + Wahrscheinlichkeiten öffentlich, GBIF-kompatibel — stärkt Forschungs-Glaubwürdigkeit + Staat/NGO-Winkel.
-7. **Auflösung durch eigene Funde = gewollt.** Fälschungsrisiko gemanagt durch: AI-Einzelbild-Fälschungsprüfung auf 0G, World-ID-Access-Gating, Dispute-Logic + Staking (evtl. Slashing — NIE Auto-Slash allein auf AI-Score, Detektoren real-world <50 % genau).
+**Free progression.**
+- Everyone starts at Level 1.
+- **3 free daily quests** worth **5, 10, 25 XP**. A quest is a photo task: "photograph a common fish," "photograph a shore plant," "photograph a crab," etc.
+- Level curve tuned so **Level 5 takes about a week with some skipped quests**. Sample tunable curve (cumulative): L2 at 30 XP, L3 at 75, L4 at 135, L5 at 210. At roughly 30 XP/day (skips included) that is about 7 days.
 
----
+**Paid tier (unlocks at Level 5).**
+- A **4th daily quest** appears, **contracted and funded by a research company or university**.
+- Paid out on completion in **USDC on Base**.
+- Partner-defined requirements go beyond image plus location: multiple images, specific body parts (e.g. dorsal and ventral views), a count, size reference, or extra metadata. The partner sets the spec; 0G checks the submission against it.
 
-## 3. Demo-Kern (36h-Schnitt, 1:1 fix)
+**Roadmap (pitch slide, not built this weekend):** leaderboards, public sightings map, Pokemon-Go-style collection and streaks, avatar and cosmetic customization, premium tier, more species and regions.
 
-Klein halten: **Ein kompletter Markt-Lebenszyklus + eine verifizierte Meldung mit Payout.**
-1. Markt live: „Physalia-Meldung an Strand X vor Datum Y?" (Auflösungsregel + Quelle im Contract-Event fixiert).
-2. Hedger (Tauchschule) kauft Absicherung; Underwriter-Seite deklariert vom Team gestellt.
-3. World-ID-verifizierter Spotter reicht Foto ein (Bühnen-Requisit/kuratierte Fotos; KI-Klassifizierung/Fälschungsprüfung auf 0G).
-4. Fund + offizielle Quelle → Markt löst auf (Zeit gerafft, ehrlich gelabelt), Payouts fließen sichtbar, Erstmelde-Bounty an Spotter.
-5. Citizen-Science-Screen: dieselbe Meldung als offener Datenpunkt.
-Alles andere (Pokédex, Dashboards, weitere Arten, Strandsäuberung) = erzählt/Roadmap.
+## 3. Where each sponsor is load-bearing (not decoration)
 
----
+- **World ID.** Login and one-human enforcement. Without proof-of-humanity, XP leaderboards and especially paid quests are farmed to zero by multi-accounting. The tier system maps directly onto World's two paid track eligibilities: **Selfie Check ($3.5k)** and **Identity Check ($3.5k)**, one slot, both eligible. Load-bearing.
+- **0G.** Verifiable TEE-attested vision classification of every submission via `qwen3-vl-30b` (confirmed live, see Section 8). Free quests: is this actually a crab / fish / plant? Paid quests: does it match the partner spec (species, body part, count)? The TEE attestation is a tamper-proof proof of quality, which is exactly what makes a research partner trust the dataset and pay for it. Fits **0G Best AI Product ($6k)** and matches their "verifiable research agent" wish-example.
+- **The Graph.** Subgraph over quest completions, XP, level-ups, payouts, and sightings, all emitted as on-chain events on Base. Powers leaderboards, the public sightings feed, and partner dashboards. "Risk/data monitoring" and AI-use-case framing fit their tracks. Studio dev endpoint (100k queries/month free) is enough; no decentralized publish needed.
+- **Chain.** Contracts and payouts on **Base / Base-Sepolia**. 0G is used as Compute only (off-chain AI), not as a chain, so The Graph indexes Base cleanly on its normal network. This is the correct split: The Graph indexes your contract chain, 0G is the AI service, they never conflict.
 
-## 4. Sponsor-Slot-Wahl (max. 3 Slots pro Submission)
+## 4. Anti-fraud (honest, since we learned this the hard way)
 
-- **World** (FIX, 1 Slot, 2 Track-Eligibilities = $7k adressiert): Trading gated hinter **FaceID/Selfie Check** ($3.5k), Funde-Abgabe gated hinter **PassportID/Identity Check** ($3.5k). Begründungslogik: stärkere Prüfung für die mächtigere Aktion. Load-bearing (ohne Sybil-Schutz sind Bounty + Markt gratis angreifbar). Pflicht: Testing-Doku beider Credentials (A, ≥10 Floor-Tests), Datenminimierung, Attribut-Begründung. Vorbehalt: Beta; ob Selfie Check eine einmalige Orb-Registrierung voraussetzt → am Booth klären.
-- **0G** (FIX, $6k Best AI Product): Fund-Foto-Fälschungsprüfung als Inferenz auf 0G Compute mit Proof (Qwen3-VL 30B live; Bild-Input-Testcall = Kill-Test #1; Fallback lokal BioCLIP). „Verifiable research agent" ist Wunsch-Beispiel im Track-Text.
-- **Dritter Slot: OFFEN** (Workflow-Ergebnis ausstehend). Kandidaten: The Graph (Subgraph über Märkte/Funde + Risk-Agent; „Risk-Monitoring" wörtlich im Track-Text; Studio-Dev-Endpoint reicht), Uniswap ($7k Any-Token-Prämienzahlung als Kern-Execution; Pflicht FEEDBACK.md + Form), Hedera/ENS/1inch (nachrangig).
-- Chain: 0G-Track verlangt nur 0G-**Compute**, nicht die 0G-Chain → Contracts können auf **Base** liegen (dort laufen Graph Studio, Uniswap API, World-On-Chain-Verify).
+The analog hole is not solved (a stock photo, a reused photo, an AI image, or a photo of a screen can be submitted). We do not claim fraud-proof. We claim fraud-resistant and auditable, which is enough because:
 
----
+- **Free tier stakes are XP only.** Not worth the effort to cheat.
+- **Paid tier is defended in layers:** World ID caps one human to one payout stream and requires a stronger credential tier; 0G classification gates quality and checks against the partner spec; partner requirements (multiple images, specific body parts, freshness) raise the bar; a **server-issued freshness nonce or challenge** ensures the photo postdates the quest (kills stock and pre-generated images); payouts per quest are small.
+- **Partners accept noise.** Citizen science always has noise. What they get from us that a normal app cannot give: World ID provenance plus 0G attestation on every record, so quality is auditable rather than "trust our server."
 
-## 5. Alle Sponsor-Tracks — Referenz ($88k, verifiziert 23.07.)
+## 5. Demo cut (36h, 1:1 fix)
+
+Keep it to one full loop plus the paid unlock.
+1. World ID login, pick a verification tier.
+2. Daily quest board shows 3 free quests. Complete one (photograph a crab). 0G classifies it with a TEE attestation, XP is awarded, user levels up. Show the attestation.
+3. Fast-forward to Level 5 (honest time-skip). The 4th paid quest appears from a partner (e.g. "photograph species X, dorsal and ventral views"). Submit. 0G verifies against the spec. USDC payout settles on Base.
+4. The Graph-powered leaderboard and public sightings feed update live from the on-chain events.
+
+Everything else (map, streaks, cosmetics, premium) is narrated roadmap.
+
+## 6. Sponsor tracks reference ($88k, verified 23.07.)
 
 | Sponsor | Track | Pot | Typ |
 |---|---|---|---|
-| 1inch | Build an Aqua App | $5.000 | Classic |
-| 1inch | Aqua App (Continuity) | $2.000 | Continuity |
 | The Graph | Best AI Tooling | $7.000 | Classic |
 | The Graph | Best AI Use Case | $4.000 | Classic |
 | The Graph | Composable/Standardized Products | $4.000 | Classic |
-| World | AgentKit New Use Cases | $8.000 | Classic |
 | World | Selfie Check Beta | $3.500 | Classic |
 | World | Identity Check Beta | $3.500 | Classic |
-| Hedera | AI & Agentic Payments | $6.000 | Classic |
-| Hedera | Tokenization (HTS) | $3.000 | Classic |
-| Hedera | No Solidity (SDK-only) | $3.000 | Classic |
-| Hedera | Cross-Chain Automation | $2.000 | Classic |
-| Hedera | Autonomous Automation (Continuity) | $1.000 | Continuity |
+| World | AgentKit New Use Cases | $8.000 | Classic |
 | 0G | Best AI Product | $6.000 | Classic |
 | 0G | Best Infra & Tooling | $4.500 | Classic |
 | 0G | Keep Building (Continuity) | $4.500 | Continuity |
-| Uniswap Fdn | Best Uniswap API Integration | $7.000 | Classic |
-| Uniswap Fdn | Stack Contribution (Continuity) | $3.000 | Continuity |
-| Sui | Best New App on Sui | $4.000 | Classic |
-| Sui | Integration/Port (Continuity) | $2.000 | Continuity |
-| ENS | Most Creative Use | $1.500 | Classic |
-| ENS | Best AI Agent Integration | $1.500 | Classic |
-| ENS | Continuity Integration | $2.000 | Continuity |
 
-**Regeln:** Max. **3 Partner-Prizes pro Submission**; ein Multi-Track-Sponsor = 1 Slot mit Eligibility für alle seine Tracks. Continuity-Tracks = separate Schiene, für frischen Classic-Build tabu. Classic muss während des Hackathons gestartet werden; kein projektspezifischer Alt-Code/Assets.
+Rules: max **3 partner-prizes per submission**; one multi-track sponsor = 1 slot with eligibility for all its tracks. Continuity tracks are a separate lane, off-limits for a fresh classic build. Classic must be started during the hackathon; no project-specific pre-existing code or assets.
 
----
+## 7. Judging and logistics
 
-## 6. Judging & Logistik
+- **Format:** 7 min/team = 4 min demo + 3 min Q&A. Partner judging runs only on submission material (text + 2 to 4 min video), not booth demos.
+- **Criteria:** Technicality, Originality, Practicality, Usability (UI/UX/DX), WOW Factor.
+- **Ort/Zeit:** Pavilhao Carlos Lopes, Lisbon. Submission So 09:00 WEST hard (no late submissions).
+- **Workshops Fr:** 0G 14:30, Uniswap 15:00, Graph 15:30, Sui 16:00, World 16:30, Hedera 17:00, 1inch 17:30.
+- **Submission duties:** public repo, incremental commits (no single commit), AI attribution in README, video 2 to 4 min real narration (no AI voice/speedup), World: 2 testing docs, exactly 3 partner-prizes checked.
 
-- **Format:** 7 Min/Team = **4 Min Demo + 3 Min Q&A**. Partner-Judging läuft NUR über Submission-Material (Texte + 2–4-Min-Video), nicht über Booth-Demos.
-- **Offizielle Kriterien:** Technicality, Originality, Practicality, Usability (UI/UX/DX), WOW Factor.
-- **Finals:** Top 10, Live-Präsentation auf der Bühne. Finalist-Pack (Cannes-Referenz ~$3.3k/Kopf, Lisbon nicht publiziert).
-- **Ort/Zeit:** Pavilhão Carlos Lopes, Lissabon. Submission **So 09:00 WEST hart** (keine Late Submissions). Hacking ~Fr 21:00 → So 09:00 (~36h).
-- **Workshops Fr:** 0G 14:30 · Uniswap 15:00 · Graph 15:30 · Sui 16:00 · World 16:30 · Hedera 17:00 · 1inch 17:30.
-- **Submission-Pflichten:** public Repo, inkrementelle Commits (kein Single-Commit), AI-Attribution im README, Video 2–4 Min echte Narration (keine KI-Stimme/Speed-up); World: 2 Testing-Dokus; Uniswap (falls Slot): FEEDBACK.md + Feedback-Form; genau 3 Partner-Prizes ankreuzen.
+## 8. Confirmed tech facts (live-tested 24.07.2026)
 
----
+- **0G Compute is OpenAI-compatible.** Endpoint `https://router-api.0g.ai/v1`, standard `/chat/completions`. `GET /v1/models` returns the live catalog with no auth. A vision request with an `image_url` content block reaches the auth check and returns 401 "missing authorization," so the request shape is accepted and the only remaining step is a funded Bearer key from pc.0g.ai.
+- **Confirmed image-capable, TEE-attested model:** `qwen3-vl-30b` (text+image, TDX, TeeTLS verifiable, ~$0.00000002/prompt token). Alternatives if needed: `0gm-1.0-35b-a3b` (image, TeeML), `kimi-k3` / `minimax-m3` / `qwen3.7-plus` (image+video, TEE). Fallback: local BioCLIP 2 (MIT, open_clip, CPU-capable) for species, with a 0G LLM verifying the text.
+- **0G gotchas (from research):** faucet only 0.1 OG/day vs 3 OG min deposit + 1 OG/provider, so request tokens at booth/Discord today. Auth header single-use, 30 req/min, 5 concurrent, Node >=22, server-side only, browser SDK has no auto-funding. Galileo testnet has been reset with a new chain-id before.
+- **World ID:** simulator only with staging app-id; test action without max_verifications limit (else team nullifier burned); signal/action byte-identical FE and BE; cloud-verify or on-chain-verify on Base (nullifier for one-human caps). Confirm Selfie/Identity beta access and any Orb prerequisite at the booth.
+- **The Graph:** supports Base on the decentralized network; hosted service deprecated 2026 but Studio dev endpoint is enough; startBlock = deploy block; freeze schema early.
+- **Photo/GPS:** iOS browser camera strips all EXIF; capture GPS via `navigator.geolocation` plus server time, never from EXIF, never trust client-supplied values (mock location is trivial). Treat location as a soft signal, not proof.
 
-## 7. Verifizierte Tech-Fakten & bekannte Fallen
+## 9. Kill-tests and open items
 
-- **0G Compute:** Qwen3-VL 30B live (Bild-Input unbestätigt → Testcall Kill-Test #1). Faucet nur 0,1 OG/Tag vs. 3 OG Min-Deposit + 1 OG/Provider → heute am Booth/Discord Tokens anfragen. Auth-Header single-use, 30 req/min, 5 concurrent, Node ≥22, nur serverseitig, Browser-SDK ohne Auto-Funding. Galileo-Testnet schon mal mit neuer Chain-ID resettet. Fallback: lokal BioCLIP 2 (MIT, open_clip, CPU-tauglich) + 0G-Chat-LLM verifiziert BioCLIP-Text.
-- **Duplikat/Fake:** pHash (`imagehash`/`sharp-phash`) gegen Bestand; AI-Fake-Detektor nur Ensemble-Signal, NIE Auto-Slash (13–40 % False Positives auf echten Fotos).
-- **World ID:** Simulator nur mit Staging-App-ID; Test-Action ohne max_verifications-Limit (sonst Team-Nullifier verbrannt); signal/action byte-identisch FE↔BE; Cloud-Verify oder On-Chain-Verify auf Base (Nullifier für Position-Caps).
-- **Foto/GPS:** iOS-Browser-Kamera strippt ALLE EXIF; GPS via `navigator.geolocation` + Server-Zeit, nie aus EXIF, nie Client-Angabe trauen (Mock-Location trivial). Handy geht NICHT ins Wasser → Kamera separat, App = Post-Dive-Import.
-- **Datenquellen (Auflösung):** NDBC-Bojen (ndbc.noaa.gov/data/realtime2/<id>.txt, stündlich, public domain), Open-Meteo Marine (SST/Wellen, kein Key), IPMA (Portugal-Lokalbezug), GelAvista (Quallen-Meldungen). GBIF/OBIS = Tage-Latenz, nicht zeitkritisch nutzbar.
-- **Markttyp:** OFFEN (Workflow). Anforderungen: (R1) immer lesbare Quote/Wahrscheinlichkeit, (R2) keine externen MMs/LPs. Arbeitshypothese LMSR (Quote = Preis, Operator-Subvention begrenzt+bekannt = zugleich das Fund-Incentive). Parimutuel erfüllt R1 nur schwach (Quote erst am Ende). Details folgen aus Workflow.
-- **The Graph (falls Slot):** Studio-Dev-Endpoint (100k Queries/Monat frei), startBlock = Deploy-Block, Schema früh einfrieren; dezentrales Publish NICHT nötig.
+1. **Funded 0G key** to run one real end-to-end image classification call. Get tokens at booth/Discord.
+2. **World booth:** Selfie/Identity beta access + Orb prerequisite; create test action without a verifications limit.
+3. **Quest content:** finalize the starter quest list (fish, plant, crab, etc.) and the exact 0G prompt/spec per quest, including the paid-quest partner-spec format (which body parts, how many images).
+4. **On-chain event schema** for quest completion / XP / payout, frozen early so the subgraph schema is stable.
+5. **Freshness mechanism:** server-issued nonce/challenge per quest so submissions must postdate the quest.
+6. **Base contract + payout path** (USDC on Base-Sepolia) wired end-to-end.
 
----
+## 10. Q&A prep (hardest questions)
 
-## 8. Q&A-Vorbereitung (härteste Fragen)
-
-1. „Eure Nutzer lösen eure Märkte auf — Manipulation?" → Oracle-Trennung (offizielle Quelle primär), Dispute-Fenster + Stake, Handel ≠ auflösender Melder.
-2. „Wer ist die Gegenseite?" → deklarierter Kaltstart + Risikoprämie + Präzedenz Versicherungsmärkte.
-3. „Ist das legal?" → Testnet heute, Kalshi (CFTC, inkl. Wettermärkte) als Legalisierungspfad, Lizenz-Roadmap.
-4. „Warum meldet jemand, statt erst zu handeln?" → Erstmelde-Bounty > Handels-Edge.
-5. „Warum Blockchain?" → Treuhand ohne Versicherer, automatische Auslösung, sofortige grenzenlose Payouts, 1-Mensch-1-Konto, offener auditierbarer Datensatz.
-
----
-
-## 9. Kill-Tests heute Abend (vor Produktivcode)
-
-1. **0G Bild-Input-Testcall** an Qwen3-VL (entscheidet 0G-Slot vs. lokaler Fallback) + Testnet-Token beschaffen.
-2. **Datenquellen** IPMA/GelAvista/NDBC einmal end-to-end fetchen; exakte Auflösungsregel (Quelle, Parameter, Rundung, URL) fixieren.
-3. **World-Booth:** Selfie/Identity-Beta-Zugang + Orb-Voraussetzung klären; Test-Action ohne Verifications-Limit anlegen.
-4. **Markttyp-Entscheid** (aus Workflow) + Contract-Startpunkt (Gnosis LMSR-Port / PRBMath).
-5. **Chain fixieren** (voraussichtlich Base/Base-Sepolia).
+1. "Can users cheat the photo checks?" Not fraud-proof, fraud-resistant and auditable. Free tier stakes only XP. Paid tier is layered: one-human World ID caps, stronger credential tier, 0G spec-check, partner multi-image/body-part requirements, freshness nonce, small payouts. Every record carries World ID provenance + 0G attestation, so partners get auditable quality.
+2. "Why blockchain / why these sponsors?" World ID is the only clean way to pay unique humans globally without KYC-ing each one and without bots draining the pool. 0G gives tamper-proof proof that each submission was actually checked by the stated model. The Graph turns the on-chain contribution log into leaderboards and an open dataset. Remove any one and the trust or the product breaks.
+3. "Who funds the paid quests?" Research companies, universities, NGOs, and coastal municipalities that already fund citizen science (Shark Spotters precedent was ~70% city-funded). At demo the team seeds a partner treasury.
+4. "Is the data any good for real science?" Proof-of-humanity plus AI verification plus open GBIF-compatible format is a stronger provenance guarantee than typical citizen-science apps, which is the pitch to data buyers.
+5. "Is this legal?" Testnet today. It is a rewards game for verified humans, not a financial market, so it avoids the regulatory surface the earlier market idea carried.

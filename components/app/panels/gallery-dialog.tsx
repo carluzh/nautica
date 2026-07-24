@@ -1,0 +1,138 @@
+"use client";
+
+import { AlertTriangle, Images, MapPin } from "lucide-react";
+import { AttestationBadge } from "@/components/app/attestation";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SPECIES_META } from "@/lib/game/content";
+import { useGame } from "@/lib/game/provider";
+import type { GalleryItem } from "@/lib/game/types";
+
+function timeAgo(at: number): string {
+  const s = Math.round((Date.now() - at) / 1000);
+  if (s < 45) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return `${Math.round(d / 7)}w ago`;
+}
+
+function Card({ item }: { item: GalleryItem }) {
+  const meta = SPECIES_META[item.species];
+  const Icon = meta.icon;
+
+  return (
+    <div className="group overflow-hidden rounded-lg border bg-card">
+      <div className="relative aspect-square w-full overflow-hidden">
+        {item.photo ? (
+          // Captured photo is a runtime object URL (blob:), so a plain img is correct here.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.photo}
+            alt={item.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div
+            className="flex h-full w-full items-center justify-center"
+            style={{ background: `color-mix(in oklch, ${meta.color} 15%, var(--card))` }}
+          >
+            <Icon className="size-10 opacity-90" style={{ color: meta.color }} />
+          </div>
+        )}
+
+        {meta.hazard ? (
+          <span className="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-full bg-background/80 p-1 backdrop-blur-sm">
+            <AlertTriangle className="size-3 text-warning" />
+          </span>
+        ) : null}
+
+        <AttestationBadge
+          attestation={item.attestation}
+          className="absolute bottom-1.5 left-1.5 h-5 gap-1 bg-background/80 px-1.5 text-[10px] backdrop-blur-sm"
+        />
+      </div>
+
+      <div className="space-y-1 p-2.5">
+        <p className="truncate text-sm font-medium">{item.title}</p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-xs text-muted-foreground">{meta.short}</span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="tnum text-xs font-medium text-primary">+{item.xp}</span>
+            {item.usdc ? (
+              <span className="tnum text-xs font-medium text-success">${item.usdc}</span>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="size-3" />
+            <span className="tnum">
+              {item.lat.toFixed(2)}, {item.lng.toFixed(2)}
+            </span>
+          </span>
+          <span className="tnum">{timeAgo(item.at)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function GalleryDialog() {
+  const { openPanel, setOpenPanel, gallery } = useGame();
+
+  return (
+    <Dialog open={openPanel === "gallery"} onOpenChange={(o) => !o && setOpenPanel(null)}>
+      <DialogContent className="max-h-[88svh] gap-0 overflow-hidden sm:max-w-2xl">
+        <DialogHeader className="pr-8">
+          <DialogTitle className="flex items-center gap-2">
+            <Images className="size-4 text-muted-foreground" />
+            Field gallery
+            {gallery.length > 0 ? (
+              <span className="tnum rounded-full bg-secondary px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
+                {gallery.length}
+              </span>
+            ) : null}
+          </DialogTitle>
+          <DialogDescription>
+            Your verified sightings. Every photo carries a 0G TEE attestation.
+          </DialogDescription>
+        </DialogHeader>
+
+        {gallery.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full border bg-muted">
+              <Images className="size-5 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">No sightings yet</p>
+              <p className="mx-auto max-w-xs text-sm text-muted-foreground">
+                Complete a daily quest to add your first verified photo to the collection.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setOpenPanel(null)}>
+              Find a quest
+            </Button>
+          </div>
+        ) : (
+          <div className="-mr-2 mt-3 max-h-[64svh] overflow-y-auto pr-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {gallery.map((item) => (
+                <Card key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
