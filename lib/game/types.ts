@@ -125,3 +125,8 @@ export type PanelId =
   | "settings"
   | "payments"
   | "leaderboard";
+
+/** Result of a quest submission — shared by the provider and the API client. */
+export type SubmitResult =
+  | { ok: true; attestation: Attestation; leveledTo?: number; usdc?: number; txHash?: string }
+  | { ok: false; reason: string; attestation?: Attestation };

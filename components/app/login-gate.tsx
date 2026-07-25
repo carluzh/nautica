@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, ScanFace, ShieldCheck } from "lucide-react";
+import { Globe, Loader2, ScanFace, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NauticaLogo } from "@/components/brand/nautica-logo";
 import { useGame } from "@/lib/game/provider";
@@ -11,7 +11,7 @@ import { useGame } from "@/lib/game/provider";
  * connectWorldId() for IDKit verify + nullifier.
  */
 export function LoginGate() {
-  const { connectWorldId } = useGame();
+  const { connectWorldId, connecting, error } = useGame();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-sm rounded-2xl border bg-card/90 p-6 text-center shadow-2xl">
@@ -23,10 +23,11 @@ export function LoginGate() {
           One real human, one account. World ID keeps leaderboards fair and paid
           quests un-farmable.
         </p>
-        <Button className="mt-5 w-full" size="lg" onClick={connectWorldId}>
-          <Globe className="size-4" />
-          Verify with World ID
+        <Button className="mt-5 w-full" size="lg" onClick={connectWorldId} disabled={connecting}>
+          {connecting ? <Loader2 className="size-4 animate-spin" /> : <Globe className="size-4" />}
+          {connecting ? "Verifying…" : "Verify with World ID"}
         </Button>
+        {error ? <p className="mt-3 text-xs text-destructive">{error}</p> : null}
         <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <ScanFace className="size-3.5" /> Face
