@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AttestationBadge } from "@/components/app/attestation";
+import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -124,8 +125,8 @@ export function QuestSubmitDialog() {
             <DialogHeader className="gap-2 border-b p-5">
               <div className="flex flex-wrap items-center gap-1.5">
                 {meta ? (
-                  <span className="inline-flex items-center gap-1 rounded-md border bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                    <meta.icon className="size-3.5" style={{ color: meta.color }} />
+                  <span className="inline-flex items-center gap-1.5 rounded-md border bg-background py-0.5 pr-2 pl-1 text-[11px] text-muted-foreground">
+                    <SpeciesBadge species={quest.species} className="size-5 rounded" iconClassName="size-3" />
                     {meta.short}
                   </span>
                 ) : null}

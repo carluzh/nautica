@@ -13,7 +13,7 @@ import {
   Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SPECIES_META } from "@/lib/game/content";
+import { SpeciesBadge } from "@/components/app/species-badge";
 import { PAID_UNLOCK_LEVEL, xpForLevel } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
 import type { Quest } from "@/lib/game/types";
@@ -98,17 +98,7 @@ export function MissionsBoard() {
 }
 
 function IconTile({ quest, muted }: { quest: Quest; muted?: boolean }) {
-  const meta = SPECIES_META[quest.species];
-  return (
-    <div
-      className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg border bg-background",
-        muted && "opacity-50",
-      )}
-    >
-      <meta.icon className="size-4" style={muted ? undefined : { color: meta.color }} />
-    </div>
-  );
+  return <SpeciesBadge species={quest.species} className={cn("size-9", muted && "opacity-40 grayscale")} />;
 }
 
 function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
@@ -164,7 +154,6 @@ function PaidRow({
   xpToUnlock: number;
   onStart: () => void;
 }) {
-  const meta = SPECIES_META[quest.species];
   const done = quest.status === "done";
   const verifying = quest.status === "verifying";
 
@@ -173,8 +162,8 @@ function PaidRow({
     return (
       <div className="flex flex-col gap-2 border-t bg-muted/30 px-3 py-3">
         <div className="flex items-center gap-3">
-          <div className="relative flex size-9 shrink-0 items-center justify-center rounded-lg border bg-background">
-            <meta.icon className="size-4 text-muted-foreground/60" />
+          <div className="relative shrink-0">
+            <SpeciesBadge species={quest.species} className="size-9 opacity-40 grayscale" />
             <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border bg-card text-muted-foreground">
               <Lock className="size-2.5" />
             </span>
@@ -226,9 +215,7 @@ function PaidRow({
   return (
     <div className="flex flex-col gap-2.5 border-t bg-primary/5 px-3 py-3">
       <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-background">
-          <meta.icon className="size-4" style={{ color: meta.color }} />
-        </div>
+        <SpeciesBadge species={quest.species} className="size-9" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-medium">{quest.title}</p>

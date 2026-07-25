@@ -1,13 +1,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Light-first, friendly brand. Optional dark sections opt in with `.theme-dark`. */
+/* Light-only brand. The `dark:` variant is redirected onto an explicit
+   `.theme-dark` class (which we never set), so the shadcn UI kit's built-in
+   `dark:` utilities stay dormant instead of firing on `prefers-color-scheme`.
+   Keep this line — removing it makes those utilities activate on dark-mode
+   systems and half-break the light theme. */
 @custom-variant dark (&:is(.theme-dark *));
 
 /* ---------------------------------------------------------------------------
    NAUTICA palette — warm, airy, Airbnb-adjacent, with a vibrant teal accent.
-   Light is the default everywhere. `.theme-dark` re-declares the tokens for any
-   band that wants to go dark.
+   Light everywhere; there is no dark theme.
 --------------------------------------------------------------------------- */
 :root {
   --radius: 0.9rem;
@@ -59,40 +62,10 @@
   --sidebar-ring: oklch(0.702 0.132 194);
 }
 
-/* The site is already light; `.theme-light` remains a no-op alias so any markup
-   still tagged with it keeps rendering light. */
+/* `.theme-light` is a no-op alias (root is already light), kept only for the
+   marketing bands still tagged with it. There is no dark counterpart. */
 .theme-light {
   color-scheme: light;
-}
-
-/* Opt-in dark band (deep marine ink). */
-.theme-dark {
-  color-scheme: dark;
-
-  --background: oklch(0.171 0.021 236);
-  --foreground: oklch(0.955 0.008 220);
-  --card: oklch(0.204 0.024 236);
-  --card-foreground: oklch(0.955 0.008 220);
-  --popover: oklch(0.196 0.023 237);
-  --popover-foreground: oklch(0.955 0.008 220);
-  --primary: oklch(0.8 0.126 189);
-  --primary-foreground: oklch(0.2 0.036 220);
-  --secondary: oklch(0.27 0.03 236);
-  --secondary-foreground: oklch(0.955 0.008 220);
-  --muted: oklch(0.246 0.024 236);
-  --muted-foreground: oklch(0.7 0.024 218);
-  --accent: oklch(0.315 0.052 200);
-  --accent-foreground: oklch(0.955 0.01 205);
-  --destructive: oklch(0.64 0.208 24);
-  --destructive-foreground: oklch(0.975 0.01 20);
-  --success: oklch(0.74 0.15 160);
-  --warning: oklch(0.8 0.14 78);
-  --border: oklch(0.3 0.021 236);
-  --input: oklch(0.32 0.022 236);
-  --ring: oklch(0.8 0.126 189);
-  --sidebar: oklch(0.196 0.023 237);
-  --sidebar-foreground: oklch(0.955 0.008 220);
-  --sidebar-border: oklch(0.3 0.021 236);
 }
 
 @theme inline {
@@ -193,4 +166,132 @@
 .nautica-sea-marker:hover {
   transform: scale(1.12);
   z-index: 5;
+}
+
+/* Clustered sightings (zoomed out): a clean white dot with the grouped count in
+   the brand foreground. Diameter is set inline so it can scale with the count;
+   the Airbnb-clean chrome (subtle border + soft shadow) lives here. */
+.nautica-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 10px rgba(23, 43, 54, 0.16);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.nautica-cluster:hover {
+  transform: scale(1.08);
+  box-shadow: 0 5px 16px rgba(23, 43, 54, 0.22);
+  z-index: 6;
+}
+.nautica-cluster-count {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+/* Individual sighting (zoomed in): a clean COLORED species glyph — no tile. The
+   element's inline `color` (the risk color) tints the icon's `currentColor`; a
+   soft white halo + faint shadow lift it off the light basemap, no box. */
+.nautica-point {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9))
+    drop-shadow(0 1px 3px rgba(23, 43, 54, 0.3));
+  transition: transform 140ms ease;
+}
+.nautica-point:hover {
+  transform: scale(1.16);
+  z-index: 5;
+}
+.nautica-point svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+/* Fallback when a marker has no icon (e.g. decorative hero points): a small
+   colored dot in the same risk color, with a thin white ring. */
+.nautica-point-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* Recenter / "locate me" control — a crosshair glyph in a card that matches the
+   zoom control (it sits in its own `.maplibregl-ctrl-group`, which already gets
+   the rounded, soft-shadow chrome above; buttons are sized to 34px there too). */
+.nautica-locate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  background: transparent;
+  transition: color 140ms ease, background 140ms ease;
+}
+.nautica-locate-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.nautica-locate-btn:hover {
+  color: var(--primary);
+  background: var(--accent);
+}
+
+/* Live user-location marker (Google/Airbnb style): a solid blue dot with a white
+   ring, and a soft translucent accuracy ring pulsing behind it. */
+.nautica-user-location {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+.nautica-user-location .nautica-user-dot,
+.nautica-user-location .nautica-user-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 9999px;
+}
+.nautica-user-location .nautica-user-dot {
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  background: #1d7fff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(23, 43, 54, 0.35);
+}
+.nautica-user-location .nautica-user-pulse {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background: rgba(29, 127, 255, 0.28);
+  animation: nautica-user-pulse 2s ease-out infinite;
+}
+@keyframes nautica-user-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
 }

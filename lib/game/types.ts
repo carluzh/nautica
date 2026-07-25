@@ -65,6 +65,17 @@ export type GalleryItem = {
   at: number;
 };
 
+/** An ambient community observation shown on the map. Map-only and read-only:
+ * kept SEPARATE from the player's own `GalleryItem`s so it never touches their
+ * XP, gallery or stats — it only makes the field read as a living survey. */
+export type Sighting = {
+  id: string;
+  species: SpeciesId;
+  lng: number;
+  lat: number;
+  label?: string;
+};
+
 export type ActivityKind = "quest" | "levelup" | "verify" | "payout" | "join";
 
 export type ActivityEvent = {

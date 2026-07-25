@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Images, MapPin } from "lucide-react";
 import { AttestationBadge } from "@/components/app/attestation";
+import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,22 +14,10 @@ import {
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { GalleryItem } from "@/lib/game/types";
-
-function timeAgo(at: number): string {
-  const s = Math.round((Date.now() - at) / 1000);
-  if (s < 45) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return `${Math.round(d / 7)}w ago`;
-}
+import { timeAgo } from "@/lib/format";
 
 function Card({ item }: { item: GalleryItem }) {
   const meta = SPECIES_META[item.species];
-  const Icon = meta.icon;
 
   return (
     <div className="group overflow-hidden rounded-lg border bg-card">
@@ -42,11 +31,8 @@ function Card({ item }: { item: GalleryItem }) {
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{ background: `color-mix(in oklch, ${meta.color} 15%, var(--card))` }}
-          >
-            <Icon className="size-10 opacity-90" style={{ color: meta.color }} />
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <SpeciesBadge species={item.species} iconClassName="size-10" />
           </div>
         )}
 

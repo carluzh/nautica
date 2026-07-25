@@ -23,8 +23,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Light by default (palette lives in globals.css :root). Dark bands opt in
-  // with `.theme-dark`.
+  // Light everywhere (palette lives in globals.css :root). There is no dark theme.
   return (
     <html lang="en" className={jakarta.variable}>
       <body>
