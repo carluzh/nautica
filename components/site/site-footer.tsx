@@ -5,22 +5,6 @@ type FooterLink = { label: string; href: string; external?: boolean };
 
 const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
-    title: "Product",
-    links: [
-      { label: "Open the app", href: "/app" },
-      { label: "For researchers", href: "/pro" },
-      { label: "How it works", href: "/#how" },
-    ],
-  },
-  {
-    title: "Open data",
-    links: [
-      { label: "Field gallery", href: "/app" },
-      { label: "GBIF-compatible export", href: "/pro" },
-      { label: "Verification tiers", href: "/#how" },
-    ],
-  },
-  {
     title: "Project",
     links: [
       { label: "ETHGlobal Lisbon", href: "https://ethglobal.com", external: true },

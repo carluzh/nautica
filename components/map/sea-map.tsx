@@ -54,9 +54,13 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   center?: LngLatLike;
   zoom?: number;
   markers?: SeaMarker[];
+  /** Cluster nearby markers (default true); pass false for decorative maps. */
+  cluster?: boolean;
   interactive?: boolean;
   /** Dark basemap (Dark Matter, water nudged a touch blue). Used by the app; marketing stays light. */
   dark?: boolean;
+  /** Basemap style URL; overrides the theme default (light/dark). Used by the marketing maps. */
+  styleUrl?: string;
   /** Category key + color per finding type — drives the segmented cluster ring. */
   clusterCategories?: { key: string; color: string }[];
   /** Opt-in: track + show a live blue user-location dot. */
@@ -70,10 +74,12 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     center = [-9.15, 38.7], // Lisbon coast
     zoom = 8,
     markers = [],
+    cluster = true,
     interactive = true,
     dark = false,
     clusterCategories = [],
     showUserLocation = false,
+    styleUrl,
     onAwayChange,
     onReady,
   },
@@ -127,7 +133,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: dark ? DARK_STYLE : LIGHT_STYLE,
+      style: styleUrl ?? (dark ? DARK_STYLE : LIGHT_STYLE),
       center,
       zoom,
       interactive,
@@ -398,7 +404,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         map.addSource(SOURCE_ID, {
           type: "geojson",
           data,
-          cluster: true,
+          cluster,
           // Small radius: only group when the dots themselves would overlap.
           clusterRadius: 14,
           clusterMaxZoom: 16,
@@ -443,7 +449,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         /* style already torn down on unmount — map.remove() handles the rest */
       }
     };
-  }, [markers, clusterCategories]);
+  }, [markers, clusterCategories, cluster]);
 
   // Live user location (opt-in). Watches the device position and drops a blue dot,
   // and reports whether the view has moved off that dot so the hub can show the

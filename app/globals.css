@@ -463,3 +463,44 @@
     opacity: 0;
   }
 }
+
+/* Live, glowing sighting dots on the marketing dark map (scoped so the in-app
+   map keeps its calm, static markers). */
+.nautica-live-map .nautica-point-dot {
+  animation: nautica-live-pulse 2.4s ease-in-out infinite;
+}
+@keyframes nautica-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 6px 1px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px 5px currentColor;
+  }
+}
+
+/* Jellyfish (on screen 2) — soft depth shadow; gently lifts + glows on hover.
+   No base transform, so the hover transform is clean over its absolute offsets. */
+.nautica-jelly {
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  transition: transform 400ms ease, filter 400ms ease;
+}
+.nautica-jelly:hover {
+  transform: translateY(-8px) rotate(-3deg);
+  filter: drop-shadow(0 0 20px rgba(255, 200, 190, 0.7))
+    drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
+}
+
+/* Floating polaroids in the hero — gentle vertical bob (staggered via delay). */
+.nautica-float {
+  animation: nautica-float 6s ease-in-out infinite;
+}
+@keyframes nautica-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
