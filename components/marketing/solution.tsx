@@ -1,16 +1,10 @@
+import { Camera, Fingerprint } from "lucide-react";
 import Link from "next/link";
-import { SeaMap, type SeaMarker } from "@/components/map/sea-map";
 import { SwimmingShark } from "@/components/marketing/swimming-shark";
 
-const MARKERS: SeaMarker[] = [
-  { id: "a", lng: -9.35, lat: 38.66, color: "#F0506E" },
-  { id: "b", lng: -9.44, lat: 38.695, color: "#F5A524" },
-  { id: "c", lng: -9.245, lat: 38.63, color: "#A855F7" },
-];
-
 /**
- * Screen 3 — show the product + close. Two "who it's for" cards, then a narrow
- * reef-text CTA over the real dark-matter map, then a thin "Built with" trust row.
+ * Screen 3 — show the product + close. Two "who it's for" cards, verification
+ * banners, a reef-filled CTA, then a thin "Built with" trust row.
  */
 export function Solution() {
   return (
@@ -46,44 +40,55 @@ export function Solution() {
           </div>
         </div>
 
+        {/* (a2) Verification banners — the two proof pillars */}
+        <div className="mx-auto mt-6 grid max-w-4xl gap-4 sm:grid-cols-2">
+          <div className="flex items-center gap-4 rounded-2xl bg-[#0a1017] p-5 ring-1 ring-[#FF6F61]/20">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF6F61]/15">
+              <Camera className="size-5 text-[#FF6F61]" />
+            </span>
+            <div>
+              <p className="font-semibold text-white">AI photo ID</p>
+              <p className="mt-0.5 text-sm text-white/60">
+                An AI model names the species and signs a tamper-proof 0G check on
+                every photo.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-2xl bg-[#0a1017] p-5 ring-1 ring-[#FF6F61]/20">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF6F61]/15">
+              <Fingerprint className="size-5 text-[#FF6F61]" />
+            </span>
+            <div>
+              <p className="font-semibold text-white">Verified real human</p>
+              <p className="mt-0.5 text-sm text-white/60">
+                World ID proves every contributor is a unique, real person — no
+                bots, no wallet, no KYC.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Leopard shark swimming under the two-column cards */}
         <SwimmingShark />
 
-        {/* (b) Thin reef-text CTA bar over the real map */}
-        <div className="relative mx-auto mt-12 max-w-2xl">
-          <div className="relative overflow-hidden rounded-3xl bg-[#0a1017] ring-1 ring-white/10">
-            <SeaMap
-              interactive={false}
-              cluster={false}
-              styleUrl="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-              center={[-9.34, 38.66]}
-              zoom={10}
-              className="absolute inset-0 h-full w-full"
-              markers={MARKERS}
-            />
-
-            {/* Strong dark overlay for legibility */}
-            <div className="pointer-events-none absolute inset-0 bg-black/70" />
-
-            {/* Slim centered reef-filled CTA bar */}
-            <div className="relative z-10 flex items-center justify-center px-6 py-6 text-center">
-              <Link
-                href="/app"
-                className="text-3xl font-bold lg:text-5xl"
-                style={{
-                  backgroundImage: "url(/animals/reef2.jpg)",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  color: "transparent",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                Log your first sighting →
-              </Link>
-            </div>
-          </div>
+        {/* (b) Reef-filled CTA — straight on the page, no box */}
+        <div className="mx-auto mt-12 flex max-w-2xl items-center justify-center py-6 text-center">
+          <Link
+            href="/app"
+            className="text-3xl font-bold lg:text-5xl"
+            style={{
+              backgroundImage: "url(/animals/reef2.jpg)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Log your first sighting →
+          </Link>
         </div>
 
         {/* (c) Thin trust row — last, before the footer */}
