@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { integrations } from "../config";
+import { log } from "../lib/logger";
 import { DAILY_QUESTS, getQuest } from "../content";
 import { levelForXp, PAID_UNLOCK_LEVEL } from "../lib/levels";
 import { store } from "../lib/store";
@@ -71,14 +73,20 @@ questRoutes.post("/:id/submit", async (c) => {
   const fresh = validateChallenge({ nonce: parsed.data.nonce, userId, questId: id });
   if (!fresh.ok) return c.json({ ok: false, reason: fresh.reason } satisfies SubmitResult);
 
-  // 0G verifiable classification.
+  // 0G verifiable classification. Award only on a TEE-verified pass; in dev-mock
+  // (no 0G key) the attestation is honestly simulated, so allow it there for testing.
   const attestation = await classifyImage({
     imageDataUrl: parsed.data.imageDataUrl,
     spec: quest.spec,
     species: quest.species,
   });
-  if (attestation.verdict !== "pass") {
-    return c.json({ ok: false, reason: `0G did not verify this shot (${attestation.label}).`, attestation } satisfies SubmitResult);
+  const verified = !attestation.simulated || !integrations.zeroG;
+  if (attestation.verdict !== "pass" || !verified) {
+    const reason =
+      attestation.verdict !== "pass"
+        ? `0G did not verify this shot (${attestation.label}).`
+        : "0G ran but its TEE attestation could not be verified; XP not awarded.";
+    return c.json({ ok: false, reason, attestation } satisfies SubmitResult);
   }
 
   // Fixed before the on-chain record so the emitted event and the gallery item
@@ -86,16 +94,25 @@ questRoutes.post("/:id/submit", async (c) => {
   const lat = parsed.data.lat ?? LISBON.lat + (Math.random() - 0.5) * 0.4;
   const lng = parsed.data.lng ?? LISBON.lng + (Math.random() - 0.5) * 0.4;
 
-  // Passed: record on-chain (trusted attestor), award XP, settle any payout.
-  const chainRes = await recordQuestCompletion({
-    wallet: u.wallet,
-    questId: id,
-    xp: quest.reward,
-    usdc: quest.usdc,
-    lat,
-    lng,
-    attestationHash: attestation.hash,
-  });
+  // Record on-chain (trusted attestor). If this throws, nothing landed — return
+  // cleanly so a retry is safe (no duplicate on-chain record).
+  let chainRes: Awaited<ReturnType<typeof recordQuestCompletion>>;
+  try {
+    chainRes = await recordQuestCompletion({
+      wallet: u.wallet,
+      questId: id,
+      xp: quest.reward,
+      usdc: quest.usdc,
+      lat,
+      lng,
+      attestationHash: attestation.hash,
+    });
+  } catch (err) {
+    log.error("chain: recordCompletion failed", { err: String(err) });
+    return c.json(
+      { ok: false, reason: "On-chain record failed; XP not awarded. Please try again.", attestation } satisfies SubmitResult,
+    );
+  }
 
   const before = levelForXp(u.xp);
   const after = levelForXp(u.xp + quest.reward);
@@ -119,22 +136,34 @@ questRoutes.post("/:id/submit", async (c) => {
   ];
   if (after > before) activity.unshift({ id: `a_${now}_lvl`, kind: "levelup", title: `Reached Level ${after}`, at: now });
 
+  // Settle payout best-effort: recordCompletion already landed, so the quest is
+  // awarded regardless. A payout failure leaves the payment pending — never a 500
+  // or an un-marked quest (which would let a retry duplicate the on-chain record).
   let payments = u.payments;
   let balanceUsd = u.balanceUsd;
   if (quest.kind === "paid" && quest.usdc) {
-    const payout = await settlePayout({ wallet: u.wallet, questId: id, usdc: quest.usdc });
+    let status: Payment["status"] = "settled";
+    let txHash: string | undefined;
+    try {
+      txHash = (await settlePayout({ wallet: u.wallet, questId: id, usdc: quest.usdc })).txHash;
+    } catch (err) {
+      log.error("chain: settlePayout failed; leaving payment pending", { err: String(err) });
+      status = "pending";
+    }
     const payment: Payment = {
       id: `p_${now}`,
       partner: quest.partner ?? "Research partner",
       quest: quest.title,
       usdc: quest.usdc,
-      status: "settled",
-      txHash: payout.txHash,
+      status,
+      txHash,
       at: now,
     };
     payments = [payment, ...u.payments];
-    balanceUsd += quest.usdc;
-    activity.unshift({ id: `a_${now}_pay`, kind: "payout", title: `Paid by ${payment.partner}`, usdc: quest.usdc, at: now });
+    if (status === "settled") {
+      balanceUsd += quest.usdc;
+      activity.unshift({ id: `a_${now}_pay`, kind: "payout", title: `Paid by ${payment.partner}`, usdc: quest.usdc, at: now });
+    }
   }
 
   store.updateUser(userId, {

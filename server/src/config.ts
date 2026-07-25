@@ -32,6 +32,12 @@ const Env = z.object({
   ZEROG_ROUTER: z.string().default("https://router-api.0g.ai/v1"),
   ZEROG_API_KEY: z.string().optional(),
   ZEROG_MODEL: z.string().default("qwen3-vl-30b"),
+  // On-chain provenance: read the serving provider's 0G Serving record (registered
+  // TEE signer, verifiability mode, acknowledgement) for the attestation. Read-only
+  // 0G chain RPC (no wallet key). ZEROG_SERVING_ADDRESS defaults to the mainnet
+  // inference Serving contract; unset it to skip the lookup.
+  ZEROG_CHAIN_RPC: z.string().default("https://evmrpc.0g.ai"),
+  ZEROG_SERVING_ADDRESS: z.string().default("0x47340d900bdFec2BD393c626E12ea0656F938d84"),
 
   SUBGRAPH_URL: z.string().optional(),
   SUBGRAPH_API_KEY: z.string().optional(),

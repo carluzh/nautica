@@ -33,16 +33,31 @@ export type Quest = {
   requirements?: string[];
 };
 
-/** Tamper-proof-ish record of a 0G TEE classification. */
+/** Record of a 0G TEE classification; verifiable fields come from x_0g_trace. */
 export type Attestation = {
   model: string;
   verdict: "pass" | "fail";
   confidence: number; // 0..1
   label: string;
-  tee: string; // enclave tech, e.g. "Intel TDX · TeeTLS"
-  hash: string; // digest of the attestation
-  simulated: boolean; // true when 0G was stubbed
+  tee: string; // honest enclave tech when verified (e.g. "TDX · TeeTLS"), else "unverified"/"simulated"
+  hash: string; // keccak256 attestation id (on-chain anchor)
+  simulated: boolean; // derived: !(x_0g_trace.tee_verified === true) — the honesty-critical field
   at: number;
+  // Verifiable-inference detail from a live 0G call (optional: on-chain-reconstructed
+  // records omit them). The XP gate keys on `simulated`, so these are display/audit.
+  teeVerified?: boolean;
+  attestationSource?: "0g-router:verify_tee" | "unverified" | "simulated" | "error";
+  provider?: string | null; // TEE provider 0x address
+  requestId?: string | null; // 0G router request id
+  chatId?: string | null;
+  verifiability?: string; // model's verifiability, read from /v1/models (e.g. "TeeTLS")
+  teeType?: string; // e.g. "TDX"
+  teeVerifier?: string; // e.g. "dstack"
+  outputHash?: string; // sha256 of model output (content digest, NOT a TEE proof)
+  // On-chain provenance of the serving provider (0G Serving contract getService):
+  teeSigner?: string | null; // its registered on-chain TEE signer address
+  providerVerifiability?: string | null; // its verifiability mode (TeeTLS | TeeML)
+  providerAcknowledged?: boolean | null; // whether it acknowledged its TEE signer on-chain
 };
 
 export type Profile = {
