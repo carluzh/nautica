@@ -79,7 +79,7 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 }
 
 export function SettingsDialog() {
-  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp } = useGame();
+  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, attachWallet } = useGame();
   const [notify, setNotify] = useState({ quests: true, payouts: true, streak: false });
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
@@ -121,6 +121,28 @@ export function SettingsDialog() {
                   Sign out
                 </Button>
               </Row>
+            </div>
+          </Section>
+
+          {/* Payout wallet */}
+          <Section title="Payout wallet">
+            <div className="space-y-2 rounded-lg border p-3">
+              {user.wallet ? (
+                <p className="tnum flex items-center gap-2 text-sm">
+                  <Wallet className="size-4 text-muted-foreground" />
+                  {user.wallet}
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Attach a wallet to receive USDC from paid quests.
+                  </p>
+                  <Button size="sm" className="w-full" onClick={attachWallet}>
+                    <Wallet className="size-3.5" />
+                    Connect wallet
+                  </Button>
+                </>
+              )}
             </div>
           </Section>
 
