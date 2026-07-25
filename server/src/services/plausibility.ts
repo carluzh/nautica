@@ -1,6 +1,7 @@
 import { log } from "../lib/logger";
 import { getSighting, getSpeciesSightings, type SightingPoint } from "./subgraph";
 import { narrate } from "./narration";
+import { recognizeSpecies } from "./species-recognition";
 import type { GalleryItem, PlausibilityVerdict, SpeciesId } from "../types";
 
 // Plausibility agent. After a sighting is recorded it reads that sighting back
@@ -189,6 +190,9 @@ export async function assessSighting(userId: string, sightingId: string): Promis
     cohort,
   );
   verdict.sightingId = sighting.id;
+
+  // Independent second-model species recognition (mock; non-gating cross-check).
+  verdict.recognition = recognizeSpecies(sighting.species, sighting.id);
 
   // Optional LLM narration over the deterministic verdict (no-op unless enabled).
   verdict.narrative = await narrate(verdict, sighting);

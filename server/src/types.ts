@@ -126,6 +126,17 @@ export type Payment = {
   at: number;
 };
 
+/** An independent species-recognition signal — a second model cross-checking 0G's
+ *  classification. Part of the agent's verification, surfaced but NON-gating. */
+export type SpeciesRecognition = {
+  model: string; // e.g. "iNaturalist"
+  label: string; // predicted scientific name
+  commonName?: string;
+  confidence: number; // 0..1
+  agrees: boolean; // prediction matches the quest's expected species
+  alternatives?: { label: string; confidence: number }[];
+};
+
 /** Plausibility agent verdict for a sighting (see services/plausibility.ts). */
 export type PlausibilityVerdict = {
   sightingId: string;
@@ -142,6 +153,8 @@ export type PlausibilityVerdict = {
   /** Optional one-sentence LLM narration of the verdict (only when the agent's
    *  LLM layer is enabled); the deterministic fields above are always present. */
   narrative?: string;
+  /** Independent second-model species recognition (mock; non-gating cross-check). */
+  recognition?: SpeciesRecognition;
   at: number;
 };
 

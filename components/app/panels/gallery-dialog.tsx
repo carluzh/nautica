@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, Database, ExternalLink, Images, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, Check, Database, ExternalLink, Images, Loader2, MapPin, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
@@ -122,6 +122,26 @@ function Card({ item }: { item: GalleryItem }) {
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Loader2 className="size-3 animate-spin" />
             Checking plausibility…
+          </div>
+        ) : null}
+        {verdict?.recognition ? (
+          <div
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            title={
+              verdict.recognition.alternatives?.some((a) => a.label)
+                ? `${verdict.recognition.model}: ${verdict.recognition.label}${verdict.recognition.commonName ? ` (${verdict.recognition.commonName})` : ""} ${Math.round(verdict.recognition.confidence * 100)}%. Also considered: ${verdict.recognition.alternatives.filter((a) => a.label).map((a) => `${a.label} ${Math.round(a.confidence * 100)}%`).join(", ")}`
+                : `${verdict.recognition.model}: ${verdict.recognition.label}`
+            }
+          >
+            <ScanLine className="size-3 text-primary" />
+            <span className="truncate">
+              {verdict.recognition.model} · {Math.round(verdict.recognition.confidence * 100)}%
+            </span>
+            {verdict.recognition.agrees ? (
+              <Check className="size-3 shrink-0 text-success" />
+            ) : (
+              <AlertTriangle className="size-3 shrink-0 text-warning" />
+            )}
           </div>
         ) : null}
         {item.storageRoot ? (

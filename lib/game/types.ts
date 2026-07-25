@@ -115,6 +115,17 @@ export type Sighting = {
   label?: string;
 };
 
+/** An independent species-recognition signal — a second model cross-checking 0G's
+ *  classification. Part of the agent's verification, surfaced but NON-gating. */
+export type SpeciesRecognition = {
+  model: string; // e.g. "iNaturalist"
+  label: string; // predicted scientific name
+  commonName?: string;
+  confidence: number; // 0..1
+  agrees: boolean; // prediction matches the quest's expected species
+  alternatives?: { label: string; confidence: number }[];
+};
+
 /** The plausibility agent's verdict for a sighting (mirrors server/src/types.ts).
  *  Loaded lazily per gallery card; additive to the existing GalleryItem shape. */
 export type PlausibilityVerdict = {
@@ -128,6 +139,7 @@ export type PlausibilityVerdict = {
   seasonNote?: string;
   corroboratingNearby?: number;
   narrative?: string; // optional one-sentence LLM narration (agent LLM layer)
+  recognition?: SpeciesRecognition; // independent second-model species check (non-gating)
   at: number;
 };
 
