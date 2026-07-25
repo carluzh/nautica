@@ -119,6 +119,8 @@ type GameValue = {
   setOpenPanel: (p: PanelId | null) => void;
   openQuest: (questId: string) => void;
   connectWorldId: () => void;
+  connectGoogle: () => void;
+  connectWallet: () => void;
   verify: (step: VerifyStep) => void;
   submitQuest: (questId: string, photo?: File | null) => Promise<SubmitResult>;
   withdraw: () => void;
@@ -196,6 +198,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, [hydrate]);
+
+  // Google / Wallet sign-in. In mock mode they seed the same returning player as
+  // World ID so the hub is populated. Real integrations need backend routes that
+  // don't exist yet (server owns /auth/*) — hence the honest API-mode message.
+  const connectGoogle = useCallback(() => {
+    if (!apiEnabled) {
+      // Non-World-ID login starts UNVERIFIED — must climb the World ID ladder to earn.
+      setUser((u) => ({ ...u, ...RETURNING_USER, verification: { face: false, passport: false, orb: false } } as UserState));
+      setGallery(SEED_GALLERY);
+      setHistory(SEED_HISTORY);
+      return;
+    }
+    setError("Google sign-in isn't wired to the backend yet.");
+  }, []);
+
+  const connectWallet = useCallback(() => {
+    if (!apiEnabled) {
+      setUser((u) => ({ ...u, ...RETURNING_USER, verification: { face: false, passport: false, orb: false } } as UserState));
+      setGallery(SEED_GALLERY);
+      setHistory(SEED_HISTORY);
+      return;
+    }
+    setError("Wallet sign-in isn't wired to the backend yet.");
+  }, []);
 
   const verify = useCallback(
     (step: VerifyStep) => {
@@ -335,6 +361,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setOpenPanel,
     openQuest,
     connectWorldId,
+    connectGoogle,
+    connectWallet,
     verify,
     submitQuest,
     withdraw,
