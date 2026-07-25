@@ -1,111 +1,105 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Dark is the product default. `dark:` utilities stay live because <html> carries
-   the .dark class; light marketing islands opt back in with `.theme-light`. */
-@custom-variant dark (&:is(.dark *));
+/* Light-first, friendly brand. Optional dark sections opt in with `.theme-dark`. */
+@custom-variant dark (&:is(.theme-dark *));
 
 /* ---------------------------------------------------------------------------
-   NAUTICA palette — deep marine ink + teal, tuned for dark-first.
-   :root ships the dark values so the whole app is dark with zero JS.
-   .theme-light re-declares the tokens for the marketing page's light bands.
+   NAUTICA palette — warm, airy, Airbnb-adjacent, with a vibrant teal accent.
+   Light is the default everywhere. `.theme-dark` re-declares the tokens for any
+   band that wants to go dark.
 --------------------------------------------------------------------------- */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.9rem;
 
-  --background: oklch(0.165 0.021 236);
-  --foreground: oklch(0.955 0.008 220);
-
-  --card: oklch(0.196 0.024 236);
-  --card-foreground: oklch(0.955 0.008 220);
-
-  --popover: oklch(0.188 0.023 237);
-  --popover-foreground: oklch(0.955 0.008 220);
-
-  --primary: oklch(0.802 0.126 187);
-  --primary-foreground: oklch(0.196 0.036 220);
-
-  --secondary: oklch(0.262 0.03 236);
-  --secondary-foreground: oklch(0.955 0.008 220);
-
-  --muted: oklch(0.238 0.024 236);
-  --muted-foreground: oklch(0.688 0.024 218);
-
-  --accent: oklch(0.305 0.052 200);
-  --accent-foreground: oklch(0.955 0.01 205);
-
-  --destructive: oklch(0.637 0.208 25);
-  --destructive-foreground: oklch(0.975 0.01 20);
-
-  --success: oklch(0.72 0.15 162);
-  --warning: oklch(0.79 0.14 78);
-
-  --border: oklch(0.29 0.021 236);
-  --input: oklch(0.31 0.022 236);
-  --ring: oklch(0.802 0.126 187);
-
-  --chart-1: oklch(0.802 0.126 187);
-  --chart-2: oklch(0.7 0.13 220);
-  --chart-3: oklch(0.72 0.15 162);
-  --chart-4: oklch(0.79 0.14 78);
-  --chart-5: oklch(0.66 0.16 300);
-
-  --sidebar: oklch(0.185 0.022 237);
-  --sidebar-foreground: oklch(0.955 0.008 220);
-  --sidebar-primary: oklch(0.802 0.126 187);
-  --sidebar-primary-foreground: oklch(0.196 0.036 220);
-  --sidebar-accent: oklch(0.262 0.03 236);
-  --sidebar-accent-foreground: oklch(0.955 0.008 220);
-  --sidebar-border: oklch(0.29 0.021 236);
-  --sidebar-ring: oklch(0.802 0.126 187);
-}
-
-/* Light band for the marketing page. Wrap a <section> in `theme-light` to get a
-   fully light island inside the otherwise-dark document. */
-.theme-light {
-  color-scheme: light;
-
-  --background: oklch(0.985 0.004 220);
-  --foreground: oklch(0.21 0.03 240);
+  --background: oklch(0.994 0.003 95);
+  --foreground: oklch(0.245 0.006 60);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.03 240);
+  --card-foreground: oklch(0.245 0.006 60);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.03 240);
+  --popover-foreground: oklch(0.245 0.006 60);
 
-  --primary: oklch(0.58 0.108 195);
-  --primary-foreground: oklch(0.985 0.008 200);
+  --primary: oklch(0.702 0.132 194);
+  --primary-foreground: oklch(0.99 0.005 190);
 
-  --secondary: oklch(0.952 0.012 220);
-  --secondary-foreground: oklch(0.24 0.03 240);
+  --secondary: oklch(0.966 0.006 85);
+  --secondary-foreground: oklch(0.29 0.008 60);
 
-  --muted: oklch(0.962 0.008 220);
-  --muted-foreground: oklch(0.52 0.02 235);
+  --muted: oklch(0.969 0.005 85);
+  --muted-foreground: oklch(0.552 0.011 66);
 
-  --accent: oklch(0.93 0.032 195);
-  --accent-foreground: oklch(0.24 0.04 220);
+  --accent: oklch(0.952 0.036 195);
+  --accent-foreground: oklch(0.43 0.083 202);
 
-  --destructive: oklch(0.577 0.222 25);
-  --destructive-foreground: oklch(0.985 0.01 20);
+  --destructive: oklch(0.62 0.208 21);
+  --destructive-foreground: oklch(0.99 0.01 20);
 
-  --success: oklch(0.6 0.13 162);
-  --warning: oklch(0.7 0.14 70);
+  --success: oklch(0.66 0.14 158);
+  --warning: oklch(0.8 0.138 74);
 
-  --border: oklch(0.9 0.008 230);
-  --input: oklch(0.9 0.008 230);
-  --ring: oklch(0.58 0.108 195);
+  --border: oklch(0.916 0.004 85);
+  --input: oklch(0.9 0.004 85);
+  --ring: oklch(0.702 0.132 194);
+
+  --chart-1: oklch(0.702 0.132 194);
+  --chart-2: oklch(0.62 0.13 232);
+  --chart-3: oklch(0.66 0.14 158);
+  --chart-4: oklch(0.8 0.138 74);
+  --chart-5: oklch(0.62 0.16 300);
+
+  --sidebar: oklch(0.99 0.003 95);
+  --sidebar-foreground: oklch(0.245 0.006 60);
+  --sidebar-primary: oklch(0.702 0.132 194);
+  --sidebar-primary-foreground: oklch(0.99 0.005 190);
+  --sidebar-accent: oklch(0.952 0.036 195);
+  --sidebar-accent-foreground: oklch(0.43 0.083 202);
+  --sidebar-border: oklch(0.916 0.004 85);
+  --sidebar-ring: oklch(0.702 0.132 194);
 }
 
-.dark {
+/* The site is already light; `.theme-light` remains a no-op alias so any markup
+   still tagged with it keeps rendering light. */
+.theme-light {
+  color-scheme: light;
+}
+
+/* Opt-in dark band (deep marine ink). */
+.theme-dark {
   color-scheme: dark;
+
+  --background: oklch(0.171 0.021 236);
+  --foreground: oklch(0.955 0.008 220);
+  --card: oklch(0.204 0.024 236);
+  --card-foreground: oklch(0.955 0.008 220);
+  --popover: oklch(0.196 0.023 237);
+  --popover-foreground: oklch(0.955 0.008 220);
+  --primary: oklch(0.8 0.126 189);
+  --primary-foreground: oklch(0.2 0.036 220);
+  --secondary: oklch(0.27 0.03 236);
+  --secondary-foreground: oklch(0.955 0.008 220);
+  --muted: oklch(0.246 0.024 236);
+  --muted-foreground: oklch(0.7 0.024 218);
+  --accent: oklch(0.315 0.052 200);
+  --accent-foreground: oklch(0.955 0.01 205);
+  --destructive: oklch(0.64 0.208 24);
+  --destructive-foreground: oklch(0.975 0.01 20);
+  --success: oklch(0.74 0.15 160);
+  --warning: oklch(0.8 0.14 78);
+  --border: oklch(0.3 0.021 236);
+  --input: oklch(0.32 0.022 236);
+  --ring: oklch(0.8 0.126 189);
+  --sidebar: oklch(0.196 0.023 237);
+  --sidebar-foreground: oklch(0.955 0.008 220);
+  --sidebar-border: oklch(0.3 0.021 236);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -144,8 +138,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
 }
 
 @layer base {
@@ -166,30 +160,37 @@
   }
 }
 
-/* Fixed grain overlay for depth (borrowed texture trick from the onemore/canary
-   house style, reinterpreted for dark). Applied via <body> child in layout. */
-.grain-overlay {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  opacity: 0.02;
-  background-image: url("/noise.png");
-  mix-blend-mode: overlay;
-}
-
-/* Tabular numbers for all market/price/data readouts. */
+/* Tabular figures for data/prices — in the brand sans, not a techy monospace. */
 .tnum {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/* MapLibre: strip the default light chrome so the dark basemap reads clean. */
-.maplibregl-ctrl-attrib,
-.maplibregl-ctrl-logo {
-  opacity: 0.4;
+/* MapLibre chrome, restyled to the light brand: soft, rounded, subtle shadow. */
+.maplibregl-ctrl-group {
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 14px rgba(23, 43, 54, 0.1) !important;
+}
+.maplibregl-ctrl-group button {
+  width: 34px !important;
+  height: 34px !important;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(6px);
 }
 .maplibregl-ctrl-attrib a {
   color: var(--muted-foreground);
+}
+
+/* Airbnb-style map markers: white pill, teal ring, soft shadow, gentle hover. */
+.nautica-sea-marker {
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.nautica-sea-marker:hover {
+  transform: scale(1.12);
+  z-index: 5;
 }

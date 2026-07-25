@@ -30,11 +30,6 @@ function Hub() {
   return (
     <div className="relative h-svh w-full overflow-hidden bg-background">
       <SeaMap className="absolute inset-0" markers={markers} />
-      {/* Legibility scrim over the basemap. Non-interactive so the map still pans. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/50 via-background/10 to-background/70"
-      />
 
       {/* Floating chrome (each element manages its own pointer-events). */}
       <TopBar />

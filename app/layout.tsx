@@ -1,26 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const inter = Inter({
+// Plus Jakarta Sans — a warm, rounded, geometric humanist sans. Friendly and
+// approachable (Airbnb-adjacent), not techy.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
   display: "swap",
-});
-
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
-  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Nautica — verified marine intelligence",
+  title: "Nautica — citizen science, leveled up",
   description:
-    "Nautica pays people to report what is happening in the ocean, and turns verified sightings into live prediction markets for coastal risk.",
+    "Play daily nature-photo quests, earn XP, and level up. World ID and 0G make every record verifiable enough for researchers to fund.",
 };
 
 export default function RootLayout({
@@ -28,14 +23,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // .dark keeps shadcn `dark:` variants live; the palette itself is dark by
-  // default (see globals.css), so the app is dark with no theme JS.
+  // Light by default (palette lives in globals.css :root). Dark bands opt in
+  // with `.theme-dark`.
   return (
-    <html lang="en" className={`dark ${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={jakarta.variable}>
       <body>
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="top-center" />
-        <div aria-hidden className="grain-overlay" />
       </body>
     </html>
   );
