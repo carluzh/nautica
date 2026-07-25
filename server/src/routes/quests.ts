@@ -13,6 +13,7 @@ import { recordQuestCompletion, settlePayout } from "../services/chain";
 import type { ActivityEvent, GalleryItem, Payment, SubmitResult } from "../types";
 
 const LISBON = { lng: -9.15, lat: 38.7 };
+const MIN_CONFIDENCE = 0.6; // a weak "pass" (low model confidence) does not award XP
 const submitSchema = z.object({
   imageDataUrl: z.string().min(16),
   nonce: z.string(),
@@ -81,11 +82,14 @@ questRoutes.post("/:id/submit", async (c) => {
     species: quest.species,
   });
   const verified = !attestation.simulated || !integrations.zeroG;
-  if (attestation.verdict !== "pass" || !verified) {
+  const confident = attestation.confidence >= MIN_CONFIDENCE;
+  if (attestation.verdict !== "pass" || !verified || !confident) {
     const reason =
       attestation.verdict !== "pass"
         ? `0G did not verify this shot (${attestation.label}).`
-        : "0G ran but its TEE attestation could not be verified; XP not awarded.";
+        : !verified
+          ? "0G ran but its TEE attestation could not be verified; XP not awarded."
+          : `0G wasn't confident enough about this shot (${Math.round(attestation.confidence * 100)}% · ${attestation.label}). Try a clearer photo.`;
     return c.json({ ok: false, reason, attestation } satisfies SubmitResult);
   }
 

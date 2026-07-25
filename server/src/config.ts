@@ -38,6 +38,12 @@ const Env = z.object({
   // inference Serving contract; unset it to skip the lookup.
   ZEROG_CHAIN_RPC: z.string().default("https://evmrpc.0g.ai"),
   ZEROG_SERVING_ADDRESS: z.string().default("0x47340d900bdFec2BD393c626E12ea0656F938d84"),
+  // DCAP: independently verify the provider's Intel TDX quote against Intel's root
+  // of trust via Automata's on-chain verifier (a free eth_call). Defaults target a
+  // live Automata deployment on Ethereum Sepolia; Phala's off-chain verifier is the
+  // fallback. Swap ZEROG_DCAP_VERIFIER + RPC for a mainnet Automata deployment.
+  ZEROG_DCAP_RPC: z.string().default("https://ethereum-sepolia-rpc.publicnode.com"),
+  ZEROG_DCAP_VERIFIER: z.string().default("0x76A3657F2d6c5C66733e9b69ACaDadCd0B68788b"),
 
   SUBGRAPH_URL: z.string().optional(),
   SUBGRAPH_API_KEY: z.string().optional(),

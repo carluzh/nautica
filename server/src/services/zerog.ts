@@ -19,7 +19,13 @@ import type { Attestation } from "../types";
 type Trace = { tee_verified?: boolean | null; provider?: string; request_id?: string };
 type Catalog = { verifiability: string; teeType: string; teeVerifier: string };
 type Verdict = { verdict: "pass" | "fail"; confidence: number; label: string };
-type ProviderService = { signer: string; verifiability: string; acknowledged: boolean };
+type ProviderService = {
+  signer: string;
+  verifiability: string;
+  acknowledged: boolean;
+  quoteVerified: boolean; // independent Intel TDX quote check (DCAP)
+  quoteVerifier: string | null; // "automata-onchain" | "phala-offchain"
+};
 
 const FALLBACK_CATALOG: Catalog = { verifiability: "TeeTLS", teeType: "TDX", teeVerifier: "dstack" };
 let catalogCache: Catalog | null = null;
@@ -45,11 +51,15 @@ async function getCatalog(): Promise<Catalog> {
 
 function buildPrompt(spec: string, species: string): string {
   return [
-    "You verify citizen-science wildlife photos for a rewards game.",
+    "You verify citizen-science wildlife photos for a rewards game, and you guard against cheating.",
     `The quest requires: ${spec}`,
     `Expected subject: ${species}.`,
-    "Decide if the photo clearly and honestly satisfies the quest.",
-    'Reply with STRICT JSON only: {"verdict":"pass"|"fail","confidence":0..1,"label":"<one short phrase of what you see>"}.',
+    "PASS only if this is a genuine first-hand photograph that clearly shows the expected subject.",
+    "FAIL if the expected subject is absent, is a different species, or does not match the quest.",
+    "FAIL if it is not a real-world photo of a real animal: reject photos of a screen or monitor, screenshots, printouts or a photo of another photo, drawings, paintings, illustrations, toys, or obvious stock or watermarked images.",
+    "Watch for signs of a re-photographed screen or print: moire patterns, an LCD pixel grid, screen glare or bezels, paper or print-dot texture, watermarks, or on-screen UI.",
+    "If you are unsure whether the subject is a genuine live animal, lower your confidence instead of guessing pass.",
+    'Reply with STRICT JSON only, no prose: {"verdict":"pass"|"fail","confidence":0..1,"label":"<short phrase: what you see, or why it failed>"}.',
   ].join(" ");
 }
 
@@ -108,6 +118,81 @@ function chainClient() {
   return publicClient;
 }
 
+// --- DCAP: independently verify the provider's Intel TDX attestation quote -----
+// Cross-check the on-chain teeSignerAddress against the quote's report_data, then
+// verify the quote against Intel's root of trust: Automata's on-chain DCAP verifier
+// (trustless, a free eth_call) with Phala's off-chain verifier as a fallback.
+const DCAP_ABI = [
+  {
+    type: "function",
+    name: "verifyAndAttestOnChain",
+    stateMutability: "view",
+    inputs: [{ name: "rawQuote", type: "bytes" }],
+    outputs: [
+      { name: "success", type: "bool" },
+      { name: "output", type: "bytes" },
+    ],
+  },
+] as const;
+
+let dcapPublicClient: ReturnType<typeof createPublicClient> | null = null;
+function dcapClient() {
+  if (!dcapPublicClient) dcapPublicClient = createPublicClient({ transport: http(config.ZEROG_DCAP_RPC) });
+  return dcapPublicClient;
+}
+
+async function verifyQuoteAutomata(quoteHex: `0x${string}`): Promise<boolean> {
+  try {
+    const r = (await dcapClient().readContract({
+      address: getAddress(config.ZEROG_DCAP_VERIFIER),
+      abi: DCAP_ABI,
+      functionName: "verifyAndAttestOnChain",
+      args: [quoteHex],
+    })) as readonly [boolean, string];
+    return r[0] === true;
+  } catch {
+    return false;
+  }
+}
+
+async function verifyQuotePhala(quoteHex: string): Promise<boolean> {
+  try {
+    const res = await fetch("https://cloud-api.phala.network/api/v1/attestations/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hex: quoteHex }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const j = (await res.json().catch(() => ({}))) as { verified?: boolean };
+    return j.verified === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Fetch the provider's TDX quote, bind it to the on-chain signer, verify it. Best-effort. */
+async function verifyProviderQuote(
+  url: string,
+  signer: string,
+): Promise<{ quoteVerified: boolean; quoteVerifier: string | null }> {
+  const none = { quoteVerified: false, quoteVerifier: null };
+  try {
+    const res = await fetch(`${url.replace(/\/$/, "")}/v1/quote`, { signal: AbortSignal.timeout(8000) });
+    const q = (await res.json().catch(() => ({}))) as { quote?: string; report_data?: string };
+    if (!q.quote || !q.report_data) return none;
+    // report_data (base64) decodes to the ASCII signer address -> binds the quote to the on-chain signer.
+    const reportSigner = Buffer.from(q.report_data, "base64").toString("utf8").replace(/\0+$/, "").trim();
+    if (reportSigner.toLowerCase() !== signer.toLowerCase()) return none;
+    const hexArg = (q.quote.startsWith("0x") ? q.quote : `0x${q.quote}`) as `0x${string}`;
+    if (await verifyQuoteAutomata(hexArg)) return { quoteVerified: true, quoteVerifier: "automata-onchain" };
+    if (await verifyQuotePhala(q.quote)) return { quoteVerified: true, quoteVerifier: "phala-offchain" };
+    return none;
+  } catch (err) {
+    log.warn("0g: quote verification failed", { err: String(err) });
+    return none;
+  }
+}
+
 // Cached per provider (providers are stable), so it's one read per provider, not per call.
 const serviceCache = new Map<string, ProviderService | null>();
 async function resolveProviderService(provider: string): Promise<ProviderService | null> {
@@ -122,8 +207,14 @@ async function resolveProviderService(provider: string): Promise<ProviderService
       abi: SERVING_ABI,
       functionName: "getService",
       args: [getAddress(provider)],
-    })) as { teeSignerAddress: string; verifiability: string; teeSignerAcknowledged: boolean };
-    result = { signer: s.teeSignerAddress, verifiability: s.verifiability, acknowledged: s.teeSignerAcknowledged };
+    })) as { url: string; teeSignerAddress: string; verifiability: string; teeSignerAcknowledged: boolean };
+    const quote = await verifyProviderQuote(s.url, s.teeSignerAddress);
+    result = {
+      signer: s.teeSignerAddress,
+      verifiability: s.verifiability,
+      acknowledged: s.teeSignerAcknowledged,
+      ...quote,
+    };
   } catch (err) {
     log.warn("0g: provider service lookup failed", { err: String(err) });
   }
@@ -186,8 +277,34 @@ export function buildAttestation(p: {
     teeSigner: p.service?.signer ?? null,
     providerVerifiability: p.service?.verifiability ?? null,
     providerAcknowledged: p.service?.acknowledged ?? null,
+    quoteVerified: p.service?.quoteVerified ?? null,
+    quoteVerifier: p.service?.quoteVerifier ?? null,
     at: Date.now(),
   };
+}
+
+// Retry only transport failures (429 / 5xx / network / timeout), each with a fresh
+// 30s timeout. A 200 with tee_verified:false is a real verdict and a 4xx is our
+// bug, so neither is retried. Exhausting retries throws into the caller's catch
+// (fail closed). This matters because the freshness nonce is already consumed, so
+// a transient blip would otherwise burn a valid submission.
+async function postWithRetry(url: string, init: RequestInit): Promise<Response> {
+  const backoff = [500, 1500];
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= backoff.length; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, backoff[attempt - 1]));
+    try {
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
+      if (res.status !== 429 && res.status < 500) return res;
+      lastErr = new Error(`0g router ${res.status}`);
+      res.body?.cancel();
+      log.warn("0g: transient router status, retrying", { status: res.status, attempt });
+    } catch (err) {
+      lastErr = err;
+      log.warn("0g: transport error, retrying", { err: String(err), attempt });
+    }
+  }
+  throw lastErr;
 }
 
 export async function classifyImage(input: {
@@ -211,9 +328,8 @@ export async function classifyImage(input: {
   }
 
   try {
-    const res = await fetch(`${config.ZEROG_ROUTER}/chat/completions`, {
+    const res = await postWithRetry(`${config.ZEROG_ROUTER}/chat/completions`, {
       method: "POST",
-      signal: AbortSignal.timeout(30000), // vision inference; fail closed if the router stalls
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.ZEROG_API_KEY}`,
@@ -222,6 +338,8 @@ export async function classifyImage(input: {
       body: JSON.stringify({
         model: config.ZEROG_MODEL,
         verify_tee: true, // Router extension: turns on the synchronous TEE-signature check
+        response_format: { type: "json_object" }, // guarantee syntactic JSON content
+        seed: 42, // pin sampling (deterministic; belt-and-suspenders with temperature:0)
         temperature: 0,
         max_tokens: 300,
         messages: [

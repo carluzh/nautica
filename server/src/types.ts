@@ -58,6 +58,10 @@ export type Attestation = {
   teeSigner?: string | null; // its registered on-chain TEE signer address
   providerVerifiability?: string | null; // its verifiability mode (TeeTLS | TeeML)
   providerAcknowledged?: boolean | null; // whether it acknowledged its TEE signer on-chain
+  // Independent Intel TDX quote verification (DCAP): the provider's hardware
+  // attestation verified against Intel's root of trust + bound to its on-chain signer.
+  quoteVerified?: boolean | null;
+  quoteVerifier?: string | null; // "automata-onchain" | "phala-offchain"
 };
 
 export type Profile = {
