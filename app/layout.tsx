@@ -13,9 +13,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Nautica — citizen science, leveled up",
-  description:
-    "Play daily nature-photo quests, earn XP, and level up. World ID and 0G make every record verifiable enough for researchers to fund.",
+  title: "nautica",
 };
 
 export default function RootLayout({

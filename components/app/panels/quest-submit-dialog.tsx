@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AttestationBadge, AttestationDetail } from "@/components/app/attestation";
+import { LocationPicker } from "@/components/app/location-picker";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
-import type { Attestation, Quest } from "@/lib/game/types";
+import type { Attestation, PickedPlace, Quest } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
 type Phase = "idle" | "submitting" | "success" | "error";
@@ -52,6 +53,7 @@ export function QuestSubmitDialog() {
   const [ok, setOk] = useState<OkResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nonce, setNonce] = useState<string>("");
+  const [place, setPlace] = useState<PickedPlace | null>(null);
 
   // (Re)initialize whenever the dialog opens for a quest. Random nonce runs
   // client-only here, so there is no SSR hydration mismatch.
@@ -61,6 +63,7 @@ export function QuestSubmitDialog() {
     setPhase("idle");
     setOk(null);
     setErr(null);
+    setPlace(null);
     setNonce(makeNonce());
   }, [open, quest?.id]);
 
@@ -100,7 +103,7 @@ export function QuestSubmitDialog() {
     if (!quest || !file || submitting) return;
     setErr(null);
     setPhase("submitting");
-    const res = await submitQuest(quest.id, file);
+    const res = await submitQuest(quest.id, file, place ?? undefined);
     if (res.ok) {
       setOk({ attestation: res.attestation, leveledTo: res.leveledTo, usdc: res.usdc });
       setPhase("success");
@@ -249,6 +252,16 @@ export function QuestSubmitDialog() {
                     </div>
                   ) : null}
                 </label>
+
+                {/* location: GPS-anchored spot + precision radius */}
+                {!submitting ? (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Where did you see it?
+                    </span>
+                    <LocationPicker onChange={setPlace} />
+                  </div>
+                ) : null}
 
                 {/* inline error (e.g. locked / verification needed) */}
                 {phase === "error" && err ? (

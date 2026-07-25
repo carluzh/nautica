@@ -50,6 +50,11 @@ meRoutes.get("/sightings/:id/plausibility", async (c) => {
   const verdict = await assessSighting(userId, sightingId);
   if (!verdict) return c.json({ error: "sighting not found" }, 404);
 
+  // Bound the cache (simple FIFO eviction) so it can't grow without limit.
+  if (plausibilityCache.size >= 5000) {
+    const oldest = plausibilityCache.keys().next().value;
+    if (oldest) plausibilityCache.delete(oldest);
+  }
   plausibilityCache.set(cacheKey, verdict);
   return c.json(verdict);
 });

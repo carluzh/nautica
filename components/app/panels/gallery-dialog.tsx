@@ -27,7 +27,7 @@ const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: 
 function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
   const tone = VERDICT_TONE[verdict.verdict];
   return (
-    <div className="flex items-center gap-1.5" title={verdict.reasons.join(" ")}>
+    <div className="flex items-center gap-1.5" title={verdict.narrative ?? verdict.reasons.join(" ")}>
       <span className={`inline-block size-1.5 shrink-0 rounded-full ${tone.dot}`} />
       <span className={`text-[11px] font-medium ${tone.text}`}>{tone.label}</span>
       {verdict.notable ? (

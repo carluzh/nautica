@@ -2,7 +2,6 @@
 
 import { Globe, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NauticaLogo } from "@/components/brand/nautica-logo";
 import { useGame } from "@/lib/game/provider";
 
 /** Four-colour Google "G" (lucide has no brand marks). */
@@ -41,7 +40,24 @@ export function LoginGate() {
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-sm rounded-2xl border bg-card/90 p-6 text-center shadow-2xl">
         <div className="mx-auto flex size-12 items-center justify-center rounded-xl border bg-background">
-          <NauticaLogo size={26} />
+          {/* The real brand mark (public/logo.png), tinted coral via CSS mask —
+              same treatment as the sidebar so login matches the app chrome. */}
+          <span
+            role="img"
+            aria-label="Nautica"
+            className="size-7"
+            style={{
+              backgroundColor: "#FF6F61",
+              maskImage: "url(/logo.png)",
+              WebkitMaskImage: "url(/logo.png)",
+              maskSize: "contain",
+              WebkitMaskSize: "contain",
+              maskRepeat: "no-repeat",
+              WebkitMaskRepeat: "no-repeat",
+              maskPosition: "center",
+              WebkitMaskPosition: "center",
+            }}
+          />
         </div>
         <h1 className="mt-4 text-lg font-semibold">Sign in to Nautica</h1>
         <p className="mt-2 text-sm text-muted-foreground">

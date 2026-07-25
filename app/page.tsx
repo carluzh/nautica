@@ -96,7 +96,7 @@ export default function MarketingPage() {
       <SiteNav />
 
       <main>
-        {/* ---- Hero (dark) ------------------------------------------------- */}
+        {/* ---- Hero ------------------------------------------------------- */}
         <section className="relative overflow-hidden">
           <HeroBackdrop />
           <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
@@ -144,7 +144,7 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* ---- How it works (light band) ---------------------------------- */}
+        {/* ---- How it works ----------------------------------------------- */}
         <section
           id="how"
           className="theme-light scroll-mt-20 border-t border-border bg-background text-foreground"
@@ -190,7 +190,7 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* ---- Two sides (dark) ------------------------------------------- */}
+        {/* ---- Two sides -------------------------------------------------- */}
         <section id="sides" className="scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
             <div className="max-w-2xl">
@@ -275,7 +275,7 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* ---- Stats strip (light band) ----------------------------------- */}
+        {/* ---- Stats strip ------------------------------------------------ */}
         <section
           id="data"
           className="theme-light scroll-mt-20 border-y border-border bg-background text-foreground"
@@ -323,7 +323,7 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* ---- Closing CTA (dark) ----------------------------------------- */}
+        {/* ---- Closing CTA ------------------------------------------------ */}
         <section className="relative">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
             <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card px-6 py-16 text-center sm:px-12 sm:py-20">

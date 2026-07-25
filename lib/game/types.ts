@@ -83,7 +83,23 @@ export type GalleryItem = {
   usdc?: number;
   lat: number;
   lng: number;
+  /** Precision radius (m) the user set around the spot; off-chain, may be absent. */
+  radiusM?: number;
   at: number;
+  /** On-chain tx that recorded this sighting; reconciles the optimistic item with
+   *  the subgraph-indexed one (same txHash). Absent on mock + simulated-fallback items. */
+  txHash?: string;
+};
+
+/** A location a user commits to a submission: a chosen spot + a precision radius,
+ *  optionally anchored to (and validated against) their live GPS fix. */
+export type PickedPlace = {
+  lat: number;
+  lng: number;
+  radiusM: number;
+  anchorLat?: number;
+  anchorLng?: number;
+  gpsAnchored: boolean;
 };
 
 /** An ambient community observation shown on the map. Map-only and read-only:

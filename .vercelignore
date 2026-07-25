@@ -1,0 +1,5 @@
+# Vercel builds the root Next.js app only. The backend, contracts, and subgraph
+# are separate deploys and aren't needed for the frontend build.
+server/
+contracts/
+subgraph/

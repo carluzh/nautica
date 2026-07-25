@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Images, Lock, Settings, Wallet, type LucideIcon } from "lucide-react";
+import { Flame, Images, LocateFixed, Lock, Settings, Wallet, type LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,7 +13,14 @@ import { LevelRing } from "./level-ring";
  * the profile avatar — the only floating chrome besides the map (the logo and the
  * category tabs live in the left sidebar).
  */
-export function MapHud() {
+export function MapHud({
+  showRecenter = false,
+  onRecenter,
+}: {
+  /** Show the "back to my location" button (only once the view is panned off you). */
+  showRecenter?: boolean;
+  onRecenter?: () => void;
+}) {
   const { user, level, paidUnlocked, setOpenPanel } = useGame();
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
@@ -28,7 +35,25 @@ export function MapHud() {
   ];
 
   return (
-    <div className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-xl border bg-card/80 p-1.5 shadow-xl backdrop-blur-md sm:top-4 sm:right-4">
+    <div className="absolute top-3 right-3 z-10 flex items-center gap-2 sm:top-4 sm:right-4">
+      {/* Recenter — appears to the LEFT of the profile bar once you pan away. */}
+      {showRecenter && onRecenter ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRecenter}
+              aria-label="Back to my location"
+              className="inline-flex items-center gap-1.5 rounded-xl border bg-card/80 px-2.5 py-2 text-sm font-medium shadow-xl backdrop-blur-md transition-colors duration-200 animate-in fade-in slide-in-from-right-2 hover:bg-accent/60"
+            >
+              <LocateFixed className="size-4 text-primary" />
+              <span className="hidden sm:inline">Recenter</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Back to my location</TooltipContent>
+        </Tooltip>
+      ) : null}
+
+      <div className="flex items-center gap-1 rounded-xl border bg-card/80 p-1.5 shadow-xl backdrop-blur-md">
       {/* Level (opens profile) */}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -95,6 +120,7 @@ export function MapHud() {
         </TooltipTrigger>
         <TooltipContent>Profile</TooltipContent>
       </Tooltip>
+      </div>
     </div>
   );
 }

@@ -46,6 +46,7 @@ import type {
   LevelInfo,
   PanelId,
   Payment,
+  PickedPlace,
   PlausibilityVerdict,
   Quest,
   SubmitResult,
@@ -159,7 +160,7 @@ type GameValue = {
   connectWallet: () => void;
   attachWallet: () => void;
   verify: (step: VerifyStep) => void;
-  submitQuest: (questId: string, photo?: File | null) => Promise<SubmitResult>;
+  submitQuest: (questId: string, photo?: File | null, place?: PickedPlace) => Promise<SubmitResult>;
   withdraw: () => void;
   grantXp: (n: number) => void;
   signOut: () => void;
@@ -407,7 +408,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const submitQuest = useCallback<GameValue["submitQuest"]>(
-    async (questId, photo) => {
+    async (questId, photo, place) => {
       const quest = quests.find((q) => q.id === questId);
       if (!quest) return { ok: false, reason: "Quest not found." };
 
@@ -418,7 +419,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
         try {
           const { nonce } = await api.challenge(token, questId);
           const imageDataUrl = photo ? await fileToDataUrl(photo) : "";
-          const result = await api.submit(token, questId, { nonce, imageDataUrl });
+          const result = await api.submit(token, questId, {
+            nonce,
+            imageDataUrl,
+            ...(place
+              ? {
+                  lat: place.lat,
+                  lng: place.lng,
+                  radiusM: place.radiusM,
+                  anchorLat: place.anchorLat,
+                  anchorLng: place.anchorLng,
+                }
+              : {}),
+          });
           if (result.ok) {
             await hydrate(token);
             if (result.leveledTo) setLastLevelUp(result.leveledTo);
@@ -456,8 +469,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
         attestation,
         xp: quest.reward,
         usdc: quest.usdc,
-        lat: LISBON[1] + jitter(),
-        lng: LISBON[0] + jitter(),
+        lat: place ? place.lat : LISBON[1] + jitter(),
+        lng: place ? place.lng : LISBON[0] + jitter(),
+        radiusM: place?.radiusM,
         at: Date.now(),
       };
       const before = computeLevel(user.xp).level;

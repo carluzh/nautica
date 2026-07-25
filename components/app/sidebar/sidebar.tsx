@@ -63,7 +63,7 @@ export function Sidebar({
               WebkitMaskPosition: "center",
             }}
           />
-          <span className="truncate text-xl font-bold tracking-tight">nautica</span>
+          <span className="relative top-[-2px] truncate text-xl font-bold tracking-tight">nautica</span>
         </Link>
         {onClose ? (
           <Button variant="ghost" size="icon-sm" onClick={onClose} className="shrink-0 lg:hidden">

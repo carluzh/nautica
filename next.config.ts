@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
+  // No ESLint config in the repo, so skip lint during `next build` (it fails in CI
+  // with no config). Type-checking still runs and gates the build.
+  eslint: { ignoreDuringBuilds: true },
 };
 
 export default nextConfig;

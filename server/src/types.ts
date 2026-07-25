@@ -130,6 +130,9 @@ export type PlausibilityVerdict = {
   seasonNote?: string;
   /** Count of nearby same-species sightings that corroborate this one. */
   corroboratingNearby?: number;
+  /** Optional one-sentence LLM narration of the verdict (only when the agent's
+   *  LLM layer is enabled); the deterministic fields above are always present. */
+  narrative?: string;
   at: number;
 };
 

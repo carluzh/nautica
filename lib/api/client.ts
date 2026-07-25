@@ -165,7 +165,15 @@ export const api = {
   submit(
     token: string,
     questId: string,
-    body: { imageDataUrl: string; nonce: string; lat?: number; lng?: number },
+    body: {
+      imageDataUrl: string;
+      nonce: string;
+      lat?: number;
+      lng?: number;
+      radiusM?: number;
+      anchorLat?: number;
+      anchorLng?: number;
+    },
   ) {
     // Submit always returns 200 with a SubmitResult (ok:true or ok:false).
     return req<SubmitResult>(`/quests/${questId}/submit`, { method: "POST", token, body });

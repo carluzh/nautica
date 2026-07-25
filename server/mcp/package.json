@@ -1,0 +1,12 @@
+{
+  "name": "nautica-subgraph-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing the Nautica subgraph (The Graph, Base) as agent tools.",
+  "bin": { "nautica-subgraph-mcp": "./subgraph-mcp.mjs" },
+  "scripts": { "start": "node subgraph-mcp.mjs" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  }
+}

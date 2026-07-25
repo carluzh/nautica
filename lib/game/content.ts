@@ -26,52 +26,69 @@ const Jellyfish = createLucideIcon("Jellyfish", [
 ]);
 
 // ---- Species presentation (labels, marker color token, icon) ----------------
-/** Coarse "should I care?" class. Drives the MAP marker color (glanceable);
- * species identity is carried by the pin icon + tooltip instead. */
-export type RiskClass = "hazard" | "invasive" | "normal";
+/** The 4 map filter categories. Drives the MAP marker color (glanceable) and the
+ * left-column filter toggles; species identity is carried by the pin icon + tooltip. */
+export type Category = "marine" | "invasive" | "hazard" | "rare";
 
 export type SpeciesMeta = {
   label: string;
   short: string;
   color: string; // per-species identity accent — used in the labeled panels
   icon: LucideIcon;
-  hazard?: boolean; // drives the gallery hazard badge; equals `risk !== "normal"`
-  risk: RiskClass; // drives the map marker color
-  plant?: boolean; // teal class only: plant → seagrass icon on the map, else fish
+  hazard?: boolean; // drives the gallery hazard badge (things to be cautious of)
+  category: Category; // drives the map marker color + the filter toggles
+  plant?: boolean; // marine plant → seagrass icon on the map, else fish
 };
 
-// On the map, COLOR means risk, not species — a glanceable read kept to 3 classes
-// so the legend stays tiny and colors never collide (the 9-species palette did).
-// These reuse the brand's status tokens on purpose: red = danger, amber = caution,
-// teal = the calm baseline. Never shown color-alone — always with icon + label.
-export const RISK_META: Record<RiskClass, { label: string; color: string }> = {
-  hazard: { label: "Hazard", color: "var(--destructive)" },
-  invasive: { label: "Invasive", color: "var(--warning)" },
-  normal: { label: "Marine life", color: "var(--primary)" },
+// On the map, COLOR means category, not species — a glanceable read kept to 4
+// classes so the legend stays tiny and colors never collide. Teal is kept here for
+// "Marine life" (the ocean read) even though the brand accent is now coral; red =
+// hazard, amber = invasive, violet = rare. Never shown color-alone — always with
+// icon + label. Ordered as shown in the filter/legend.
+export const CATEGORY_META: Record<Category, { label: string; color: string; icon: LucideIcon }> = {
+  marine: { label: "Marine life", color: "oklch(0.702 0.132 194)", icon: Fish },
+  invasive: { label: "Invasive species", color: "var(--warning)", icon: FishSymbol },
+  hazard: { label: "Hazards", color: "var(--destructive)", icon: Zap },
+  rare: { label: "Rare findings", color: "var(--chart-5)", icon: Star },
 };
+
+/** Filter/legend display order (matches the product spec order). */
+export const CATEGORY_ORDER: Category[] = ["marine", "invasive", "hazard", "rare"];
 
 export const SPECIES_META: Record<SpeciesId, SpeciesMeta> = {
-  Physalia: { label: "Physalia (Portuguese man-o-war)", short: "Physalia", color: "var(--destructive)", icon: Zap, hazard: true, risk: "hazard" },
-  Jellyfish: { label: "Jellyfish", short: "Jellyfish", color: "var(--warning)", icon: Umbrella, hazard: true, risk: "hazard" },
-  Crab: { label: "Crab", short: "Crab", color: "var(--chart-4)", icon: Bug, risk: "normal" },
-  ShoreFish: { label: "Shore fish", short: "Fish", color: "var(--primary)", icon: Fish, risk: "normal" },
-  ShorePlant: { label: "Shore plant", short: "Plant", color: "var(--success)", icon: Wheat, risk: "normal", plant: true },
-  SeaStar: { label: "Sea star", short: "Sea star", color: "var(--chart-5)", icon: Star, risk: "normal" },
-  Lionfish: { label: "Lionfish (invasive)", short: "Lionfish", color: "var(--destructive)", icon: FishSymbol, hazard: true, risk: "invasive" },
-  Turtle: { label: "Sea turtle", short: "Turtle", color: "var(--chart-3)", icon: Turtle, risk: "normal" },
-  Other: { label: "Other", short: "Other", color: "var(--muted-foreground)", icon: Droplets, risk: "normal" },
+  Physalia: { label: "Physalia (Portuguese man-o-war)", short: "Physalia", color: "var(--destructive)", icon: Zap, hazard: true, category: "hazard" },
+  Jellyfish: { label: "Jellyfish", short: "Jellyfish", color: "var(--warning)", icon: Umbrella, hazard: true, category: "hazard" },
+  Crab: { label: "Crab", short: "Crab", color: "var(--chart-4)", icon: Bug, category: "marine" },
+  ShoreFish: { label: "Shore fish", short: "Fish", color: "var(--primary)", icon: Fish, category: "marine" },
+  ShorePlant: { label: "Shore plant", short: "Plant", color: "var(--success)", icon: Wheat, category: "marine", plant: true },
+  SeaStar: { label: "Sea star", short: "Sea star", color: "var(--chart-5)", icon: Star, category: "rare" },
+  Lionfish: { label: "Lionfish (invasive)", short: "Lionfish", color: "var(--destructive)", icon: FishSymbol, hazard: true, category: "invasive" },
+  Turtle: { label: "Sea turtle", short: "Turtle", color: "var(--chart-3)", icon: Turtle, category: "rare" },
+  Other: { label: "Other", short: "Other", color: "var(--muted-foreground)", icon: Droplets, category: "marine" },
 };
 
-// The MAP uses a REDUCED icon set — 4 total — chosen from risk (+ plant-vs-animal
-// for the teal class): hazard → jellyfish, invasive/animal → fish silhouette,
-// plant → seagrass. Only jellies are dangerous, so red is uniformly the jellyfish
-// symbol (Physalia included). The detailed per-species `icon` above stays for the
-// labeled panels/sidebar, where a crab should still look like a crab.
+/** The map category a species belongs to (feeds marker color + filter toggles). */
+export function speciesCategory(species: SpeciesId): Category {
+  return SPECIES_META[species].category;
+}
+
+/** Species grouped for the by-name filter checklist (second filter dimension). */
+export const SPECIES_GROUPS: { label: string; species: SpeciesId[] }[] = [
+  { label: "Fish", species: ["ShoreFish", "Lionfish"] },
+  { label: "Jellies", species: ["Jellyfish", "Physalia"] },
+  { label: "Crust & Stars", species: ["Crab", "SeaStar"] },
+  { label: "Others", species: ["Turtle", "ShorePlant", "Other"] },
+];
+
+// The MAP uses a REDUCED icon set chosen from the category (+ plant-vs-animal for
+// marine life): hazard → jellyfish, invasive → fish silhouette, rare → star, marine
+// plant → seagrass, marine animal → fish. The detailed per-species `icon` above
+// stays for the labeled panels/sidebar, where a crab should still look like a crab.
 export function mapIcon(species: SpeciesId): LucideIcon {
   const m = SPECIES_META[species];
-  if (m.risk === "hazard") return Jellyfish;
-  if (m.risk === "invasive") return FishSymbol;
-  return m.plant ? Wheat : FishSymbol;
+  if (m.category === "hazard") return Jellyfish;
+  if (m.plant) return Wheat;
+  return CATEGORY_META[m.category].icon;
 }
 
 // ---- World ID verification ladder (SEPARATE from XP level) -------------------

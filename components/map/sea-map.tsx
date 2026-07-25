@@ -1,50 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import maplibregl, {
   type Map as MLMap,
   type LngLatLike,
-  type IControl,
   type GeoJSONSource,
 } from "maplibre-gl";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
-// CARTO Voyager — a soft, colorful basemap (blue water, warm land, green parks),
-// keyless. The colored, Airbnb-adjacent look that makes the sea/coast read clearly.
-const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+// CARTO Positron (light) / Dark Matter (dark) — clean, near-monochrome basemaps
+// used as-is: neutral land, minimal labels, streets kept, native water. Keyless.
+const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 const TEAL = "oklch(0.702 0.132 194)";
-
-// Crosshair/"locate-fixed" glyph for the recenter control. Inherits currentColor
-// so the CSS hover tint applies; sized by `.nautica-locate-btn svg` in globals.css.
-const LOCATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`;
-
-// A small MapLibre control (its own `.maplibregl-ctrl-group` card, so it inherits
-// the rounded/soft-shadow chrome from globals.css) that recenters on the user.
-class LocateControl implements IControl {
-  private container: HTMLDivElement | null = null;
-  constructor(private readonly onLocate: () => void) {}
-  onAdd() {
-    const container = document.createElement("div");
-    container.className = "maplibregl-ctrl maplibregl-ctrl-group";
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "nautica-locate-btn";
-    btn.title = "Show my location";
-    btn.setAttribute("aria-label", "Show my location");
-    btn.innerHTML = LOCATE_ICON;
-    btn.addEventListener("click", this.onLocate);
-    container.appendChild(btn);
-    this.container = container;
-    return container;
-  }
-  onRemove() {
-    this.container?.remove();
-    this.container = null;
-  }
-}
 
 export type SeaMarker = {
   id: string;
@@ -55,37 +26,86 @@ export type SeaMarker = {
   /** Pre-rendered SVG markup drawn inside the pin (uses currentColor → tinted by `color`). */
   icon?: string;
   label?: string;
+  /** HTML shown in a click popup on the marker (item 6 — data on the map). */
+  popupHtml?: string;
   onClick?: (id: string) => void;
 };
 
-export function SeaMap({
-  className,
-  center = [-9.15, 38.7], // Lisbon coast
-  zoom = 8,
-  markers = [],
-  interactive = true,
-  showUserLocation = false,
-  onReady,
-}: {
+/** Imperative handle exposed to the hub for map actions React can't do declaratively. */
+export type SeaMapHandle = {
+  /** Fly back to the live user-location dot (used by the top-right recenter button). */
+  recenterToUser: () => void;
+  /** Fly the viewport to a coordinate (used by the location search). */
+  flyTo: (center: [number, number], zoom?: number) => void;
+};
+
+export const SeaMap = forwardRef<SeaMapHandle, {
   className?: string;
   center?: LngLatLike;
   zoom?: number;
   markers?: SeaMarker[];
   interactive?: boolean;
-  /** Opt-in: track + show a live blue user-location dot and a recenter control. */
+  /** Dark basemap (Dark Matter + dark ocean). Used by the app; marketing stays light. */
+  dark?: boolean;
+  /** Opt-in: track + show a live blue user-location dot. */
   showUserLocation?: boolean;
+  /** Fires as the view moves off / back onto the user's live location (needs showUserLocation). */
+  onAwayChange?: (away: boolean) => void;
   onReady?: (map: MLMap) => void;
-}) {
+}>(function SeaMap(
+  {
+    className,
+    center = [-9.15, 38.7], // Lisbon coast
+    zoom = 8,
+    markers = [],
+    interactive = true,
+    dark = false,
+    showUserLocation = false,
+    onAwayChange,
+    onReady,
+  },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
-  // Latest known user coords ([lng, lat]); read by the recenter control.
+  // Latest known user coords ([lng, lat]); read by the recenter handle + away check.
   const userCoordRef = useRef<[number, number] | null>(null);
+  // Keep the latest onAwayChange without re-running the location effect.
+  const onAwayChangeRef = useRef(onAwayChange);
+  onAwayChangeRef.current = onAwayChange;
+
+  // Imperative actions for the hub (recenter button + location search).
+  useImperativeHandle(ref, () => ({
+    recenterToUser: () => {
+      const map = mapRef.current;
+      if (!map) return;
+      const known = userCoordRef.current;
+      if (known) {
+        map.flyTo({ center: known, zoom: 14, duration: 800 });
+        return;
+      }
+      // No fix yet — ask once, then fly.
+      if (typeof navigator === "undefined" || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const c: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          userCoordRef.current = c;
+          map.flyTo({ center: c, zoom: 14, duration: 800 });
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+      );
+    },
+    flyTo: (center, zoom = 13) => {
+      mapRef.current?.flyTo({ center, zoom, duration: 1200 });
+    },
+  }));
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: LIGHT_STYLE,
+      style: dark ? DARK_STYLE : LIGHT_STYLE,
       center,
       zoom,
       interactive,
@@ -134,6 +154,8 @@ export function SeaMap({
     // frames (pan/zoom); stale keys are pruned each sync.
     const pool: Record<string, maplibregl.Marker> = {};
     let disposed = false;
+    // One reusable popup for marker clicks (data on the map).
+    let popup: maplibregl.Popup | null = null;
 
     const buildClusterEl = (count: number, abbr: string) => {
       const el = document.createElement("button");
@@ -154,8 +176,10 @@ export function SeaMap({
       const el = document.createElement("button");
       el.type = "button";
       el.className = "nautica-point";
-      // Clean colored glyph: the icon's `currentColor` inherits this risk color.
+      // Tinted chip matching the filter tiles: the icon's `currentColor` inherits
+      // this category color, over an opaque tinted circle so it reads on the basemap.
       el.style.color = mk.color ?? TEAL;
+      el.style.background = `color-mix(in oklch, ${mk.color ?? TEAL} 14%, white)`;
       if (mk.icon) {
         el.innerHTML = mk.icon;
       } else {
@@ -164,8 +188,28 @@ export function SeaMap({
         el.appendChild(dot);
       }
       if (mk.label) el.title = mk.label;
-      if (mk.onClick) el.addEventListener("click", () => mk.onClick?.(mk.id));
-      else el.style.cursor = "default";
+      const interactive = Boolean(mk.onClick || mk.popupHtml);
+      if (interactive) {
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          mk.onClick?.(mk.id);
+          if (mk.popupHtml) {
+            popup?.remove();
+            popup = new maplibregl.Popup({
+              offset: 16,
+              closeButton: true,
+              closeOnClick: true,
+              className: "nautica-popup",
+              maxWidth: "240px",
+            })
+              .setLngLat([mk.lng, mk.lat])
+              .setHTML(mk.popupHtml)
+              .addTo(map);
+          }
+        });
+      } else {
+        el.style.cursor = "default";
+      }
       return el;
     };
 
@@ -258,6 +302,8 @@ export function SeaMap({
 
     return () => {
       disposed = true;
+      popup?.remove();
+      popup = null;
       map.off("render", syncMarkers);
       map.off("moveend", syncMarkers);
       map.off("load", setup); // in case the style never finished loading
@@ -278,9 +324,9 @@ export function SeaMap({
     };
   }, [markers]);
 
-  // Live user location (opt-in). Watches the device position, drops a Google/
-  // Airbnb-style blue dot (created once, then `setLngLat`), and mounts a recenter
-  // control. Missing/denied geolocation degrades silently — no dot, no crash.
+  // Live user location (opt-in). Watches the device position and drops a blue dot,
+  // and reports whether the view has moved off that dot so the hub can show the
+  // recenter button. Missing/denied geolocation degrades silently — no dot, no crash.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !showUserLocation) return;
@@ -297,6 +343,13 @@ export function SeaMap({
 
     let marker: maplibregl.Marker | null = null;
 
+    // "Away" = we have a fix AND the dot is currently off-screen.
+    const reportAway = () => {
+      const known = userCoordRef.current;
+      const away = known ? !map.getBounds().contains(known) : false;
+      onAwayChangeRef.current?.(away);
+    };
+
     const apply = (lng: number, lat: number) => {
       const lngLat: [number, number] = [lng, lat];
       userCoordRef.current = lngLat;
@@ -305,49 +358,23 @@ export function SeaMap({
       } else {
         marker.setLngLat(lngLat);
       }
+      reportAway();
     };
 
-    const flyTo = (lng: number, lat: number) =>
-      map.flyTo({ center: [lng, lat], zoom: 14, duration: 800 });
-
-    // Recenter: use the last known fix if we have one, else ask for it once.
-    const handleLocate = () => {
-      const known = userCoordRef.current;
-      if (known) {
-        flyTo(known[0], known[1]);
-        return;
-      }
-      if (typeof navigator === "undefined" || !navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          apply(pos.coords.longitude, pos.coords.latitude);
-          flyTo(pos.coords.longitude, pos.coords.latitude);
-        },
-        () => {
-          /* denied/unavailable — stay put, no error surfaced */
-        },
-        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 10_000 },
-      );
-    };
-
-    const control = new LocateControl(handleLocate);
-    map.addControl(control, "bottom-right");
+    map.on("move", reportAway);
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => apply(pos.coords.longitude, pos.coords.latitude),
       () => {
         /* permission denied / position unavailable — keep the dot hidden */
       },
-      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 10_000 },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
-      try {
-        map.removeControl(control);
-      } catch {
-        /* map already torn down by its own effect cleanup */
-      }
+      map.off("move", reportAway);
+      onAwayChangeRef.current?.(false);
       marker?.remove();
       marker = null;
       userCoordRef.current = null;
@@ -355,4 +382,4 @@ export function SeaMap({
   }, [showUserLocation]);
 
   return <div ref={containerRef} className={cn("h-full w-full", className)} />;
-}
+});

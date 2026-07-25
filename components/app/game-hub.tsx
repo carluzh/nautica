@@ -1,13 +1,20 @@
 "use client";
 
-import { createElement, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Menu } from "lucide-react";
-import { SeaMap, type SeaMarker } from "@/components/map/sea-map";
+import { toast } from "sonner";
+import { SeaMap, type SeaMapHandle, type SeaMarker } from "@/components/map/sea-map";
 import { Button } from "@/components/ui/button";
-import { RISK_META, SPECIES_META, mapIcon, type RiskClass } from "@/lib/game/content";
+import {
+  CATEGORY_META,
+  CATEGORY_ORDER,
+  SPECIES_META,
+  speciesCategory,
+  type Category,
+} from "@/lib/game/content";
 import { SEED_SIGHTINGS } from "@/lib/game/mock";
-import type { SpeciesId } from "@/lib/game/types";
+import type { GalleryItem, SpeciesId } from "@/lib/game/types";
 import { GameProvider, useGame } from "@/lib/game/provider";
 import { Sidebar } from "./sidebar/sidebar";
 import { MapHud } from "./map-hud";
@@ -21,105 +28,177 @@ import { GalleryDialog } from "./panels/gallery-dialog";
 import { SettingsDialog } from "./panels/settings-dialog";
 import { PaymentsDialog } from "./panels/payments-dialog";
 
-// Pre-render each species' Lucide icon to an SVG string once. The imperative map
-// markers embed this; `currentColor` lets each pin tint the icon by risk class.
+// Pre-render each CATEGORY's Lucide icon to an SVG string once — the same 4 icons
+// as the left-column filter tiles. The imperative map markers embed this;
+// `currentColor` lets each pin tint the icon by category color.
 const ICON_SVG = Object.fromEntries(
-  (Object.keys(SPECIES_META) as SpeciesId[]).map((id) => [
-    id,
+  CATEGORY_ORDER.map((cat) => [
+    cat,
     renderToStaticMarkup(
-      createElement(mapIcon(id), { width: 15, height: 15, strokeWidth: 2, fill: "currentColor" }),
+      createElement(CATEGORY_META[cat].icon, { width: 16, height: 16, strokeWidth: 2, fill: "currentColor" }),
     ),
   ]),
-) as Record<SpeciesId, string>;
+) as Record<Category, string>;
 
-/** Marker color = risk (glanceable); icon = species; tooltip = species + place. */
+/** Marker color + icon = category (glanceable, matches the filter tiles); tooltip = species + place. */
 function toMarker(species: SpeciesId): Pick<SeaMarker, "color" | "icon"> {
-  return { color: RISK_META[SPECIES_META[species].risk].color, icon: ICON_SVG[species] };
+  const cat = speciesCategory(species);
+  return { color: CATEGORY_META[cat].color, icon: ICON_SVG[cat] };
+}
+
+/** The place portion of a "Species · Place" community label. */
+function placeOf(label?: string): string | undefined {
+  if (!label) return undefined;
+  const i = label.indexOf("·");
+  return i >= 0 ? label.slice(i + 1).trim() : label;
+}
+
+/** Styled HTML for a map marker's click popup (item 6 — data on the map). */
+function popupHtml(opts: {
+  title: string;
+  species: SpeciesId;
+  place?: string;
+  lat: number;
+  lng: number;
+  reward?: string;
+}): string {
+  const meta = CATEGORY_META[speciesCategory(opts.species)];
+  const short = SPECIES_META[opts.species].short;
+  return (
+    `<div class="np">` +
+    `<div class="np-title">${opts.title}</div>` +
+    `<div class="np-cat"><span class="np-dot" style="background:${meta.color}"></span>${meta.label} · ${short}</div>` +
+    (opts.place ? `<div class="np-sub">${opts.place}</div>` : "") +
+    `<div class="np-coords">${opts.lat.toFixed(3)}, ${opts.lng.toFixed(3)}</div>` +
+    (opts.reward ? `<div class="np-reward">${opts.reward}</div>` : "") +
+    `</div>`
+  );
 }
 
 function Hub() {
-  const { gallery, setOpenPanel, user } = useGame();
-  const [hidden, setHidden] = useState<Set<SpeciesId>>(new Set());
-  const [placeQuery, setPlaceQuery] = useState("");
-  const [speciesQuery, setSpeciesQuery] = useState("");
+  const { gallery, user } = useGame();
+  const [hidden, setHidden] = useState<Set<Category>>(new Set());
+  const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [awayFromUser, setAwayFromUser] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const mapRef = useRef<SeaMapHandle>(null);
 
-  // A sighting matches when its place text (community `label` / capture `title`)
-  // contains the place query AND its species name contains the species query
-  // (case-insensitive; an empty field matches everything — AND semantics).
-  const matches = useMemo(() => {
-    const p = placeQuery.trim().toLowerCase();
-    const s = speciesQuery.trim().toLowerCase();
-    return (species: SpeciesId, text?: string) => {
-      const place = (text ?? "").toLowerCase();
-      const name = SPECIES_META[species].short.toLowerCase();
-      return (!p || place.includes(p)) && (!s || name.includes(s));
+  // Marker counts per species and per category (community field + your captures).
+  const { speciesCounts, categoryCounts } = useMemo(() => {
+    const species = Object.fromEntries(
+      (Object.keys(SPECIES_META) as SpeciesId[]).map((s) => [s, 0]),
+    ) as Record<SpeciesId, number>;
+    for (const s of SEED_SIGHTINGS) species[s.species] += 1;
+    for (const g of gallery) species[g.species] += 1;
+    const cat = new Map<Category, number>(CATEGORY_ORDER.map((c) => [c, 0]));
+    for (const s of Object.keys(species) as SpeciesId[])
+      cat.set(speciesCategory(s), (cat.get(speciesCategory(s)) ?? 0) + species[s]);
+    return {
+      speciesCounts: species,
+      categoryCounts: CATEGORY_ORDER.map((category) => ({ category, count: cat.get(category) ?? 0 })),
     };
-  }, [placeQuery, speciesQuery]);
+  }, [gallery]);
 
-  // Species present on the map (community field + your captures) with totals,
-  // narrowed to the current search — feeds the Filter tab's list and its Hide-all.
-  const counts = useMemo(() => {
-    const map = new Map<SpeciesId, number>();
-    for (const s of SEED_SIGHTINGS)
-      if (matches(s.species, s.label)) map.set(s.species, (map.get(s.species) ?? 0) + 1);
-    for (const g of gallery)
-      if (matches(g.species, g.title)) map.set(g.species, (map.get(g.species) ?? 0) + 1);
-    return [...map.entries()]
-      .map(([species, count]) => ({ species, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [gallery, matches]);
+  // Location search: geocode via Photon (keyless, CORS-friendly), biased to the
+  // Lisbon coast, then fly the map there. Does NOT filter markers.
+  const onSearchPlace = useCallback(async (query: string) => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    try {
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lat=38.72&lon=-9.2`;
+      const res = await fetch(url);
+      const json = (await res.json()) as { features?: { geometry?: { coordinates?: [number, number] } }[] };
+      const coords = json.features?.[0]?.geometry?.coordinates;
+      if (!coords) {
+        toast.error(`Couldn't find "${q}"`);
+        return;
+      }
+      mapRef.current?.flyTo([coords[0], coords[1]], 12);
+    } catch {
+      toast.error("Location search failed. Try again.");
+    } finally {
+      setSearching(false);
+    }
+  }, []);
 
   const filter: FilterState = useMemo(
     () => ({
       hidden,
-      counts,
-      placeQuery,
-      onPlaceQuery: setPlaceQuery,
-      speciesQuery,
-      onSpeciesQuery: setSpeciesQuery,
-      onToggle: (s) =>
+      categories: categoryCounts,
+      onToggle: (c) =>
         setHidden((prev) => {
           const next = new Set(prev);
-          if (next.has(s)) next.delete(s);
-          else next.add(s);
+          next.has(c) ? next.delete(c) : next.add(c);
           return next;
         }),
       onShowAll: () => setHidden(new Set()),
-      onHideAll: () => setHidden(new Set(counts.map((c) => c.species))),
+      onHideAll: () => setHidden(new Set(CATEGORY_ORDER)),
+      hiddenSpecies,
+      speciesCounts,
+      onToggleSpecies: (s) =>
+        setHiddenSpecies((prev) => {
+          const next = new Set(prev);
+          next.has(s) ? next.delete(s) : next.add(s);
+          return next;
+        }),
+      onToggleGroup: (species, visible) =>
+        setHiddenSpecies((prev) => {
+          const next = new Set(prev);
+          for (const s of species) visible ? next.delete(s) : next.add(s);
+          return next;
+        }),
+      onSearchPlace,
+      searching,
     }),
-    [hidden, counts, placeQuery, speciesQuery],
+    [hidden, hiddenSpecies, categoryCounts, speciesCounts, onSearchPlace, searching],
   );
 
-  // Two overlaid marker sets on one map, both honoring the species filter:
-  //  • community field (SEED_SIGHTINGS) — static, read-only living survey;
-  //  • your own captures (gallery) — clickable, open the gallery panel.
-  // Memoized so we don't tear down and rebuild every DOM marker on each render.
+  // Both marker layers honor BOTH filter dimensions (category AND species) and carry
+  // a click popup with the sighting's data.
   const markers = useMemo<SeaMarker[]>(() => {
-    const community: SeaMarker[] = SEED_SIGHTINGS.filter(
-      (s) => matches(s.species, s.label) && !hidden.has(s.species),
-    ).map((s) => ({
+    const visible = (species: SpeciesId) =>
+      !hidden.has(speciesCategory(species)) && !hiddenSpecies.has(species);
+
+    const community: SeaMarker[] = SEED_SIGHTINGS.filter((s) => visible(s.species)).map((s) => ({
       id: s.id,
       lng: s.lng,
       lat: s.lat,
       ...toMarker(s.species),
       label: s.label,
+      popupHtml: popupHtml({
+        title: SPECIES_META[s.species].short,
+        species: s.species,
+        place: placeOf(s.label),
+        lat: s.lat,
+        lng: s.lng,
+      }),
     }));
+
     const mine: SeaMarker[] = gallery
-      .filter((g) => matches(g.species, g.title) && !hidden.has(g.species))
+      .filter((g: GalleryItem) => visible(g.species))
       .map((g) => ({
         id: g.id,
         lng: g.lng,
         lat: g.lat,
         ...toMarker(g.species),
         label: g.title,
-        onClick: () => setOpenPanel("gallery"),
+        popupHtml: popupHtml({
+          title: g.title,
+          species: g.species,
+          place: "Your capture",
+          lat: g.lat,
+          lng: g.lng,
+          reward: `+${g.xp} XP${g.usdc ? ` · $${g.usdc}` : ""} · 0G verified`,
+        }),
       }));
+
     return [...community, ...mine];
-  }, [gallery, hidden, matches, setOpenPanel]);
+  }, [gallery, hidden, hiddenSpecies]);
 
   return (
-    <div className="relative flex h-svh w-full overflow-hidden bg-background">
+    <div className="theme-dark relative flex h-svh w-full overflow-hidden bg-background">
       {/* Left column — fixed on lg+ */}
       <Sidebar filter={filter} className="hidden w-[440px] shrink-0 border-r lg:flex" />
 
@@ -139,7 +218,16 @@ function Hub() {
 
       {/* Map area */}
       <div className="relative min-w-0 flex-1">
-        <SeaMap className="absolute inset-0" center={[-9.31, 38.67]} zoom={9} markers={markers} showUserLocation />
+        <SeaMap
+          ref={mapRef}
+          dark
+          className="absolute inset-0"
+          center={[-9.31, 38.67]}
+          zoom={9}
+          markers={markers}
+          showUserLocation
+          onAwayChange={setAwayFromUser}
+        />
         <Button
           variant="secondary"
           size="icon"
@@ -150,8 +238,9 @@ function Hub() {
           <Menu className="size-4" />
         </Button>
 
-        {/* Full HUD — level, streak, quick actions, profile — floating top-right. */}
-        <MapHud />
+        {/* Full HUD — level, streak, quick actions, profile — floating top-right.
+            The recenter button appears just left of it once you pan off yourself. */}
+        <MapHud showRecenter={awayFromUser} onRecenter={() => mapRef.current?.recenterToUser()} />
 
         <MapLegend />
         <MissionsBoard />
@@ -179,10 +268,10 @@ function MapLegend() {
         Marker colors
       </p>
       <ul className="flex flex-col gap-1">
-        {(Object.keys(RISK_META) as RiskClass[]).map((k) => (
+        {CATEGORY_ORDER.map((k) => (
           <li key={k} className="flex items-center gap-2 text-xs">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ background: RISK_META[k].color }} />
-            <span className="text-foreground/80">{RISK_META[k].label}</span>
+            <span className="size-2.5 shrink-0 rounded-full" style={{ background: CATEGORY_META[k].color }} />
+            <span className="text-foreground/80">{CATEGORY_META[k].label}</span>
           </li>
         ))}
       </ul>
@@ -191,6 +280,16 @@ function MapLegend() {
 }
 
 export function GameHub() {
+  // Dark theme is scoped to the app: add `.theme-dark` to <html> while the hub is
+  // mounted so portaled UI (dialogs, dropdowns, toasts) is dark too, then remove it
+  // on unmount so marketing/pro stay light. The hub's own root also carries the
+  // class (above) so the first paint is dark with no flash.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("theme-dark");
+    return () => root.classList.remove("theme-dark");
+  }, []);
+
   return (
     <GameProvider>
       <Hub />
