@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, Images, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, Database, Images, Loader2, MapPin } from "lucide-react";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { GalleryItem, PlausibilityVerdict } from "@/lib/game/types";
-import { timeAgo } from "@/lib/format";
+import { shortAddr, timeAgo } from "@/lib/format";
 
 const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: string; label: string }> = {
   plausible: { dot: "bg-success", text: "text-success", label: "Plausible" },
@@ -104,6 +104,15 @@ function Card({ item }: { item: GalleryItem }) {
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Loader2 className="size-3 animate-spin" />
             Checking plausibility…
+          </div>
+        ) : null}
+        {item.storageRoot ? (
+          <div
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            title={`0G Storage root ${item.storageRoot}`}
+          >
+            <Database className="size-3 text-primary" />
+            <span className="tnum">0G Storage · {shortAddr(item.storageRoot)}</span>
           </div>
         ) : null}
       </div>

@@ -62,7 +62,7 @@ export async function saveImageFromDataUrl(dataUrl: string): Promise<SavedImage 
     const exists = await access(path).then(() => true).catch(() => false);
     if (!exists) await writeFile(path, bytes);
     // Decentralized provenance on 0G Storage (best-effort, off the response path).
-    void uploadToZeroGStorage(id, bytes, contentType);
+    void uploadToZeroGStorage(id, bytes);
     return { id, contentType, bytes: bytes.length };
   } catch (err) {
     log.error("image-store: save failed", { err: String(err) });
@@ -87,28 +87,48 @@ export async function readImage(id: string): Promise<{ bytes: Buffer; contentTyp
 // Uploads the exact bytes to 0G Storage for a decentralized, content-addressed record
 // (a root hash), completing the full-0G-stack story: Compute verifies the photo, Storage
 // holds it. Serving still comes from the local cache above (speed); 0G is the durable
-// copy + provenance. Activates when a funded 0G storage key + indexer are configured:
-//   ZEROG_STORAGE_INDEXER   (e.g. https://indexer-storage-testnet-turbo.0g.ai)
-//   ZEROG_STORAGE_RPC       (0G chain RPC used to submit the storage tx)
+// copy + provenance. Activates when a funded 0G storage key is set; the indexer + chain
+// RPC default to the 0G testnet turbo endpoints and are overridable:
 //   ZEROG_STORAGE_KEY       (funded 0G wallet private key — pays the small storage fee)
-// The upload itself (via @0glabs/0g-ts-sdk) is wired in once that key is provisioned;
-// until then this is a no-op and the local store fully serves the gallery.
-const zeroGReady = Boolean(
-  process.env.ZEROG_STORAGE_INDEXER && process.env.ZEROG_STORAGE_KEY,
-);
+//   ZEROG_STORAGE_INDEXER   (default https://indexer-storage-testnet-turbo.0g.ai)
+//   ZEROG_STORAGE_RPC       (default https://evmrpc-testnet.0g.ai)
+const STORAGE_KEY = process.env.ZEROG_STORAGE_KEY;
+const STORAGE_INDEXER =
+  process.env.ZEROG_STORAGE_INDEXER ?? "https://indexer-storage-testnet-turbo.0g.ai";
+const STORAGE_RPC = process.env.ZEROG_STORAGE_RPC ?? "https://evmrpc-testnet.0g.ai";
+const zeroGReady = Boolean(STORAGE_KEY);
 
-async function uploadToZeroGStorage(id: string, bytes: Buffer, _contentType: string): Promise<void> {
+async function uploadToZeroGStorage(id: string, bytes: Buffer): Promise<void> {
   if (!zeroGReady) return;
   try {
     const root = await zeroGUpload(bytes);
-    if (root) setSightingImageRoot(id, root);
+    if (root) {
+      setSightingImageRoot(id, root);
+      log.info("image-store: 0G Storage root recorded", { id, root });
+    }
   } catch (err) {
     log.error("image-store: 0G Storage upload failed (served from cache)", { err: String(err), id });
   }
 }
 
-// Placeholder for the @0glabs/0g-ts-sdk upload flow (merkle root -> submit -> confirm).
-// Returns the storage root hash. Left unimplemented until the funded key + indexer land.
-async function zeroGUpload(_bytes: Buffer): Promise<string | null> {
-  return null;
+// @0glabs/0g-ts-sdk flow: MemData -> merkle root -> indexer.upload (submits the storage
+// tx, paid by the signer). Dynamically imported so the SDK + ethers only load when
+// storage is actually configured. Returns the content's storage root hash.
+async function zeroGUpload(bytes: Buffer): Promise<string | null> {
+  const { Indexer, MemData } = await import("@0glabs/0g-ts-sdk");
+  const { JsonRpcProvider, Wallet } = await import("ethers");
+  const signer = new Wallet(STORAGE_KEY as string, new JsonRpcProvider(STORAGE_RPC));
+  const indexer = new Indexer(STORAGE_INDEXER);
+  const file = new MemData(new Uint8Array(bytes));
+  const [tree, treeErr] = await file.merkleTree();
+  if (treeErr) throw treeErr;
+  // ethers ships dual ESM/CJS builds; the SDK's types reference the CJS Signer while our
+  // dynamic import resolves the ESM one. Same class at runtime — bridge the type here.
+  const [tx, uploadErr] = await indexer.upload(
+    file,
+    STORAGE_RPC,
+    signer as unknown as Parameters<typeof indexer.upload>[2],
+  );
+  if (uploadErr) throw uploadErr;
+  return tx?.rootHash ?? tree?.rootHash() ?? null;
 }

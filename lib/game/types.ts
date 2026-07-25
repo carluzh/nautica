@@ -89,6 +89,8 @@ export type GalleryItem = {
   /** On-chain tx that recorded this sighting; reconciles the optimistic item with
    *  the subgraph-indexed one (same txHash). Absent on mock + simulated-fallback items. */
   txHash?: string;
+  /** 0G Storage root hash of the photo (decentralized provenance), when uploaded. */
+  storageRoot?: string;
 };
 
 /** A location a user commits to a submission: a chosen spot + a precision radius,

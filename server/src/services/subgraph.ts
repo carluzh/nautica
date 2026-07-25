@@ -3,7 +3,7 @@ import { DAILY_QUESTS } from "../content";
 import { levelForXp } from "../lib/levels";
 import { log } from "../lib/logger";
 import { store, type UserRecord } from "../lib/store";
-import { getSightingImage, getSightingRadius } from "./sighting-meta";
+import { getSightingImage, getSightingImageRoot, getSightingRadius } from "./sighting-meta";
 import type {
   ActivityEvent,
   Attestation,
@@ -170,6 +170,7 @@ function normalizeSighting(s: Record<string, unknown>): GalleryItem {
     radiusM: txHash ? getSightingRadius(txHash) : undefined,
     at: toMs(s.at),
     txHash,
+    storageRoot: imageId ? getSightingImageRoot(imageId) : undefined,
     attestation: normalizeAttestation(s.attestation as Record<string, unknown>),
   };
 }
