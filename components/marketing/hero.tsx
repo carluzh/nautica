@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { SeaMap, type SeaMarker } from "@/components/map/sea-map";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
  * pointer-events-none and hidden on mobile so the headline stays clean.
  *
  * Two creature treatments:
- *  - Transparent PNGs (qualleneu, leopardhaineu, reef3transparent) render
+ *  - Transparent PNGs (qualle, leopardhaineu, reef3transparent) render
  *    normally with a real drop-shadow.
  *  - White-background PNGs (rainbowwrasse, nudibranchwhite) drop their white
  *    via `mix-blend-multiply` (white × backdrop = backdrop) — `Float`.
@@ -23,42 +24,57 @@ import { cn } from "@/lib/utils";
 // Brand coral — matches the logo mark; used for the CTA + AI-tag accents.
 const CORAL = "#FF6F61";
 
+// A few decorative points along the Lisbon coast for the hero's map card.
+const HERO_MARKERS: SeaMarker[] = [
+  { id: "carcavelos", lng: -9.337, lat: 38.679, label: "Carcavelos" },
+  { id: "cascais", lng: -9.42, lat: 38.697, label: "Cascais" },
+  { id: "caparica", lng: -9.229, lat: 38.644, label: "Caparica" },
+  { id: "sesimbra", lng: -9.101, lat: 38.444, label: "Sesimbra" },
+  { id: "ericeira", lng: -9.417, lat: 38.963, label: "Ericeira" },
+];
+
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-background">
-      {/* Faint oversized wordmark watermark for depth. */}
-      <div className="pointer-events-none absolute inset-0 select-none" aria-hidden>
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[20vw] font-black leading-none tracking-tighter text-foreground/[0.03]">
-          NAUTICA
-        </span>
-      </div>
-
-      {/* Rainbow wrasse — commented out (isolating qualle + reef) */}
+{/* Rainbow wrasse — commented out (isolating qualle + reef) */}
       {/* <Float src="/animals/rainbowwrasse.png" w={1372} h={768} className="left-[3%] top-[4%] w-40 -rotate-6 lg:w-48" /> */}
 
-      {/* ---- Star 1: reef1 (rounded) + jellyfish swimming out LEFT. ---- */}
-      <div className="pointer-events-none absolute left-[58%] top-[22%] z-[20] hidden h-64 w-[20rem] md:block lg:h-[22rem] lg:w-[26rem]">
+      {/* ---- Star 1: reef1 (rounded), bottom-left by the text, jellyfish
+             swimming UP out of it and fading into the reef at the bottom. ---- */}
+      <div className="pointer-events-none absolute bottom-[6%] left-[1%] z-[20] hidden h-44 w-[13rem] md:block lg:h-[14rem] lg:w-[16rem]">
         <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-xl ring-1 ring-black/5">
           <Image src="/animals/reef1.jpg" alt="" fill sizes="420px" className="object-cover" />
         </div>
         {/* Jellyfish, mirrored, swimming out the top-left. */}
         <Image
-          src="/animals/qualleneu.png"
+          src="/animals/qualle.png"
           alt=""
-          width={1372}
-          height={768}
+          width={1001}
+          height={1121}
           sizes="560px"
-          className="absolute -left-[70%] -top-[60%] w-[165%] max-w-none -scale-x-100 select-none drop-shadow-2xl"
+          className="absolute -left-[52%] -top-[128%] w-[151%] max-w-none select-none drop-shadow-xl"
           style={{
-            // Mirrored element (-scale-x-100), so a local "to top right" fade
-            // reads as a soft fade-out toward the bottom-right on screen.
-            WebkitMaskImage: "linear-gradient(to top right, transparent 0%, black 42%)",
-            maskImage: "linear-gradient(to top right, transparent 0%, black 42%)",
+            // Fade the lower tentacles out so the jellyfish looks like it rises
+            // out of the reef instead of sitting on a hard edge.
+            WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 24%)",
+            maskImage: "linear-gradient(to top, transparent 0%, black 24%)",
           }}
         />
       </div>
 
-{/* Polaroid snapshots — commented out (isolating qualle + reef) */}
+      {/* Semi-transparent field map on the right — echoes the in-app map. */}
+      <div className="pointer-events-none absolute right-[5%] top-[20%] z-[6] hidden h-[20rem] w-[22rem] overflow-hidden rounded-3xl opacity-60 shadow-xl ring-1 ring-black/10 lg:block lg:h-[24rem] lg:w-[26rem]">
+        <SeaMap
+          interactive={false}
+          center={[-9.33, 38.62]}
+          zoom={8.6}
+          markers={HERO_MARKERS}
+          className="h-full w-full"
+        />
+        <div className="absolute inset-0 bg-background/20" />
+      </div>
+
+      {/* Polaroid snapshots — commented out (isolating qualle + reef) */}
       {/* <Polaroid src="/animals/seahorse.jpg" className="right-[7%] bottom-[26%] rotate-6" /> */}
       {/* <Polaroid src="/animals/seastar.png" className="right-[25%] bottom-[9%] rotate-3" /> */}
       {/* <Polaroid src="/animals/turtle.jpg" className="bottom-[4%] left-1/2 -translate-x-1/2 -rotate-2" /> */}
