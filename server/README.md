@@ -37,6 +37,10 @@ env var (see `.env.example`).
 |---|---|---|---|
 | GET | `/health` | – | liveness + integration modes |
 | POST | `/auth/worldid` | – | verify a World ID proof, return `{ token, profile }` |
+| POST | `/auth/google` | – | verify a Google ID token, return `{ token, profile }` |
+| GET | `/auth/nonce` | – | issue a single-use SIWE nonce for wallet flows |
+| POST | `/auth/wallet` | – | SIWE sign-in (wallet auto-attached), return `{ token, profile }` |
+| POST | `/me/wallet` | ✓ | attach a payout wallet to the current user (SIWE) |
 | POST | `/auth/verify` | ✓ | add a higher verification tier (Face → Passport → Orb) |
 | GET | `/quests` | ✓ | daily board + paid-unlock status |
 | POST | `/quests/:id/challenge` | ✓ | issue a single-use freshness nonce |

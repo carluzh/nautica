@@ -30,8 +30,10 @@ export interface Store {
   getUser(userId: string): UserRecord | undefined;
   createUser(u: UserRecord): UserRecord;
   updateUser(userId: string, patch: Partial<UserRecord>): UserRecord | undefined;
-  userIdByNullifier(nullifier: string): string | undefined;
-  linkNullifier(nullifier: string, userId: string): void;
+  /** Look up a user by a namespaced external identity, e.g. `worldid:<nullifier>`,
+   *  `google:<sub>`, `wallet:<0xaddr>`. */
+  userIdByExternal(key: string): string | undefined;
+  linkExternal(key: string, userId: string): void;
   allUsers(): UserRecord[];
   putNonce(nonce: string, rec: NonceRecord): void;
   getNonce(nonce: string): NonceRecord | undefined;
@@ -40,7 +42,7 @@ export interface Store {
 
 class InMemoryStore implements Store {
   private users = new Map<string, UserRecord>();
-  private nullifiers = new Map<string, string>();
+  private externals = new Map<string, string>();
   private nonces = new Map<string, NonceRecord>();
 
   getUser(userId: string) {
@@ -57,11 +59,11 @@ class InMemoryStore implements Store {
     this.users.set(userId, next);
     return next;
   }
-  userIdByNullifier(nullifier: string) {
-    return this.nullifiers.get(nullifier);
+  userIdByExternal(key: string) {
+    return this.externals.get(key);
   }
-  linkNullifier(nullifier: string, userId: string) {
-    this.nullifiers.set(nullifier, userId);
+  linkExternal(key: string, userId: string) {
+    this.externals.set(key, userId);
   }
   allUsers() {
     return [...this.users.values()];

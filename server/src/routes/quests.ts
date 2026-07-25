@@ -52,12 +52,19 @@ questRoutes.post("/:id/submit", async (c) => {
   const u = store.getUser(userId);
   if (!u) return c.json({ error: "user not found" }, 404);
 
-  // Paid-tier gating: Level 5 AND Passport verification (payouts need the stronger proof).
+  // Anti-farming: a quest can only be completed once (server is authoritative; the
+  // board's "done" state is display-only and must not be the only guard).
+  if (u.gallery.some((g) => g.questId === id))
+    return c.json({ ok: false, reason: "You already completed this quest." } satisfies SubmitResult);
+
+  // Paid-tier gating: Level 5 AND Passport verification AND an attached payout wallet.
   if (quest.kind === "paid") {
     if (levelForXp(u.xp) < PAID_UNLOCK_LEVEL)
       return c.json({ ok: false, reason: `Reach Level ${PAID_UNLOCK_LEVEL} to unlock paid quests.` } satisfies SubmitResult);
     if (!u.verification.passport)
       return c.json({ ok: false, reason: "Passport (Identity Check) verification required for paid quests." } satisfies SubmitResult);
+    if (!u.wallet)
+      return c.json({ ok: false, reason: "Attach a wallet in Settings to receive payouts." } satisfies SubmitResult);
   }
 
   // Freshness: the photo must postdate a just-issued challenge (single-use).
