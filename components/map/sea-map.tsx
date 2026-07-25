@@ -63,17 +63,23 @@ export function SeaMap({
   center = [-9.15, 38.7], // Lisbon coast
   zoom = 8,
   markers = [],
+  cluster = true,
   interactive = true,
   showUserLocation = false,
+  styleUrl = LIGHT_STYLE,
   onReady,
 }: {
   className?: string;
   center?: LngLatLike;
   zoom?: number;
   markers?: SeaMarker[];
+  /** Cluster nearby markers (default true); pass false for decorative maps. */
+  cluster?: boolean;
   interactive?: boolean;
   /** Opt-in: track + show a live blue user-location dot and a recenter control. */
   showUserLocation?: boolean;
+  /** Basemap style URL; defaults to the light Voyager basemap. */
+  styleUrl?: string;
   onReady?: (map: MLMap) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,7 +91,7 @@ export function SeaMap({
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: LIGHT_STYLE,
+      style: styleUrl,
       center,
       zoom,
       interactive,
@@ -235,7 +241,7 @@ export function SeaMap({
         map.addSource(SOURCE_ID, {
           type: "geojson",
           data,
-          cluster: true,
+          cluster,
           clusterRadius: 50,
           clusterMaxZoom: 14,
         });
@@ -276,7 +282,7 @@ export function SeaMap({
         /* style already torn down on unmount — map.remove() handles the rest */
       }
     };
-  }, [markers]);
+  }, [markers, cluster]);
 
   // Live user location (opt-in). Watches the device position, drops a Google/
   // Airbnb-style blue dot (created once, then `setLngLat`), and mounts a recenter

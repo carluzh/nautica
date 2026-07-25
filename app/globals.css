@@ -295,3 +295,18 @@
     opacity: 0;
   }
 }
+
+/* Live, glowing sighting dots on the marketing dark map (scoped so the in-app
+   map keeps its calm, static markers). */
+.nautica-live-map .nautica-point-dot {
+  animation: nautica-live-pulse 2.4s ease-in-out infinite;
+}
+@keyframes nautica-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 6px 1px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px 5px currentColor;
+  }
+}

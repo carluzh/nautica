@@ -31,22 +31,22 @@ export function SiteNav() {
           : "border-transparent bg-transparent"
       )}
     >
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Wordmark href="/" size={38} className="text-lg" />
+      <nav className="flex h-20 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Wordmark href="/" size={40} className="text-xl" />
 
-        <div className="hidden items-center gap-7 md:flex">
+        <div className="hidden items-center gap-8 md:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {l.label}
             </Link>
           ))}
         </div>
 
-        <Button asChild size="sm" className="group bg-[#FF6F61] text-white hover:bg-[#f5604f]">
+        <Button asChild className="group bg-[#FF6F61] text-white hover:bg-[#f5604f]">
           <Link href="/app">
             Open the app
             <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
