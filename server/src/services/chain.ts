@@ -11,12 +11,15 @@ import { log } from "../lib/logger";
 // returns a simulated tx hash. The viem write path is structured against a
 // placeholder ABI so wiring the real contract (dev C) is a drop-in.
 
-// Aligned with the subgraph's SightingRecorded event (subgraph/abis/NauticaQuests.json):
-// recordCompletion's tx emits it, so its args carry lat/lng/usdc as fixed-point
-// (lat/lng * 1e6 int64 microdegrees, usdc * 1e6 uint256).
+// Aligned with the deployed NauticaQuests ABI (subgraph/abis/NauticaQuests.json).
+// XP and USDC reward are read from the on-chain quest, so recordCompletion/settlePayout
+// don't pass them; the tx emits SightingRecorded/PayoutSettled which the subgraph indexes.
+// createQuest/fundQuest are for partner-side quest funding (not the runtime submit path).
 const QUEST_ABI = parseAbi([
-  "function recordCompletion(address player, bytes32 questId, int64 latE6, int64 lngE6, uint32 xp, uint256 usdc6, bytes32 attestation) external",
-  "function settlePayout(address player, bytes32 questId, uint256 amount) external",
+  "function recordCompletion(address player, bytes32 questId, int64 latE6, int64 lngE6, bytes32 attestation) external",
+  "function settlePayout(address player, bytes32 questId) external",
+  "function createQuest(bytes32 questId, string species, string title, uint32 xp, uint256 usdcReward, uint256 funding) external",
+  "function fundQuest(bytes32 questId, uint256 amount) external",
 ]);
 
 function simulatedTx(): Hex {
@@ -43,14 +46,12 @@ function toE6(v: number): bigint {
 export async function recordQuestCompletion(input: {
   wallet: string | null;
   questId: string;
-  xp: number;
-  usdc?: number;
   lat: number;
   lng: number;
   attestationHash: string;
 }): Promise<{ txHash: Hex; simulated: boolean }> {
   if (!integrations.chain || !input.wallet) {
-    log.info("chain: simulated recordCompletion", { questId: input.questId, xp: input.xp });
+    log.info("chain: simulated recordCompletion", { questId: input.questId });
     return { txHash: simulatedTx(), simulated: true };
   }
   const attestation = (input.attestationHash.startsWith("0x")
@@ -60,15 +61,7 @@ export async function recordQuestCompletion(input: {
     address: config.QUEST_CONTRACT_ADDRESS as Hex,
     abi: QUEST_ABI,
     functionName: "recordCompletion",
-    args: [
-      input.wallet as Hex,
-      questIdToBytes32(input.questId),
-      toE6(input.lat),
-      toE6(input.lng),
-      input.xp, // uint32 -> viem expects a number
-      BigInt(Math.round((input.usdc ?? 0) * 1_000_000)),
-      attestation,
-    ],
+    args: [input.wallet as Hex, questIdToBytes32(input.questId), toE6(input.lat), toE6(input.lng), attestation],
   });
   return { txHash, simulated: false };
 }
@@ -76,19 +69,16 @@ export async function recordQuestCompletion(input: {
 export async function settlePayout(input: {
   wallet: string | null;
   questId: string;
-  usdc: number;
 }): Promise<{ txHash: Hex; simulated: boolean }> {
   if (!integrations.chain || !input.wallet) {
-    log.info("chain: simulated settlePayout", { usdc: input.usdc });
+    log.info("chain: simulated settlePayout", { questId: input.questId });
     return { txHash: simulatedTx(), simulated: true };
   }
-  // USDC has 6 decimals on Base.
-  const amount = BigInt(Math.round(input.usdc * 1_000_000));
   const txHash = await walletClient().writeContract({
     address: config.QUEST_CONTRACT_ADDRESS as Hex,
     abi: QUEST_ABI,
     functionName: "settlePayout",
-    args: [input.wallet as Hex, questIdToBytes32(input.questId), amount],
+    args: [input.wallet as Hex, questIdToBytes32(input.questId)],
   });
   return { txHash, simulated: false };
 }

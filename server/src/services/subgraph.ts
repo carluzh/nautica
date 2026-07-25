@@ -1,4 +1,5 @@
 import { config, integrations } from "../config";
+import { DAILY_QUESTS } from "../content";
 import { levelForXp } from "../lib/levels";
 import { log } from "../lib/logger";
 import { store, type UserRecord } from "../lib/store";
@@ -33,7 +34,7 @@ const PLAYER_QUERY = /* GraphQL */ `
       orbVerified
       sightings(orderBy: at, orderDirection: desc, first: 100) {
         id questId species title xp usdc lat lng at
-        attestation { model verdict confidence label tee hash at }
+        attestation { hash verdict label at }
       }
       activity(orderBy: at, orderDirection: desc, first: 100) {
         id kind title detail xp usdc species at
@@ -57,7 +58,7 @@ const SIGHTING_QUERY = /* GraphQL */ `
     sighting(id: $id) {
       id questId species title xp usdc lat lng at
       player { id }
-      attestation { model verdict confidence label tee hash at }
+      attestation { hash verdict label at }
     }
   }
 `;
@@ -73,6 +74,28 @@ const SPECIES_SIGHTINGS_QUERY = /* GraphQL */ `
 
 /** A lightweight point read used by the plausibility agent's corroboration check. */
 export type SightingPoint = { id: string; species: SpeciesId; lat: number; lng: number; at: number };
+
+// On-chain quest state keyed by app questId (subgraph Quest.id === "q-paid-lionfish").
+// exists=false means the Quest was never createQuest'd -> recordCompletion reverts
+// QuestNotFound. v0.0.4 exposes only `funded` (the REMAINING escrow). underfunded =
+// the pool can't cover one more payout.
+export type OnchainQuest = {
+  exists: boolean;
+  remainingUsd: number; // funded (remaining escrow) -> the "$X left"
+  underfunded: boolean; // funded < usdcReward (paid only)
+  createdAt: number;    // epoch ms
+};
+
+const QUESTS_QUERY = /* GraphQL */ `
+  query Quests($first: Int!) {
+    quests(first: $first) {
+      id
+      usdcReward
+      funded
+      createdAt
+    }
+  }
+`;
 
 async function query<T>(q: string, variables: Record<string, unknown>): Promise<T> {
   const res = await fetch(config.SUBGRAPH_URL as string, {
@@ -280,4 +303,39 @@ export async function getSpeciesSightings(species: SpeciesId, limit = 500): Prom
     lng: Number(s.lng ?? 0),
     at: toMs(s.at),
   }));
+}
+
+/** On-chain quest state by app questId, merged catalog-driven downstream.
+ *  Mock: every catalog quest is live + funded (paid pools = reward*2 for a tidy
+ *  "$6 · $12 left" demo) so the pure-frontend/dev board stays fully tappable.
+ *  Real: read the subgraph Quest entities; a catalog quest absent from the result
+ *  is exists=false (not yet created). Fails OPEN to catalog-available on a subgraph
+ *  error so an indexer blip never bricks the board. */
+export async function getQuests(): Promise<Record<string, OnchainQuest>> {
+  const mock = (): Record<string, OnchainQuest> =>
+    Object.fromEntries(
+      DAILY_QUESTS.map((q) => {
+        const reward = q.usdc ?? 0;
+        return [q.id, { exists: true, remainingUsd: reward * 2, underfunded: false, createdAt: Date.now() }];
+      }),
+    );
+  if (!integrations.subgraph) return mock();
+  try {
+    const data = await query<{ quests: Record<string, unknown>[] }>(QUESTS_QUERY, { first: 100 });
+    const out: Record<string, OnchainQuest> = {};
+    for (const q of data.quests ?? []) {
+      const reward = Number(q.usdcReward ?? 0);
+      const funded = Number(q.funded ?? 0);
+      out[String(q.id)] = {
+        exists: true,
+        remainingUsd: funded,
+        underfunded: reward > 0 && funded < reward,
+        createdAt: toMs(q.createdAt),
+      };
+    }
+    return out; // catalog quests missing here -> exists:false when merged in the route
+  } catch (err) {
+    log.error("subgraph: getQuests failed", { err: String(err) });
+    return mock(); // degrade to today's behavior, don't blank the board
+  }
 }

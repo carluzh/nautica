@@ -61,6 +61,14 @@ export type Quest = {
   usdc?: number;
   partner?: string;
   requirements?: string[]; // e.g. ["Dorsal view", "Ventral view", "Size reference"]
+  // On-chain quest state (from the subgraph via GET /quests). All optional:
+  // absent in mock/pure-frontend mode -> board treats absence as available.
+  // onchain:false = not yet createQuest'd on-chain (recordCompletion would revert)
+  // -> not tappable. remainingUsd = remaining USDC escrow. underfunded = pool can't
+  // cover the next payout.
+  onchain?: boolean;
+  remainingUsd?: number;
+  underfunded?: boolean;
 };
 
 export type GalleryItem = {
@@ -101,6 +109,7 @@ export type PlausibilityVerdict = {
   rangeNote?: string;
   seasonNote?: string;
   corroboratingNearby?: number;
+  narrative?: string; // optional one-sentence LLM narration (agent LLM layer)
   at: number;
 };
 

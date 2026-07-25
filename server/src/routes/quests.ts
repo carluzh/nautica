@@ -10,6 +10,7 @@ import { requireAuth } from "../middleware/auth";
 import { issueChallenge, validateChallenge } from "../services/freshness";
 import { classifyImage } from "../services/zerog";
 import { recordQuestCompletion, settlePayout } from "../services/chain";
+import { getQuests } from "../services/subgraph";
 import type { ActivityEvent, GalleryItem, Payment, SubmitResult } from "../types";
 
 const LISBON = { lng: -9.15, lat: 38.7 };
@@ -25,12 +26,23 @@ export const questRoutes = new Hono<AppEnv>();
 questRoutes.use("*", requireAuth);
 
 /** GET /quests — daily board with this user's done + paid-unlock status. */
-questRoutes.get("/", (c) => {
+questRoutes.get("/", async (c) => {
   const u = store.getUser(c.get("userId"));
   const done = new Set((u?.gallery ?? []).map((g) => g.questId));
   const paidUnlocked = levelForXp(u?.xp ?? 0) >= PAID_UNLOCK_LEVEL;
+  const onchain = await getQuests();
   return c.json({
-    quests: DAILY_QUESTS.map((q) => ({ ...q, status: done.has(q.id) ? "done" : "available" })),
+    quests: DAILY_QUESTS.map((q) => {
+      const oc = onchain[q.id];
+      return {
+        ...q,
+        status: done.has(q.id) ? "done" : "available",
+        // additive on-chain truth (all optional on the frozen contract)
+        onchain: oc?.exists ?? false,
+        remainingUsd: oc?.remainingUsd,
+        underfunded: oc?.underfunded,
+      };
+    }),
     paidUnlocked,
   });
 });
@@ -105,8 +117,6 @@ questRoutes.post("/:id/submit", async (c) => {
     chainRes = await recordQuestCompletion({
       wallet: u.wallet,
       questId: id,
-      xp: quest.reward,
-      usdc: quest.usdc,
       lat,
       lng,
       attestationHash: attestation.hash,
@@ -149,7 +159,7 @@ questRoutes.post("/:id/submit", async (c) => {
     let status: Payment["status"] = "settled";
     let txHash: string | undefined;
     try {
-      txHash = (await settlePayout({ wallet: u.wallet, questId: id, usdc: quest.usdc })).txHash;
+      txHash = (await settlePayout({ wallet: u.wallet, questId: id })).txHash;
     } catch (err) {
       log.error("chain: settlePayout failed; leaving payment pending", { err: String(err) });
       status = "pending";

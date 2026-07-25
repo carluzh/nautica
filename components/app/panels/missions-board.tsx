@@ -132,6 +132,10 @@ function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
         <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" /> Checking
         </span>
+      ) : quest.onchain === false ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+          <Lock className="size-3" /> Not yet live
+        </span>
       ) : (
         <Button size="sm" variant="secondary" className="shrink-0" onClick={onStart}>
           Start
@@ -212,6 +216,9 @@ function PaidRow({
   }
 
   // Unlocked + available: partner, reward, requirement chips, Start.
+  const notLive = quest.onchain === false;
+  const remaining = quest.remainingUsd;      // remaining escrow, or undefined
+  const dry = quest.underfunded === true;    // server-computed: pool can't cover a payout
   return (
     <div className="flex flex-col gap-2.5 border-t bg-primary/5 px-3 py-3">
       <div className="flex items-center gap-3">
@@ -227,7 +234,15 @@ function PaidRow({
         </div>
         <div className="flex shrink-0 flex-col items-end">
           <span className="tnum text-sm font-semibold text-success">${quest.usdc}</span>
-          <span className="tnum text-[11px] text-muted-foreground">+{quest.reward} XP</span>
+          {notLive ? (
+            <span className="tnum text-[11px] text-muted-foreground">not live</span>
+          ) : dry ? (
+            <span className="tnum text-[11px] text-warning">escrow low</span>
+          ) : remaining != null ? (
+            <span className="tnum text-[11px] text-muted-foreground">${remaining} left</span>
+          ) : (
+            <span className="tnum text-[11px] text-muted-foreground">+{quest.reward} XP</span>
+          )}
         </div>
       </div>
 
@@ -253,6 +268,14 @@ function PaidRow({
       {verifying ? (
         <Button size="sm" className="w-full" disabled>
           <Loader2 className="size-3.5 animate-spin" /> Verifying…
+        </Button>
+      ) : notLive ? (
+        <Button size="sm" variant="secondary" className="w-full" disabled>
+          <Lock className="size-3.5" /> Not yet available on-chain
+        </Button>
+      ) : dry ? (
+        <Button size="sm" className="w-full" disabled>
+          <Coins className="size-3.5" /> Escrow too low
         </Button>
       ) : (
         <Button size="sm" className="w-full" onClick={onStart}>
