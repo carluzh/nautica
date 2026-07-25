@@ -226,7 +226,7 @@ export function QuestSubmitDialog() {
                     <PhotoStep
                       quest={quest}
                       isPaid={isPaid}
-                      passport={user.verification.passport}
+                      passport={user.verification.face}
                       nonce={nonce}
                       preview={preview}
                       onPick={onPick}
@@ -244,7 +244,7 @@ export function QuestSubmitDialog() {
                     <ReviewStep
                       quest={quest}
                       isPaid={isPaid}
-                      passport={user.verification.passport}
+                      passport={user.verification.face}
                       preview={preview}
                       place={place}
                     />
@@ -354,7 +354,7 @@ function PhotoStep({
           {!passport ? (
             <div className="mt-1 flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
               <IdCard className="size-3.5 shrink-0" />
-              Passport (Identity Check) needed to receive USDC.
+              Selfie (Face) verification needed to receive USDC.
             </div>
           ) : null}
         </div>

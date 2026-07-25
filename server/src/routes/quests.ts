@@ -180,8 +180,10 @@ questRoutes.post("/:id/submit", async (c) => {
   if (quest.kind === "paid") {
     if (levelForXp(u.xp) < PAID_UNLOCK_LEVEL)
       return c.json({ ok: false, reason: `Reach Level ${PAID_UNLOCK_LEVEL} to unlock paid quests.` } satisfies SubmitResult);
-    if (!u.verification.passport)
-      return c.json({ ok: false, reason: "Passport (Identity Check) verification required for paid quests." } satisfies SubmitResult);
+    // Demo: a Selfie (Face) verification is enough for paid quests (loosened from
+    // the stricter Passport/Identity Check gate to keep the live flow smooth).
+    if (!u.verification.face)
+      return c.json({ ok: false, reason: "Selfie (Face) verification required for paid quests." } satisfies SubmitResult);
     if (!u.wallet)
       return c.json({ ok: false, reason: "Attach a wallet in Settings to receive payouts." } satisfies SubmitResult);
   }
