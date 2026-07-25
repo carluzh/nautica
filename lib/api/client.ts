@@ -12,6 +12,7 @@ import type {
   LeaderboardEntry,
   LevelInfo,
   Payment,
+  PlausibilityVerdict,
   Quest,
   QuestStatus,
   SubmitResult,
@@ -180,6 +181,10 @@ export const api = {
   },
   getPayments(token: string) {
     return req<Payment[]>("/me/payments", { token });
+  },
+  /** Plausibility agent verdict for a sighting (species-range/season check via the subgraph). */
+  getPlausibility(token: string, sightingId: string) {
+    return req<PlausibilityVerdict>(`/me/sightings/${sightingId}/plausibility`, { token });
   },
   getLeaderboard(token: string | null) {
     return req<LeaderboardEntry[]>("/leaderboard", { token });

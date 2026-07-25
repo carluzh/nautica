@@ -1,0 +1,19 @@
+{
+  "name": "nautica-subgraph",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nautica subgraph — Base sighting/quest events -> leaderboard, player stats, XP/leveling.",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy nautica",
+    "deploy:studio": "graph deploy --node https://api.studio.thegraph.com/deploy/ nautica",
+    "create-local": "graph create --node http://localhost:8020/ nautica",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 nautica",
+    "test": "graph test"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.1",
+    "@graphprotocol/graph-ts": "0.38.0"
+  }
+}

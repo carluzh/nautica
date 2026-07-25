@@ -81,11 +81,19 @@ questRoutes.post("/:id/submit", async (c) => {
     return c.json({ ok: false, reason: `0G did not verify this shot (${attestation.label}).`, attestation } satisfies SubmitResult);
   }
 
+  // Fixed before the on-chain record so the emitted event and the gallery item
+  // carry identical lat/lng.
+  const lat = parsed.data.lat ?? LISBON.lat + (Math.random() - 0.5) * 0.4;
+  const lng = parsed.data.lng ?? LISBON.lng + (Math.random() - 0.5) * 0.4;
+
   // Passed: record on-chain (trusted attestor), award XP, settle any payout.
   const chainRes = await recordQuestCompletion({
     wallet: u.wallet,
     questId: id,
     xp: quest.reward,
+    usdc: quest.usdc,
+    lat,
+    lng,
     attestationHash: attestation.hash,
   });
 
@@ -101,8 +109,8 @@ questRoutes.post("/:id/submit", async (c) => {
     attestation,
     xp: quest.reward,
     usdc: quest.usdc,
-    lat: parsed.data.lat ?? LISBON.lat + (Math.random() - 0.5) * 0.4,
-    lng: parsed.data.lng ?? LISBON.lng + (Math.random() - 0.5) * 0.4,
+    lat,
+    lng,
     at: now,
   };
 
@@ -114,7 +122,7 @@ questRoutes.post("/:id/submit", async (c) => {
   let payments = u.payments;
   let balanceUsd = u.balanceUsd;
   if (quest.kind === "paid" && quest.usdc) {
-    const payout = await settlePayout({ wallet: u.wallet, usdc: quest.usdc });
+    const payout = await settlePayout({ wallet: u.wallet, questId: id, usdc: quest.usdc });
     const payment: Payment = {
       id: `p_${now}`,
       partner: quest.partner ?? "Research partner",

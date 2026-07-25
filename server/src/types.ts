@@ -98,6 +98,22 @@ export type Payment = {
   at: number;
 };
 
+/** Plausibility agent verdict for a sighting (see services/plausibility.ts). */
+export type PlausibilityVerdict = {
+  sightingId: string;
+  species: SpeciesId;
+  verdict: "plausible" | "unusual" | "implausible";
+  score: number; // 0..1
+  /** Notable-but-plausible, e.g. an invasive species inside its invaded range. */
+  notable?: boolean;
+  reasons: string[];
+  rangeNote?: string;
+  seasonNote?: string;
+  /** Count of nearby same-species sightings that corroborate this one. */
+  corroboratingNearby?: number;
+  at: number;
+};
+
 export type Session = { userId: string; issuedAt: number };
 
 /** Result of a quest submission (mirrors the frontend submitQuest contract). */

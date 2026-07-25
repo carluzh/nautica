@@ -76,6 +76,21 @@ export type Sighting = {
   label?: string;
 };
 
+/** The plausibility agent's verdict for a sighting (mirrors server/src/types.ts).
+ *  Loaded lazily per gallery card; additive to the existing GalleryItem shape. */
+export type PlausibilityVerdict = {
+  sightingId: string;
+  species: SpeciesId;
+  verdict: "plausible" | "unusual" | "implausible";
+  score: number; // 0..1
+  notable?: boolean; // e.g. an invasive species inside its invaded range
+  reasons: string[];
+  rangeNote?: string;
+  seasonNote?: string;
+  corroboratingNearby?: number;
+  at: number;
+};
+
 export type ActivityKind = "quest" | "levelup" | "verify" | "payout" | "join";
 
 export type ActivityEvent = {

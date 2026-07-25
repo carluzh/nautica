@@ -1,0 +1,14 @@
+{
+  "base-sepolia": {
+    "NauticaQuests": {
+      "address": "0x20b1f18e4723f81f83151b9a4142e3b3367ca7fa",
+      "startBlock": 44608340
+    }
+  },
+  "base": {
+    "NauticaQuests": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    }
+  }
+}

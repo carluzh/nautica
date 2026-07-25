@@ -5,9 +5,15 @@ import type { AppEnv } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
 import { verifySiwe } from "../services/siwe";
 import { getActivity, getGallery, getProfile } from "../services/subgraph";
+import { assessSighting } from "../services/plausibility";
+import type { PlausibilityVerdict } from "../types";
 
 export const meRoutes = new Hono<AppEnv>();
 meRoutes.use("*", requireAuth);
+
+// Verdicts are deterministic for a given sighting; cache per sighting id so the
+// agent runs once per photo rather than on every gallery-card open.
+const plausibilityCache = new Map<string, PlausibilityVerdict>();
 
 /** GET /me — the player's profile (XP, level, streak, verification, balance). */
 meRoutes.get("/", async (c) => {
@@ -29,6 +35,23 @@ meRoutes.get("/activity", async (c) => {
 /** GET /me/payments — paid-quest settlements. */
 meRoutes.get("/payments", (c) => {
   return c.json(store.getUser(c.get("userId"))?.payments ?? []);
+});
+
+/** GET /me/sightings/:id/plausibility — the agent's verdict for one sighting,
+ *  cached per id. 404 when the sighting isn't the caller's. */
+meRoutes.get("/sightings/:id/plausibility", async (c) => {
+  const userId = c.get("userId");
+  const sightingId = c.req.param("id");
+  const cacheKey = `${userId}:${sightingId}`;
+
+  const cached = plausibilityCache.get(cacheKey);
+  if (cached) return c.json(cached);
+
+  const verdict = await assessSighting(userId, sightingId);
+  if (!verdict) return c.json({ error: "sighting not found" }, 404);
+
+  plausibilityCache.set(cacheKey, verdict);
+  return c.json(verdict);
 });
 
 /** POST /me/wallet — attach a payout wallet to a World ID / Google user (SIWE). */

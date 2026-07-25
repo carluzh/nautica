@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AlertTriangle, Images, MapPin } from "lucide-react";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
@@ -13,11 +14,39 @@ import {
 } from "@/components/ui/dialog";
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
-import type { GalleryItem } from "@/lib/game/types";
+import type { GalleryItem, PlausibilityVerdict } from "@/lib/game/types";
 import { timeAgo } from "@/lib/format";
+
+const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: string; label: string }> = {
+  plausible: { dot: "bg-success", text: "text-success", label: "Plausible" },
+  unusual: { dot: "bg-warning", text: "text-warning", label: "Unusual" },
+  implausible: { dot: "bg-destructive", text: "text-destructive", label: "Implausible" },
+};
+
+/** Plausibility agent verdict — a small chip reasoning over the subgraph record. */
+function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
+  const tone = VERDICT_TONE[verdict.verdict];
+  return (
+    <div className="flex items-center gap-1.5" title={verdict.reasons.join(" ")}>
+      <span className={`inline-block size-1.5 shrink-0 rounded-full ${tone.dot}`} />
+      <span className={`text-[11px] font-medium ${tone.text}`}>{tone.label}</span>
+      {verdict.notable ? (
+        <span className="rounded-full bg-warning/15 px-1.5 py-px text-[10px] font-medium text-warning">
+          Invasive here
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function Card({ item }: { item: GalleryItem }) {
   const meta = SPECIES_META[item.species];
+  const { plausibility, loadPlausibility } = useGame();
+  const verdict = plausibility[item.id];
+
+  useEffect(() => {
+    loadPlausibility(item.id);
+  }, [item.id, loadPlausibility]);
 
   return (
     <div className="group overflow-hidden rounded-lg border bg-card">
@@ -68,6 +97,7 @@ function Card({ item }: { item: GalleryItem }) {
           </span>
           <span className="tnum">{timeAgo(item.at)}</span>
         </div>
+        {verdict ? <PlausibilityChip verdict={verdict} /> : null}
       </div>
     </div>
   );

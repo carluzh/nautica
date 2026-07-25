@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -45,6 +46,7 @@ import type {
   LevelInfo,
   PanelId,
   Payment,
+  PlausibilityVerdict,
   Quest,
   SubmitResult,
   UserState,
@@ -135,8 +137,12 @@ type GameValue = {
   openPanel: PanelId | null;
   activeQuestId: string | null;
   lastLevelUp: number | null;
+  /** Plausibility verdicts keyed by sighting id, filled lazily by loadPlausibility. */
+  plausibility: Record<string, PlausibilityVerdict>;
 
   setOpenPanel: (p: PanelId | null) => void;
+  /** Ask the plausibility agent about a sighting (no-op until API mode + signed in). */
+  loadPlausibility: (sightingId: string) => void;
   openQuest: (questId: string) => void;
   connectWorldId: () => void;
   connectGoogle: () => void;
@@ -165,6 +171,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [lastLevelUp, setLastLevelUp] = useState<number | null>(null);
+  const [plausibility, setPlausibility] = useState<Record<string, PlausibilityVerdict>>({});
+  // Sightings already requested, so a re-rendered card never refetches.
+  const plausibilityRequested = useRef<Set<string>>(new Set());
   // Real World ID widget flow. `mode` = login vs tier upgrade; `credential` picks
   // the preset/action. Only mounts when a real World ID app is configured.
   const [worldId, setWorldId] = useState<{
@@ -482,6 +491,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Lazily fetch the plausibility verdict for one sighting (API mode only). Cards
+  // call this on open; the ref guard makes it fire once per sighting per session.
+  const loadPlausibility = useCallback(
+    (sightingId: string) => {
+      if (!apiEnabled || !token) return;
+      if (plausibilityRequested.current.has(sightingId)) return;
+      plausibilityRequested.current.add(sightingId);
+      api
+        .getPlausibility(token, sightingId)
+        .then((v) => setPlausibility((m) => ({ ...m, [sightingId]: v })))
+        .catch(() => plausibilityRequested.current.delete(sightingId));
+    },
+    [token],
+  );
+
   // End the session and reset to the logged-out state. Drops the server token so
   // the next sign-in mints a fresh session — needed to re-test the World ID flow.
   const signOut = useCallback(() => {
@@ -491,6 +515,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGallery([]);
     setHistory([]);
     setPayments([]);
+    setPlausibility({});
+    plausibilityRequested.current.clear();
     setLeaderboard(apiEnabled ? [] : LEADERBOARD);
     setQuests(DAILY_QUESTS);
     setError(null);
@@ -515,7 +541,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     openPanel,
     activeQuestId,
     lastLevelUp,
+    plausibility,
     setOpenPanel,
+    loadPlausibility,
     openQuest,
     connectWorldId,
     connectGoogle,

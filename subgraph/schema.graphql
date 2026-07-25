@@ -1,0 +1,93 @@
+# Serves the broker queries in server/src/services/subgraph.ts field-for-field, so
+# setting SUBGRAPH_URL swaps mock -> real with no frontend change.
+#
+# The SightingRecorded event carries the verifiable numbers (player, questId, lat/lng,
+# xp, usdc, attestationHash); species/title are resolved in the mapping from a static
+# registry (mirror of content.ts) keyed by the bytes32 questId. `level` is not stored
+# (a pure function of xp the broker computes) to avoid a redeploy on curve change.
+
+"Protocol-wide aggregates. Singleton, id = \"global\"."
+type Global @entity(immutable: false) {
+  id: ID!
+  totalPlayers: Int!
+  totalSightings: BigInt!
+  totalXp: BigInt!
+  totalUsdc: BigDecimal!
+  updatedAt: BigInt!
+}
+
+"A player, keyed by lowercased wallet address. Mutable (xp/streak/balance accrue)."
+type Player @entity(immutable: false) {
+  id: ID!
+  "Off-chain overlay: the broker stitches the World ID handle; \"\" until known on-chain."
+  handle: String!
+  wallet: Bytes!
+  xp: BigInt!
+  streak: Int!
+  "Internal helper for the streak day-bucket calc (UTC day index of last sighting)."
+  lastSightingDayUTC: BigInt!
+  balanceUsd: BigDecimal!
+  "Verification flags default false on-chain; the broker overlays the World ID truth."
+  faceVerified: Boolean!
+  passportVerified: Boolean!
+  orbVerified: Boolean!
+  sightingCount: Int!
+  createdAt: BigInt!
+  sightings: [Sighting!]! @derivedFrom(field: "player")
+  activity: [Activity!]! @derivedFrom(field: "player")
+}
+
+"A verified sighting (one per passed quest submission). Append-only. id = txHash-logIndex."
+type Sighting @entity(immutable: true) {
+  id: ID!
+  player: Player!
+  "Resolved in the mapping: on-chain bytes32 questId -> app quest id string."
+  questId: String!
+  "Resolved from the static quest registry (mirror of content.ts)."
+  species: String!
+  "Resolved from the static quest registry."
+  title: String!
+  "From the event (authoritative anti-cheat XP award)."
+  xp: BigInt!
+  "From the event (usdc6 / 1e6). 0 for free quests."
+  usdc: BigDecimal!
+  "From the event (latE6 / 1e6)."
+  lat: BigDecimal!
+  "From the event (lngE6 / 1e6)."
+  lng: BigDecimal!
+  "block.timestamp of the recording tx."
+  at: BigInt!
+  attestation: Attestation!
+}
+
+"The 0G attestation reference carried on-chain. id = sighting id."
+type Attestation @entity(immutable: true) {
+  id: ID!
+  "attestationHash from the event (digest of the 0G TEE attestation)."
+  hash: Bytes!
+  "Only passes reach the chain, so this is the constant \"pass\"."
+  verdict: String!
+  "NOT on-chain: confidence stays in the 0G layer, enriched off-chain by hash. Nullable."
+  confidence: BigDecimal
+  "Mapping constant (nullable): the model id if known on-chain."
+  model: String
+  "Human label (= species) for display parity with the broker shape."
+  label: String
+  "Enclave tech string (nullable mapping constant)."
+  tee: String
+  at: BigInt!
+}
+
+"History feed entry derived from on-chain events. id = sighting id + suffix."
+type Activity @entity(immutable: true) {
+  id: ID!
+  player: Player!
+  "quest | levelup | payout. (join / verify stay off-chain in the store.)"
+  kind: String!
+  title: String!
+  detail: String
+  xp: BigInt
+  usdc: BigDecimal
+  species: String
+  at: BigInt!
+}
