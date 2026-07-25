@@ -4,11 +4,7 @@ import { Wallet } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useGame } from "@/lib/game/provider";
 
-/**
- * Shared account identity block reused by the Profile and Settings dialogs:
- * avatar + name + a payout-wallet line. Reads useGame() itself so callers just
- * drop it in. Theme-aware (card/border/muted tokens), compact.
- */
+// Shared account identity block for the Profile and Settings dialogs.
 export function AccountHeader() {
   const { user } = useGame();
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";

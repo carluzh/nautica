@@ -220,7 +220,7 @@ export function QuestSubmitDialog() {
                   )}
                 </div>
 
-                {/* step body — sizes to each step's content so the modal height adapts */}
+                {/* step body - sizes to each step's content so the modal height adapts */}
                 <div className="px-5 pb-5">
                   {step === 1 ? (
                     <PhotoStep
@@ -301,7 +301,7 @@ export function QuestSubmitDialog() {
   );
 }
 
-/** Step 1 — freshness nonce, paid requirements, and the camera capture. */
+/** Step 1 - freshness nonce, paid requirements, and the camera capture. */
 function PhotoStep({
   quest,
   isPaid,
@@ -387,7 +387,7 @@ function PhotoStep({
   );
 }
 
-/** Step 3 — a compact review of the capture + location before 0G verification. */
+/** Step 3 - a compact review of the capture + location before 0G verification. */
 function ReviewStep({
   quest,
   isPaid,
@@ -516,7 +516,7 @@ function SuccessView({
   );
 }
 
-/** Failure screen — a fresh modal state shown when 0G rejects the submission. */
+/** Failure screen - a fresh modal state shown when 0G rejects the submission. */
 function FailureView({
   reason,
   onRetry,

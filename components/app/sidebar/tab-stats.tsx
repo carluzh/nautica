@@ -1,48 +1,61 @@
 "use client";
 
+import { useMemo } from "react";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SPECIES_META } from "@/lib/game/content";
-import { COMMUNITY_STATS } from "@/lib/game/mock";
+import { useGame } from "@/lib/game/provider";
 import type { SpeciesId } from "@/lib/game/types";
 
-const PILLS = [
-  { value: COMMUNITY_STATS.scientists, label: "Citizen Scientists" },
-  { value: COMMUNITY_STATS.sightings, label: "Marine Sightings" },
-] as const;
-
-/** Stats tab: aggregate community "Total stats" season board (not per-player). */
+/** Stats tab: the community "Total stats" board, computed live from the real
+ *  sightings store (iNaturalist seed + newly logged captures), not per-player. */
 export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) => void }) {
+  const { sightings } = useGame();
+
+  const { total, observers, top } = useMemo(() => {
+    const counts = Object.fromEntries(
+      (Object.keys(SPECIES_META) as SpeciesId[]).map((s) => [s, 0]),
+    ) as Record<SpeciesId, number>;
+    const obs = new Set<string>();
+    for (const s of sightings) {
+      counts[s.species] += 1;
+      // Attribution reads "© observer · iNaturalist · LICENSE" - pull the observer.
+      const m = s.attribution?.match(/©\s*([^·]+?)\s*·/);
+      if (m) obs.add(m[1].trim());
+    }
+    const top = (Object.keys(counts) as SpeciesId[])
+      .map((species) => ({ species, count: counts[species] }))
+      .filter((s) => s.count > 0)
+      .sort((a, b) => b.count - a.count);
+    return { total: sightings.length, observers: obs.size, top };
+  }, [sightings]);
+
+  const pills = [
+    { value: observers, label: "Citizen scientists" },
+    { value: total, label: "Marine sightings" },
+  ];
+
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-5 p-4">
         {/* Season header */}
-        <p className="text-xs font-medium text-muted-foreground">
-          Total stats · {COMMUNITY_STATS.year}
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">Total stats</p>
 
-        {/* Big-number totals — two side-by-side pills */}
+        {/* Big-number totals - two side-by-side pills */}
         <div className="flex gap-3">
-          {PILLS.map((p) => (
-            <div
-              key={p.label}
-              className="flex-1 rounded-xl bg-muted/50 px-4 py-3"
-            >
-              <p className="tnum text-2xl font-bold leading-none">
-                {p.value.toLocaleString()}
-              </p>
+          {pills.map((p) => (
+            <div key={p.label} className="flex-1 rounded-xl bg-muted/50 px-4 py-3">
+              <p className="tnum text-2xl font-bold leading-none">{p.value.toLocaleString()}</p>
               <p className="mt-1.5 text-xs text-muted-foreground">{p.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Most sighted species */}
+        {/* Most sighted species - live counts */}
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
-            Most Sighted Species · {COMMUNITY_STATS.year}
-          </p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Most sighted species</p>
           <ul className="flex flex-col gap-1.5">
-            {COMMUNITY_STATS.topSpecies.slice(0, 20).map((s, i) => (
+            {top.map((s, i) => (
               <li key={s.species}>
                 <button
                   type="button"
@@ -64,8 +77,6 @@ export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) =>
             ))}
           </ul>
         </div>
-
-        <p className="text-[11px] text-muted-foreground">Community sightings via iNaturalist</p>
       </div>
     </ScrollArea>
   );

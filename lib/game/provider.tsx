@@ -25,7 +25,7 @@ import {
 import { humanizeWorldIdError } from "@/lib/worldid-errors";
 import { connectInjectedWallet, signSiweWithWallet } from "../wallet";
 
-// Real World ID widget — browser-only (IDKit pulls WASM). ssr:false keeps it out
+// Real World ID widget - browser-only (IDKit pulls WASM). ssr:false keeps it out
 // of the server render. In dev-mock mode it never mounts (we submit a dev proof).
 const WorldIdWidget = dynamic(
   () => import("@/components/app/worldid-widget").then((m) => m.WorldIdWidget),
@@ -40,6 +40,7 @@ import {
   SEED_GALLERY,
   SEED_HISTORY,
 } from "./mock";
+import { REAL_SIGHTINGS } from "@/sightings";
 import type {
   ActivityEvent,
   Attestation,
@@ -52,6 +53,7 @@ import type {
   PickedPlace,
   PlausibilityVerdict,
   Quest,
+  Sighting,
   SubmitResult,
   UserState,
   VerifyStep,
@@ -59,12 +61,8 @@ import type {
 
 export type { SubmitResult } from "./types";
 
-// ---------------------------------------------------------------------------
-// Two data sources behind ONE identical useGame() contract:
-//  - mock mode (default): self-contained, no backend needed — for frontend work.
-//  - API mode (NEXT_PUBLIC_API_URL set): talks to the server via lib/api/client.
-// Panels never know or care which is active.
-// ---------------------------------------------------------------------------
+// One useGame() contract over two data sources: mock mode (default, no backend)
+// and API mode (NEXT_PUBLIC_API_URL set, talks to the server). Callers can't tell.
 
 const LISBON: [number, number] = [-9.15, 38.7];
 const MOCK_WALLET = "0x8Ac…4F21";
@@ -148,6 +146,8 @@ type GameValue = {
   quests: Quest[];
   gallery: GalleryItem[];
   history: ActivityEvent[];
+  /** Community sightings the map + stats read; new captures are appended here. */
+  sightings: Sighting[];
   payments: Payment[];
   leaderboard: LeaderboardEntry[];
   paidUnlocked: boolean;
@@ -194,6 +194,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [quests, setQuests] = useState<Quest[]>(DAILY_QUESTS);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [history, setHistory] = useState<ActivityEvent[]>([]);
+  // Community sightings store - the "same database" the map + stats read. Seeded
+  // from the committed iNaturalist dataset; new captures are appended on submit.
+  const [sightings, setSightings] = useState<Sighting[]>(REAL_SIGHTINGS);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(apiEnabled ? [] : LEADERBOARD);
   const [token, setToken] = useState<string | null>(null);
@@ -343,7 +346,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const connectWallet = useCallback(() => {
     if (!apiEnabled) {
-      // Wallet sign-in: the wallet IS the identity — attached at login, still unverified.
+      // Wallet sign-in: the wallet IS the identity - attached at login, still unverified.
       setUser((u) => ({ ...u, ...RETURNING_USER, verification: { face: false, passport: false, orb: false }, wallet: MOCK_WALLET } as UserState));
       setGallery(SEED_GALLERY);
       setHistory(SEED_HISTORY);
@@ -353,7 +356,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setError(null);
     (async () => {
       try {
-        // Real injected wallet (MetaMask/Base): connect -> nonce -> SIWE sign.
         const address = await connectInjectedWallet();
         const { nonce } = await api.walletNonce(address);
         const { message, signature } = await signSiweWithWallet(address, nonce);
@@ -442,7 +444,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const quest = quests.find((q) => q.id === questId);
       if (!quest) return { ok: false, reason: "Quest not found." };
 
-      // ---- API mode: challenge -> submit -> re-hydrate ----
+      // API mode: challenge -> submit -> re-hydrate.
       if (apiEnabled) {
         if (!token) return { ok: false, reason: "Not signed in." };
         setQuests((qs) => qs.map((q) => (q.id === questId ? { ...q, status: "verifying" } : q)));
@@ -475,7 +477,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // ---- mock mode: simulate the whole flow locally ----
+      // mock mode: simulate the whole flow locally.
       const currentLevel = computeLevel(user.xp).level;
       if (quest.kind === "paid") {
         if (currentLevel < PAID_UNLOCK_LEVEL)
@@ -508,6 +510,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const after = computeLevel(user.xp + quest.reward).level;
 
       setGallery((g) => [item, ...g]);
+      // Post the capture into the shared community store so it lands in the same
+      // database the map + stats read (deduped off the map's own-captures layer).
+      setSightings((s) => [
+        { id: item.id, species: item.species, lng: item.lng, lat: item.lat, label: item.title, at: item.at, photo: item.photo },
+        ...s,
+      ]);
       setQuests((qs) => qs.map((q) => (q.id === questId ? { ...q, status: "done" } : q)));
       setHistory((h) => [
         { id: uid("h"), kind: "quest", title: quest.title, species: quest.species, xp: quest.reward, usdc: quest.usdc, attestation, lng: item.lng, lat: item.lat, at: Date.now() },
@@ -543,7 +551,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return { ok: false, reason: e instanceof Error ? e.message : "Could not post quest" };
         }
       }
-      // mock: no backend — synthesize the quest and prepend it to the board.
+      // mock: no backend - synthesize the quest and prepend it to the board.
       const q: Quest = {
         id: uid("q"),
         kind: body.usdc > 0 ? "paid" : "free",
@@ -603,10 +611,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     })();
   }, [token, hydrate]);
 
-  // Fetch the plausibility verdict for one sighting (API mode only). Cards call this
-  // on open; the ref guard makes it fire once per sighting per session. A just-recorded
-  // sighting isn't indexed yet, so a miss retries on a fixed interval (bounded) until
-  // the server's eager job has the verdict — no manual reopen needed.
+  // Fetch a sighting's plausibility verdict (API mode only), once per sighting per
+  // session via the ref guard. A just-recorded sighting isn't indexed yet, so a miss
+  // retries on a bounded interval until the server's verdict lands.
   const loadPlausibility = useCallback(
     (sightingId: string) => {
       if (!apiEnabled || !token) return;
@@ -624,7 +631,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           .catch(() => {
             attempts += 1;
             if (attempts < 10) {
-              setTimeout(attempt, 5000); // not indexed/assessed yet — keep waiting
+              setTimeout(attempt, 5000); // not indexed/assessed yet - keep waiting
             } else {
               plausibilityRequested.current.delete(sightingId); // allow a later re-request
               setPlausibilityPending((m) => ({ ...m, [sightingId]: false }));
@@ -637,12 +644,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   // End the session and reset to the logged-out state. Drops the server token so
-  // the next sign-in mints a fresh session — needed to re-test the World ID flow.
+  // the next sign-in mints a fresh session - needed to re-test the World ID flow.
   const signOut = useCallback(() => {
     sessionToken.clear();
     setToken(null);
     setUser(INITIAL_USER);
     setGallery([]);
+    setSightings(REAL_SIGHTINGS);
     setHistory([]);
     setPayments([]);
     setPlausibility({});
@@ -665,6 +673,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     quests,
     gallery,
     history,
+    sightings,
     payments,
     leaderboard,
     paidUnlocked,

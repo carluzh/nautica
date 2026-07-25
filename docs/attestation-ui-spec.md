@@ -45,7 +45,7 @@ records as green "verified".
 
 ## Changes
 
-### (a) `lib/game/types.ts` — extend `Attestation` (additive, all optional)
+### (a) `lib/game/types.ts` - extend `Attestation` (additive, all optional)
 Mirror `server/src/types.ts` `Attestation`: add optional `simulated?, teeVerified?,
 attestationSource?, provider?, requestId?, chatId?, verifiability?, teeType?,
 teeVerifier?, outputHash?, teeSigner?, providerVerifiability?, providerAcknowledged?,
@@ -53,7 +53,7 @@ quoteVerified?, quoteVerifier?`. Keep every new field optional so reconstructed 
 mock records still typecheck. (This file is co-edited with the backend mirror and
 the plausibility work; additive-only, coordinate the merge.)
 
-### (b) `lib/format.ts` — link helpers (new)
+### (b) `lib/format.ts` - link helpers (new)
 ```ts
 export const CHAINSCAN = "https://chainscan.0g.ai";
 export const chainscanAddress = (addr: string) => `${CHAINSCAN}/address/${addr}`;
@@ -64,20 +64,20 @@ export function shortAddr(addr: string, size = 4) {
 `provider` and `teeSigner` are 0G-chain addresses → `chainscanAddress(addr)`, render
 `shortAddr(addr)`, `target="_blank" rel="noreferrer"`, `ExternalLink` icon.
 
-### (c) `components/app/attestation.tsx` — rewrite
+### (c) `components/app/attestation.tsx` - rewrite
 Drive the `Badge` label/tone/icon from the status above (not the hard-coded string).
 Factor a local `<AttestationDetail>` containing (each guarded by presence):
 - Status + Pass/Fail; Model; Confidence; Enclave (`a.tee`).
 - Verifiability: `a.verifiability ?? a.providerVerifiability` (TeeTLS/TeeML).
 - **Independent quote**: when `a.quoteVerified === true`, a line "Intel TDX quote
-  verified · {a.quoteVerifier}" (e.g. `automata-onchain`) — this is the differentiator.
+  verified · {a.quoteVerifier}" (e.g. `automata-onchain`) - this is the differentiator.
 - Provider: chainscan link on `a.provider`.
 - TEE signer: chainscan link on `a.teeSigner` + a check when `a.providerAcknowledged`.
 - Request id (`a.requestId`, tnum) and attestation hash (`a.hash`).
-- When simulated: an explicit "Simulated — no TEE proof (0G key not set)" line, no green.
+- When simulated: an explicit "Simulated - no TEE proof (0G key not set)" line, no green.
 
 **Host:** the current Radix Tooltip can't hold clickable links (dismisses on
-leave). Convert to a **Popover** — `radix-ui` already bundles it (no new dep); add
+leave). Convert to a **Popover** - `radix-ui` already bundles it (no new dep); add
 `components/ui/popover.tsx` mirroring `components/ui/tooltip.tsx`.
 
 ### (d) Consumers (no prop changes)
@@ -87,7 +87,7 @@ live attestation is guaranteed) render `<AttestationDetail>` as a **persistent
 panel** (not a popover) so the verified links/quote/mode are visible without
 interaction. Optionally link `SubmitResult.txHash` as `chainscan.0g.ai/tx/{txHash}` there.
 
-### (e) Optional — keep the mock demo representative
+### (e) Optional - keep the mock demo representative
 Mock mode has no flags, so the badge reads "Unverified". To exercise the verified
 look in mock, seed realistic values (`teeVerified:true, quoteVerified:true,
 quoteVerifier:"automata-onchain", verifiability:"TeeTLS", provider:"0x…",

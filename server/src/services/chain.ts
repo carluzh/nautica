@@ -6,7 +6,7 @@ import { config, integrations } from "../config";
 import { log } from "../lib/logger";
 
 // Trusted-attestor relayer. After 0G passes a submission the SERVER (not the
-// client) records the completion + settles the USDC payout on Base — the user
+// client) records the completion + settles the USDC payout on Base - the user
 // can never self-attest. STUBBED: without a relayer key + contract address it
 // returns a simulated tx hash. The viem write path is structured against a
 // placeholder ABI so wiring the real contract (dev C) is a drop-in.

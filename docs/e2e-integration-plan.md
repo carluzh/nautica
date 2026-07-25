@@ -27,10 +27,10 @@ MapLibre + Positron stack (keyless). Zero edits to `sea-map.tsx`.
 
 Numbers (tunable constants, chosen here):
 
-- `MAX_PLACEMENT_KM = 5` — the anti-spoof leash: the chosen spot must lie within
+- `MAX_PLACEMENT_KM = 5` - the anti-spoof leash: the chosen spot must lie within
   5 km of the live GPS fix. Coastal sightings are local; 5 km allows privacy fuzz
   and GPS drift without letting a spot land in another region.
-- Spot radius `radiusM` — user-selectable precision/area circle around the spot.
+- Spot radius `radiusM` - user-selectable precision/area circle around the spot.
   Range 100 m – 2 km, default 250 m.
 
 Behavior:
@@ -38,7 +38,7 @@ Behavior:
 1. On open, request a fresh `navigator.geolocation.getCurrentPosition` (or reuse a
    known fix passed in). This is the **anchor**.
 2. Draw the allowed-placement zone as a translucent circle (`MAX_PLACEMENT_KM`
-   around the anchor) — a GeoJSON polygon ring in geographic coords so it scales
+   around the anchor) - a GeoJSON polygon ring in geographic coords so it scales
    correctly with zoom.
 3. A draggable marker is the chosen **spot**, initialized at the anchor. On drag,
    clamp it back onto the boundary if it leaves the zone (project the offset vector
@@ -65,7 +65,7 @@ Minimal edits to the shared submit route:
 - Use the client spot for lat/lng instead of the silent random Lisbon fill. If a
   GPS anchor is present, soft-validate `haversine(spot, anchor) <= MAX_PLACEMENT_KM`
   (+ small slack); on violation, clamp to the anchor and mark untrusted. Location is
-  a soft signal — never hard-reject on it. Absent coords → keep a labeled default.
+  a soft signal - never hard-reject on it. Absent coords → keep a labeled default.
 - Persist `radiusM` in a server side-table keyed by txHash (see §5) so it survives
   the subgraph round-trip (the event carries no radius; no contract change).
 - After a **real** (wallet-path) `recordQuestCompletion` returns a txHash, enqueue
@@ -130,6 +130,6 @@ Every commit staged file-by-file / hunk-by-hunk; never `git add -A`.
 
 ## Out of scope / stretch
 
-- On-chain radius (would force a contract redeploy + subgraph change — not worth it).
+- On-chain radius (would force a contract redeploy + subgraph change - not worth it).
 - Full subgraph round-trip of radius (server side-table covers the demo).
 - Persisting verdicts durably (process-memory cache is fine for the demo).

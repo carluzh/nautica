@@ -41,7 +41,7 @@ export type Attestation = {
   label: string;
   tee: string; // honest enclave tech when verified (e.g. "TDX · TeeTLS"), else "unverified"/"simulated"
   hash: string; // keccak256 attestation id (on-chain anchor)
-  simulated: boolean; // derived: !(x_0g_trace.tee_verified === true) — the honesty-critical field
+  simulated: boolean; // derived: !(x_0g_trace.tee_verified === true) - the honesty-critical field
   at: number;
   // Verifiable-inference detail from a live 0G call (optional: on-chain-reconstructed
   // records omit them). The XP gate keys on `simulated`, so these are display/audit.
@@ -126,7 +126,7 @@ export type Payment = {
   at: number;
 };
 
-/** An independent species-recognition signal — a second model cross-checking 0G's
+/** An independent species-recognition signal - a second model cross-checking 0G's
  *  classification. Part of the agent's verification, surfaced but NON-gating. */
 export type SpeciesRecognition = {
   model: string; // e.g. "iNaturalist"

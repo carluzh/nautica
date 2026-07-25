@@ -66,7 +66,7 @@ export function LevelDialog() {
         <ScrollArea className="flex-1">
           <section className="p-5">
             {/* Level: one big progress ring (the number is inside it) with the
-                remaining XP and next unlock beside it — no repeated "Level X". */}
+                remaining XP and next unlock beside it - no repeated "Level X". */}
             <div className="flex items-center gap-4 rounded-xl border bg-card/50 p-4">
               <LevelRing level={level.level} progress={level.progress} size={64} />
               <div className="min-w-0 flex-1">
@@ -87,7 +87,7 @@ export function LevelDialog() {
               </div>
             </div>
 
-            {/* Unlocks — hidden once Level 5 (paid) is reached; everything is unlocked by then. */}
+            {/* Unlocks - hidden once Level 5 (paid) is reached; everything is unlocked by then. */}
             {!paidUnlocked ? (
               <>
                 <p className="mt-5 mb-2 text-xs font-medium text-muted-foreground">Unlocks</p>

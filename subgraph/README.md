@@ -16,13 +16,13 @@ the app reads from The Graph with no frontend change.
 
 ## Entities
 
-- `Global` — protocol-wide totals (players, sightings, xp, usdc). Singleton.
-- `Player` — keyed by lowercased wallet; xp, streak, balance, verification overlay.
-- `Sighting` — one per passed quest submission (immutable).
-- `Attestation` — the on-chain 0G attestation reference (immutable).
-- `Activity` — quest / levelup / payout feed entries (immutable).
+- `Global` - protocol-wide totals (players, sightings, xp, usdc). Singleton.
+- `Player` - keyed by lowercased wallet; xp, streak, balance, verification overlay.
+- `Sighting` - one per passed quest submission (immutable).
+- `Attestation` - the on-chain 0G attestation reference (immutable).
+- `Activity` - quest / levelup / payout feed entries (immutable).
 
-`level` is intentionally **not** stored — it is a pure function of `xp`
+`level` is intentionally **not** stored - it is a pure function of `xp`
 (`levelForXp`) that the broker computes, so the curve can change without a
 subgraph redeploy.
 

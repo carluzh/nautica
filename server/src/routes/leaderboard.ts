@@ -5,7 +5,7 @@ import { getLeaderboard } from "../services/subgraph";
 
 export const leaderboardRoutes = new Hono<AppEnv>();
 
-/** GET /leaderboard — public ranking; marks the caller's row if a session is sent. */
+/** GET /leaderboard - public ranking; marks the caller's row if a session is sent. */
 leaderboardRoutes.get("/", async (c) => {
   const header = c.req.header("Authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : undefined;

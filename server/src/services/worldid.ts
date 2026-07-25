@@ -121,11 +121,11 @@ export async function verifyWorldProof(input: {
     const res = await fetch(`${config.WORLD_VERIFY_URL}/${rpId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Forward the IDKit response unchanged — the verifier expects the full object.
+      // Forward the IDKit response unchanged - the verifier expects the full object.
       body: JSON.stringify(resp),
     });
     data = (await res.json().catch(() => ({}))) as typeof data;
-    // Surface exactly what the verifier said — invaluable for diagnosing real proofs.
+    // Surface exactly what the verifier said - invaluable for diagnosing real proofs.
     log.info("world id: v4 verify replied", { rpId, status: res.status, body: data });
     if (!res.ok || !data.success) {
       return { ok: false, reason: data.message || data.detail || data.code || `verify failed (${res.status})` };

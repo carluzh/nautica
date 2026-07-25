@@ -173,7 +173,7 @@ export function SettingsDialog() {
           </Section>
 
           {/* Notifications */}
-          {/* mock: these toggles are local-only UI state — there is no backend endpoint
+          {/* mock: these toggles are local-only UI state - there is no backend endpoint
               to persist notification preferences (or deliver the alerts) yet. */}
           <Section title="Notifications">
             <div className="divide-y rounded-lg border">

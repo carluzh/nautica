@@ -1,5 +1,4 @@
-// Shared game domain types. The whole /app hub reads and writes this state via
-// the GameProvider (lib/game/provider.tsx). Panels should import from here.
+// Shared game domain types, read and written via the GameProvider (lib/game/provider.tsx).
 
 export type SpeciesId =
   | "Physalia"
@@ -12,16 +11,16 @@ export type SpeciesId =
   | "Turtle"
   | "Other";
 
-/** World ID verification ladder — SEPARATE from the XP level. Gates payouts. */
+/** World ID verification ladder - SEPARATE from the XP level. Gates payouts. */
 export type VerifyStep = "face" | "passport" | "orb";
 
 export type Verification = {
   face: boolean; // Selfie Check
   passport: boolean; // Identity / Document Check
-  orb: boolean; // Orb (strongest)
+  orb: boolean; // strongest
 };
 
-/** A tamper-proof-ish record of a 0G TEE classification. Illustrative in the skeleton. */
+/** A tamper-proof-ish record of a 0G TEE classification. */
 export type Attestation = {
   model: string; // e.g. "qwen3-vl-30b"
   verdict: "pass" | "fail";
@@ -106,7 +105,7 @@ export type PickedPlace = {
 
 /** An ambient community observation shown on the map. Map-only and read-only:
  * kept SEPARATE from the player's own `GalleryItem`s so it never touches their
- * XP, gallery or stats — it only makes the field read as a living survey. */
+ * XP, gallery or stats - it only makes the field read as a living survey. */
 export type Sighting = {
   id: string;
   species: SpeciesId;
@@ -121,7 +120,7 @@ export type Sighting = {
   attribution?: string;
 };
 
-/** An independent species-recognition signal — a second model cross-checking 0G's
+/** An independent species-recognition signal - a second model cross-checking 0G's
  *  classification. Part of the agent's verification, surfaced but NON-gating. */
 export type SpeciesRecognition = {
   model: string; // e.g. "iNaturalist"
@@ -225,7 +224,7 @@ export type PanelId =
   | "payments"
   | "leaderboard";
 
-/** Result of a quest submission — shared by the provider and the API client. */
+/** Result of a quest submission - shared by the provider and the API client. */
 export type SubmitResult =
   | { ok: true; attestation: Attestation; leveledTo?: number; usdc?: number; txHash?: string }
   | { ok: false; reason: string; attestation?: Attestation };

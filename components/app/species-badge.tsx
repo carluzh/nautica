@@ -2,12 +2,8 @@ import { CATEGORY_META, mapIcon, SPECIES_META } from "@/lib/game/content";
 import type { SpeciesId } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
-/**
- * The one species chip used across the app: a clean, filled species icon in its
- * category color, on a transparent container (no background tile). Color = map
- * category (matches the map), icon = the consolidated `mapIcon` set. Size the outer
- * container via `className`, the icon via `iconClassName` (default size-4).
- */
+// Color comes from the species' map category (to match the map); icon from the
+// consolidated `mapIcon` set. Size the container via `className`, the icon via `iconClassName`.
 export function SpeciesBadge({
   species,
   className,

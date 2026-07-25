@@ -1,4 +1,4 @@
-// AssemblyScript port of server/src/lib/levels.ts — used only to detect level-up
+// AssemblyScript port of server/src/lib/levels.ts - used only to detect level-up
 // crossings for the Activity feed. The broker computes the displayed level from xp.
 
 const THRESHOLDS: i32[] = [0, 30, 75, 135, 210];

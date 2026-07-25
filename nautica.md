@@ -1,4 +1,4 @@
-# Nautica — Master Brief (ETHGlobal Lisbon 2026)
+# Nautica - Master Brief (ETHGlobal Lisbon 2026)
 
 Rewritten 24.07.2026. This version throws out prediction markets entirely (see "Why we pivoted" below) and settles on a citizen-science leveling game. Sponsors locked: **World ID + 0G + The Graph**. Team: A (carluzh) = story/pitch/UI/brand/testing docs. C = senior Solidity/DeFi dev. Deadline So 26.07. 09:00 WEST (hard). Hacking start Fr ~21:00.
 
@@ -32,7 +32,9 @@ Rationale, stated in the pitch: stronger action needs stronger proof of humanity
 - Paid out on completion in **USDC on Base**.
 - Partner-defined requirements go beyond image plus location: multiple images, specific body parts (e.g. dorsal and ventral views), a count, size reference, or extra metadata. The partner sets the spec; 0G checks the submission against it.
 
-**Roadmap (pitch slide, not built this weekend):** leaderboards, public sightings map, Pokemon-Go-style collection and streaks, avatar and cosmetic customization, premium tier, more species and regions.
+**Shipped this weekend:** The Graph-powered leaderboard and a public sightings map rendering the real 280-sighting dataset (`REAL_SIGHTINGS`).
+
+**Roadmap (pitch slide, not built this weekend):** Pokemon-Go-style collection and streaks, avatar and cosmetic customization, premium tier, more species and regions.
 
 ## 3. Where each sponsor is load-bearing (not decoration)
 
@@ -57,7 +59,7 @@ Keep it to one full loop plus the paid unlock.
 3. Fast-forward to Level 5 (honest time-skip). The 4th paid quest appears from a partner (e.g. "photograph species X, dorsal and ventral views"). Submit. 0G verifies against the spec. USDC payout settles on Base.
 4. The Graph-powered leaderboard and public sightings feed update live from the on-chain events.
 
-Everything else (map, streaks, cosmetics, premium) is narrated roadmap.
+Everything else (streaks, cosmetics, premium) is narrated roadmap.
 
 ## 6. Sponsor tracks reference ($88k, verified 23.07.)
 

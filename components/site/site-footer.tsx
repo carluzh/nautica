@@ -8,7 +8,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Project",
     links: [
       { label: "ETHGlobal Lisbon", href: "https://ethglobal.com", external: true },
-      { label: "GitHub", href: "https://github.com", external: true },
+      { label: "GitHub", href: "https://github.com/carluzh/nautica", external: true },
     ],
   },
 ];
@@ -21,13 +21,12 @@ export function SiteFooter() {
           <div className="max-w-sm">
             <Wordmark href="/" size={26} className="text-[15px]" />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Nautica is a citizen-science game that rewards verified humans for
-              photographing nature, proves every shot with World ID and 0G, and
-              turns it into open, GBIF-compatible data.
+              Nautica is a citizen-science platform that rewards verified humans
+              for photographing nature and proves every shot with World ID and 0G.
             </p>
             <div className="mt-5 flex items-center gap-4">
               <a
-                href="https://github.com"
+                href="https://github.com/carluzh/nautica"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Nautica on GitHub"
@@ -84,8 +83,10 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Nautica. Built at ETHGlobal Lisbon.</p>
-          <p>Prototype. Sightings, species and rewards shown are illustrative.</p>
+          <p>© 2026 Nautica.</p>
+          <p>
+            Build with <span className="grayscale">❤️</span> at ETHGlobal Lisbon
+          </p>
         </div>
       </div>
     </footer>

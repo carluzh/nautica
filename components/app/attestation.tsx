@@ -8,9 +8,9 @@ import { chainscanAddress, shortAddr } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Attestation } from "@/lib/game/types";
 
-// The badge reflects the true verification state, never a hard-coded "verified".
-// quoteVerified (independent Intel TDX quote) is the strongest; teeVerified is the
-// router-attested TEE; on-chain-reconstructed records carry neither but are real.
+// Badge reflects the true verification state, never a hard-coded "verified":
+// quoteVerified (independent Intel TDX quote) is strongest, then teeVerified
+// (router-attested TEE); on-chain-reconstructed records carry neither but are real.
 type Status = "hw" | "tee" | "onchain" | "simulated" | "unverified";
 
 function statusOf(a: Attestation): Status {
@@ -52,7 +52,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** The attestation detail body — one source of truth (popover + submit-success panel). */
+/** Shared attestation detail body (popover + submit-success panel). */
 export function AttestationDetail({ attestation: a }: { attestation: Attestation }) {
   const status = statusOf(a);
   const mode = a.verifiability ?? a.providerVerifiability;
@@ -106,7 +106,7 @@ export function AttestationDetail({ attestation: a }: { attestation: Attestation
   );
 }
 
-/** Status chip; click reveals the full attestation detail with clickable links. */
+/** Status chip; click to reveal the full attestation detail. */
 export function AttestationBadge({ attestation, className }: { attestation: Attestation; className?: string }) {
   const { label, tone, Icon } = BADGE[statusOf(attestation)];
   return (

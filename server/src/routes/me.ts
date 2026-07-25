@@ -16,24 +16,24 @@ meRoutes.use("*", requireAuth);
 // agent runs once per photo rather than on every gallery-card open.
 const plausibilityCache = new Map<string, PlausibilityVerdict>();
 
-/** GET /me — the player's profile (XP, level, streak, verification, balance). */
+/** GET /me - the player's profile (XP, level, streak, verification, balance). */
 meRoutes.get("/", async (c) => {
   const profile = await getProfile(c.get("userId"));
   if (!profile) return c.json({ error: "user not found" }, 404);
   return c.json(profile);
 });
 
-/** GET /me/gallery — verified sightings (the collection). */
+/** GET /me/gallery - verified sightings (the collection). */
 meRoutes.get("/gallery", async (c) => {
   return c.json(await getGallery(c.get("userId")));
 });
 
-/** GET /me/activity — the history feed. */
+/** GET /me/activity - the history feed. */
 meRoutes.get("/activity", async (c) => {
   return c.json(await getActivity(c.get("userId")));
 });
 
-/** GET /me/payments — paid-quest settlements. */
+/** GET /me/payments - paid-quest settlements. */
 meRoutes.get("/payments", (c) => {
   return c.json(store.getUser(c.get("userId"))?.payments ?? []);
 });
@@ -61,7 +61,7 @@ export async function primePlausibility(
   return verdict;
 }
 
-/** GET /me/sightings/:id/plausibility — the agent's verdict for one sighting,
+/** GET /me/sightings/:id/plausibility - the agent's verdict for one sighting,
  *  cached per id. 404 when the sighting isn't the caller's (or not yet indexed). */
 meRoutes.get("/sightings/:id/plausibility", async (c) => {
   const verdict = await primePlausibility(c.get("userId"), c.req.param("id"));
@@ -69,7 +69,7 @@ meRoutes.get("/sightings/:id/plausibility", async (c) => {
   return c.json(verdict);
 });
 
-/** POST /me/wallet — attach a payout wallet to a World ID / Google user (SIWE). */
+/** POST /me/wallet - attach a payout wallet to a World ID / Google user (SIWE). */
 meRoutes.post("/wallet", async (c) => {
   const parsed = z.object({ message: z.string(), signature: z.string() }).safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: "invalid siwe payload" }, 400);
@@ -83,7 +83,7 @@ meRoutes.post("/wallet", async (c) => {
   return c.json({ profile: await getProfile(userId) });
 });
 
-/** POST /me/demo-level — hackathon shortcut: floor the caller to Level 5 (paid unlock). */
+/** POST /me/demo-level - hackathon shortcut: floor the caller to Level 5 (paid unlock). */
 meRoutes.post("/demo-level", async (c) => {
   const userId = c.get("userId");
   const u = store.getUser(userId);

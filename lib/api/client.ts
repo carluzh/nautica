@@ -1,10 +1,7 @@
-// Typed client for the Nautica backend (server/). This is the ONLY place the
-// frontend talks to the server. The GameProvider uses it in "API mode"; when
-// NEXT_PUBLIC_API_URL is unset the app stays in self-contained "mock mode" so the
-// frontend runs with no backend at all.
-//
-// Contract note: the response shapes below are the frozen seam between frontend
-// and backend. Keep them in sync with server/src/types.ts.
+// Typed client for the Nautica backend (server/) - the only place the frontend
+// talks to the server. GameProvider uses it in "API mode"; with NEXT_PUBLIC_API_URL
+// unset the app falls back to self-contained "mock mode". The response shapes below
+// are the frozen seam with the backend - keep them in sync with server/src/types.ts.
 
 import type {
   ActivityEvent,
@@ -23,7 +20,7 @@ import type {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
-/** True when a backend URL is configured — the provider runs in API mode. */
+/** True when a backend URL is configured - the provider runs in API mode. */
 export const apiEnabled = Boolean(BASE);
 
 /** Resolve a server-relative asset path (e.g. /images/<id>) to an absolute URL so
@@ -33,8 +30,6 @@ export function assetUrl(path: string | undefined): string | undefined {
   if (/^(https?:|data:|blob:)/.test(path)) return path;
   return BASE ? `${BASE}${path}` : path;
 }
-
-// ---- Response shapes (mirror server/src/types.ts) ---------------------------
 
 export type ApiProfile = {
   userId: string;
@@ -155,7 +150,7 @@ export const api = {
   getWorldContext(credential: VerifyStep = "face") {
     return req<WorldContext>(`/auth/worldid/context?credential=${credential}`, {});
   },
-  /** Step 2 (login): submit the IDKit proof — Selfie Check one-human sign-in. */
+  /** Step 2 (login): submit the IDKit proof - Selfie Check one-human sign-in. */
   loginWorldId(submission: WorldProofSubmission) {
     return req<LoginResponse>("/auth/worldid", { method: "POST", body: submission });
   },

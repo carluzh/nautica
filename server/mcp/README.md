@@ -2,17 +2,17 @@
 
 Exposes the live Nautica subgraph (The Graph, indexing the `NauticaQuests` contract
 on Base Sepolia) as [MCP](https://modelcontextprotocol.io) tools, so any MCP client
-— Claude Desktop, an agent loop — can read the on-chain game state in natural
+- Claude Desktop, an agent loop - can read the on-chain game state in natural
 language. This is the "AI agent uses The Graph as its live data source" surface,
 standardized via MCP.
 
 ## Tools
 
-- `nautica_leaderboard(limit?)` — top players by XP.
-- `nautica_player(wallet)` — a player's profile + recent sightings.
-- `nautica_species_sightings(species)` — every sighting of a species.
-- `nautica_global_stats()` — protocol totals + per-species aggregates.
-- `nautica_query(query, variables?)` — arbitrary read-only GraphQL.
+- `nautica_leaderboard(limit?)` - top players by XP.
+- `nautica_player(wallet)` - a player's profile + recent sightings.
+- `nautica_species_sightings(species)` - every sighting of a species.
+- `nautica_global_stats()` - protocol totals + per-species aggregates.
+- `nautica_query(query, variables?)` - arbitrary read-only GraphQL.
 
 ## Run
 
@@ -42,7 +42,7 @@ Add to `claude_desktop_config.json`:
 ```
 
 Then ask Claude things like "Who's on the Nautica leaderboard?" or "Where have
-lionfish been sighted?" — it calls these tools, which query The Graph live.
+lionfish been sighted?" - it calls these tools, which query The Graph live.
 
 The plausibility agent (`server/src/services/plausibility.ts`) reasons over the same
 subgraph; this server makes that data queryable by any external agent too.

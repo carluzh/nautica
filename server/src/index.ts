@@ -41,6 +41,6 @@ app.route("/leaderboard", leaderboardRoutes);
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   log.info("nautica-server listening", { port: info.port, integrations });
   if (config.SESSION_SECRET.startsWith("dev-insecure")) {
-    log.warn("SESSION_SECRET is the insecure default — set one before any real deploy");
+    log.warn("SESSION_SECRET is the insecure default - set one before any real deploy");
   }
 });

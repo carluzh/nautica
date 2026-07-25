@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import type { Quest, SpeciesId, VerifyStep } from "./types";
 
-// Lucide has no jellyfish glyph, so we build one (filled bell + 3 tentacles).
-// Rendered filled (callers pass fill="currentColor"), matching the icon style.
+// Lucide has no jellyfish glyph, so we build one; rendered filled to match the icon style.
 const Jellyfish = createLucideIcon("Jellyfish", [
   ["path", { d: "M5 11a7 5.5 0 0 1 14 0q-3.5 2-7 0-3.5 2-7 0Z", key: "bell" }],
   ["path", { d: "M8 12.5c0 2.5-1 3-1 5.5", fill: "none", key: "t1" }],
@@ -25,26 +24,22 @@ const Jellyfish = createLucideIcon("Jellyfish", [
   ["path", { d: "M16 12.5c0 2.5 1 3 1 5.5", fill: "none", key: "t3" }],
 ]);
 
-// ---- Species presentation (labels, marker color token, icon) ----------------
-/** The 4 map filter categories. Drives the MAP marker color (glanceable) and the
- * left-column filter toggles; species identity is carried by the pin icon + tooltip. */
+/** The 4 map filter categories; drives the marker color and the filter toggles. */
 export type Category = "marine" | "invasive" | "hazard" | "rare";
 
 export type SpeciesMeta = {
   label: string;
   short: string;
-  color: string; // per-species identity accent — used in the labeled panels
+  color: string; // per-species identity accent - used in the labeled panels
   icon: LucideIcon;
   hazard?: boolean; // drives the gallery hazard badge (things to be cautious of)
   category: Category; // drives the map marker color + the filter toggles
   plant?: boolean; // marine plant → seagrass icon on the map, else fish
 };
 
-// On the map, COLOR means category, not species — a glanceable read kept to 4
-// classes so the legend stays tiny and colors never collide. Teal is kept here for
-// "Marine life" (the ocean read) even though the brand accent is now coral; red =
-// hazard, amber = invasive, violet = rare. Never shown color-alone — always with
-// icon + label. Ordered as shown in the filter/legend.
+// On the map, color encodes category (not species), kept to 4 classes so colors never
+// collide: teal = marine, amber = invasive, red = hazard, violet = rare. Always shown
+// with icon + label, never color alone. Ordered as in the filter/legend.
 export const CATEGORY_META: Record<Category, { label: string; color: string; icon: LucideIcon }> = {
   marine: { label: "Marine life", color: "oklch(0.702 0.132 194)", icon: Fish },
   invasive: { label: "Invasive species", color: "var(--warning)", icon: FishSymbol },
@@ -52,7 +47,7 @@ export const CATEGORY_META: Record<Category, { label: string; color: string; ico
   rare: { label: "Rare findings", color: "var(--chart-5)", icon: Star },
 };
 
-/** Filter/legend display order (matches the product spec order). */
+/** Filter/legend display order. */
 export const CATEGORY_ORDER: Category[] = ["marine", "invasive", "hazard", "rare"];
 
 export const SPECIES_META: Record<SpeciesId, SpeciesMeta> = {
@@ -67,7 +62,6 @@ export const SPECIES_META: Record<SpeciesId, SpeciesMeta> = {
   Other: { label: "Other", short: "Other", color: "var(--muted-foreground)", icon: Droplets, category: "marine" },
 };
 
-/** The map category a species belongs to (feeds marker color + filter toggles). */
 export function speciesCategory(species: SpeciesId): Category {
   return SPECIES_META[species].category;
 }
@@ -80,10 +74,9 @@ export const SPECIES_GROUPS: { label: string; species: SpeciesId[] }[] = [
   { label: "Others", species: ["Turtle", "ShorePlant", "Other"] },
 ];
 
-// The MAP uses a REDUCED icon set chosen from the category (+ plant-vs-animal for
-// marine life): hazard → jellyfish, invasive → fish silhouette, rare → star, marine
-// plant → seagrass, marine animal → fish. The detailed per-species `icon` above
-// stays for the labeled panels/sidebar, where a crab should still look like a crab.
+// The map uses a reduced icon set chosen by category (plus plant-vs-animal for marine):
+// hazard -> jellyfish, invasive -> fish silhouette, rare -> star, marine plant -> seagrass,
+// marine animal -> fish. The detailed per-species `icon` is used only in the labeled panels.
 export function mapIcon(species: SpeciesId): LucideIcon {
   const m = SPECIES_META[species];
   if (m.category === "hazard") return Jellyfish;
@@ -91,7 +84,7 @@ export function mapIcon(species: SpeciesId): LucideIcon {
   return CATEGORY_META[m.category].icon;
 }
 
-// ---- World ID verification ladder (SEPARATE from XP level) -------------------
+// World ID verification ladder, separate from the XP level.
 export type TierDef = {
   step: VerifyStep;
   name: string;
@@ -132,14 +125,14 @@ export const TIERS: TierDef[] = [
   },
 ];
 
-// ---- Research partners (fund paid quests) -----------------------------------
+// Research partners that fund paid quests.
 export const PARTNERS = [
   "MARE · Marine Sciences Institute",
   "Oceanário de Lisboa",
   "IPMA Coastal Program",
 ] as const;
 
-// ---- Daily quests (3 free + 1 paid gated at Level 5) ------------------------
+// Daily quests: 3 free + 1 paid.
 export const DAILY_QUESTS: Quest[] = [
   {
     id: "q-crab",

@@ -5,7 +5,7 @@ import type { GalleryItem, PlausibilityVerdict } from "../types";
 // Optional LLM narration for the plausibility agent. Off unless ANTHROPIC_API_KEY
 // is set; on failure it returns undefined and the caller keeps the deterministic
 // verdict. This is the "agent" layer: Claude turns the subgraph-derived facts into
-// one plain-language sentence. It never changes the verdict/score — narration only.
+// one plain-language sentence. It never changes the verdict/score - narration only.
 
 const enabled = Boolean(process.env.ANTHROPIC_API_KEY);
 

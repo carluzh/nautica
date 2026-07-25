@@ -1,6 +1,6 @@
 // Off-chain sighting metadata the on-chain event does not carry (kept out of the
 // contract to avoid a redeploy). Keyed by the recording txHash (lowercased), which
-// prefixes the subgraph sighting id (`txHash-logIndex`) — so a subgraph-read gallery
+// prefixes the subgraph sighting id (`txHash-logIndex`) - so a subgraph-read gallery
 // item can recover it in normalizeSighting. Process-memory only; fine for the demo.
 
 const radiusByTx = new Map<string, number>();
@@ -14,7 +14,7 @@ export function getSightingRadius(txHash: string): number | undefined {
 }
 
 // Recording txHash -> stored image id (content-addressed). Lets a subgraph-read gallery
-// item recover its photo — the image lives in the server store / 0G Storage, not on-chain.
+// item recover its photo - the image lives in the server store / 0G Storage, not on-chain.
 const imageByTx = new Map<string, string>();
 
 export function setSightingImage(txHash: string, imageId: string): void {

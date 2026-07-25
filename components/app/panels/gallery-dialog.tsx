@@ -24,7 +24,7 @@ const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: 
   implausible: { dot: "bg-destructive", text: "text-destructive", label: "Implausible" },
 };
 
-/** Plausibility agent verdict — a small chip reasoning over the subgraph record. */
+/** Plausibility agent verdict - a small chip reasoning over the subgraph record. */
 function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
   const tone = VERDICT_TONE[verdict.verdict];
   return (

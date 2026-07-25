@@ -23,7 +23,7 @@ Overall it works and the primitives are strong. Notes from actually wiring it:
    generic error until we loosened it. This difference isn't called out prominently.
 2. **Credential identifier vocabulary differs by proof version.** The v4 verifier, for
    a v3 proof, rejected `identifier: "selfie"` with *"identifier must be one of orb,
-   secure_document, document, device, face"* — a real Selfie Check proof reports
+   secure_document, document, device, face"* - a real Selfie Check proof reports
    **`face`**, not `selfie`. So backends must map both vocabularies. Not documented.
 3. **`allow_legacy_proofs` must be per-credential.** `selfieCheckLegacy` (v3) needs it
    `true`; `identityCheck` (v4) needs it `false`. A single global flag can't serve

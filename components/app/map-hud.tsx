@@ -8,11 +8,8 @@ import { useGame } from "@/lib/game/provider";
 import type { PanelId } from "@/lib/game/types";
 import { LevelRing } from "./level-ring";
 
-/**
- * Floating top-right HUD over the map: level, streak, quick-action dialogs, and
- * the profile avatar — the only floating chrome besides the map (the logo and the
- * category tabs live in the left sidebar).
- */
+// Floating top-right HUD over the map. The logo and category tabs live in the
+// left sidebar, not here.
 export function MapHud() {
   const { user, level, paidUnlocked, setOpenPanel } = useGame();
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
@@ -29,7 +26,6 @@ export function MapHud() {
 
   return (
     <div className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-xl border bg-card/80 p-1.5 shadow-xl backdrop-blur-md sm:top-4 sm:right-4">
-      {/* Level (opens the Level modal) */}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -50,7 +46,6 @@ export function MapHud() {
         </TooltipContent>
       </Tooltip>
 
-      {/* Streak */}
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="hidden items-center gap-0.5 px-1.5 py-1 text-xs sm:inline-flex">
@@ -63,7 +58,6 @@ export function MapHud() {
 
       <div className="mx-0.5 h-6 w-px bg-border" />
 
-      {/* Quick-action dialogs */}
       {nav.map((n) => {
         const locked = n.id === "payments" && !paidUnlocked;
         return (
@@ -81,7 +75,6 @@ export function MapHud() {
         );
       })}
 
-      {/* Profile */}
       <Tooltip>
         <TooltipTrigger asChild>
           <button

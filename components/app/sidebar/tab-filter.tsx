@@ -60,7 +60,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col">
-        {/* Category grid — 2x2, all on by default. */}
+        {/* Category grid - 2x2, all on by default. */}
         <div className="flex items-center justify-between px-3 pt-3 pb-2">
           <span className="text-xs font-medium text-muted-foreground">Categories</span>
           <button
@@ -115,7 +115,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
           })}
         </ul>
 
-        {/* Time & Place — location search (pans the map) + a time-window filter. */}
+        {/* Time & Place - location search (pans the map) + a time-window filter. */}
         <div className="px-3 pt-3 pb-3">
           <span className="text-xs font-medium text-muted-foreground">Time &amp; Place</span>
           <div className="mt-2 flex items-center gap-2">
@@ -156,7 +156,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
           </div>
         </div>
 
-        {/* Species checklist — grouped, searchable. */}
+        {/* Species checklist - grouped, searchable. */}
         <div className="px-3 pt-3 pb-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Species</span>

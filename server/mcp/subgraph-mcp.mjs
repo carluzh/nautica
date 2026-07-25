@@ -3,7 +3,7 @@
 //
 // Exposes the live Nautica subgraph (The Graph, indexing the NauticaQuests contract
 // on Base) as MCP tools, so any MCP client (Claude Desktop, an agent) can read the
-// on-chain game state in natural language — leaderboard, a player's sightings, the
+// on-chain game state in natural language - leaderboard, a player's sightings, the
 // per-species aggregates, or an arbitrary GraphQL query. This is the "AI agent uses
 // The Graph as its live data source" surface, made standard via MCP.
 //

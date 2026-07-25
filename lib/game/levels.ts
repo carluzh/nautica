@@ -12,7 +12,6 @@ export function xpForLevel(level: number): number {
   return THRESHOLDS[THRESHOLDS.length - 1] + (level - THRESHOLDS.length) * POST_L5_STEP;
 }
 
-/** What each level unlocks — shown in the profile/leveling view. */
 export const LEVEL_UNLOCKS: Record<number, string> = {
   1: "Daily photo quests",
   2: "Field gallery",
@@ -32,7 +31,6 @@ export function nextUnlockFrom(level: number): string | null {
   return `L${l} · ${LEVEL_UNLOCKS[l]}`;
 }
 
-/** Resolve an XP total into level + progress within that level. */
 export function levelInfo(totalXp: number): LevelInfo {
   let level = 1;
   while (xpForLevel(level + 1) <= totalXp) level += 1;

@@ -5,7 +5,7 @@ const startedAt = Date.now();
 
 export const healthRoutes = new Hono();
 
-/** GET /health — liveness + which integrations are live vs. stubbed. */
+/** GET /health - liveness + which integrations are live vs. stubbed. */
 healthRoutes.get("/", (c) => {
   return c.json({
     ok: true,

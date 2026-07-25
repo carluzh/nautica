@@ -52,7 +52,7 @@ const LEADERBOARD_QUERY = /* GraphQL */ `
   }
 `;
 
-// Single sighting by id — the plausibility agent's read-back path (it reasons only
+// Single sighting by id - the plausibility agent's read-back path (it reasons only
 // over what it reads out of The Graph, never over the submit closure).
 const SIGHTING_QUERY = /* GraphQL */ `
   query Sighting($id: ID!) {
@@ -291,7 +291,7 @@ export async function getSighting(userId: string, sightingId: string): Promise<G
   return normalizeSighting(s);
 }
 
-/** All recorded sightings of a species — the corroboration signal for plausibility. */
+/** All recorded sightings of a species - the corroboration signal for plausibility. */
 export async function getSpeciesSightings(species: SpeciesId, limit = 500): Promise<SightingPoint[]> {
   if (!integrations.subgraph) {
     const points: SightingPoint[] = [];

@@ -81,7 +81,7 @@ function parseModelJson(text: string): Verdict | null {
 
 // ---- On-chain provenance: the provider's 0G Serving record --------------------
 
-// Inference Serving.getService(provider) — the current mainnet struct (has the
+// Inference Serving.getService(provider) - the current mainnet struct (has the
 // registered teeSignerAddress + acknowledgement). ZEROG_SERVING_ADDRESS defaults to
 // the mainnet Serving contract; a read failure just omits the provenance fields.
 const SERVING_ABI = [

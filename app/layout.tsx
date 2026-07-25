@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-// Plus Jakarta Sans — a warm, rounded, geometric humanist sans. Friendly and
+// Plus Jakarta Sans - a warm, rounded, geometric humanist sans. Friendly and
 // approachable (Airbnb-adjacent), not techy.
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],

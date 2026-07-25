@@ -25,10 +25,9 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
 ];
 
 /**
- * The left column: logo, a 4-category tab row, and the active category's content
- * below. Activities is the default. The level / streak / quick-actions / profile
- * HUD floats top-right over the map instead (see map-hud). Rendered as a fixed
- * column on lg+ and inside a slide-in overlay on smaller screens (see game-hub).
+ * Left column: logo, a 4-category tab row, and the active category's content.
+ * The level / streak / quick-actions / profile HUD lives top-right over the map
+ * instead (see map-hud). Fixed column on lg+, slide-in overlay below (see game-hub).
  */
 export function Sidebar({
   filter,
@@ -48,14 +47,12 @@ export function Sidebar({
 
   return (
     <aside className={cn("flex h-full w-full flex-col bg-sidebar", className)}>
-      {/* Header: logo (+ sighting polaroids). */}
       <div className="flex items-center gap-2 px-4 py-5">
         <Link
           href="/"
           className="inline-flex min-w-0 items-center gap-3 transition-opacity hover:opacity-80"
         >
-          {/* Brand mark (public/logo.png) tinted coral via CSS mask — logo.png
-              carries alpha, so only the mark itself takes the fill. */}
+          {/* Tinted via CSS mask: logo.png carries alpha, so only the mark takes the fill. */}
           <span
             role="img"
             aria-label="nautica"
@@ -84,7 +81,6 @@ export function Sidebar({
         ) : null}
       </div>
 
-      {/* Category tabs (no divider below — only the header border above is kept) */}
       <div className="grid grid-cols-4 gap-1 p-2">
         {TABS.map((t) => {
           const active = t.id === tab;
@@ -107,7 +103,6 @@ export function Sidebar({
         })}
       </div>
 
-      {/* Active category content */}
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "filter" ? <TabFilter filter={filter} /> : null}
         {tab === "activities" ? <TabActivities /> : null}
@@ -118,18 +113,14 @@ export function Sidebar({
   );
 }
 
-// Community sightings that carry a (CC-licensed) photo — the pool the header
-// polaroids draw from.
 const PHOTO_SIGHTINGS = REAL_SIGHTINGS.filter((s) => Boolean(s.photo));
 
-/** Three small tilted polaroids of real sightings, right-aligned in the sidebar
- *  header. Shows 3 random CC-licensed photos; clicking flies the map to that spot. */
+/** Three tilted polaroids of random CC-licensed sightings; clicking flies the map there. */
 function HeaderPolaroids({ onClose }: { onClose?: () => void }) {
   const { focusSighting } = useGame();
   const tilts = ["-rotate-6", "rotate-3", "-rotate-4"];
 
-  // Deterministic first-3 on the server, then a random 3 on the client — picking
-  // with Math.random() only after mount avoids an SSR hydration mismatch.
+  // Deterministic first-3 on the server, random 3 only after mount: avoids an SSR hydration mismatch.
   const [shots, setShots] = useState(() => PHOTO_SIGHTINGS.slice(0, 3));
   useEffect(() => {
     setShots([...PHOTO_SIGHTINGS].sort(() => Math.random() - 0.5).slice(0, 3));
@@ -173,7 +164,6 @@ function HeaderPolaroids({ onClose }: { onClose?: () => void }) {
                 className="size-full object-cover"
               />
             </span>
-            {/* Caption texture — three tiny dots in the bottom strip. */}
             <span className="absolute inset-x-0 bottom-[5px] flex items-center justify-center gap-[2px]">
               {[0, 1, 2].map((d) => (
                 <span key={d} className="size-[3px] rounded-full bg-[#4a473f] opacity-75" />

@@ -13,24 +13,24 @@ change freely as long as the response shapes in `client.ts` (which mirror
 
 ## Two modes, one contract
 
-`useGame()` is identical in both modes — panels never know which is active:
+`useGame()` is identical in both modes - panels never know which is active:
 
 | | When | Data source |
 |---|---|---|
 | **Mock mode** | `NEXT_PUBLIC_API_URL` unset (default) | in-memory, seeded on sign-in |
 | **API mode** | `NEXT_PUBLIC_API_URL` set | the backend (`server/`) via `lib/api/client.ts` |
 
-**Frontend work needs no backend** — mock mode runs the whole game loop locally.
+**Frontend work needs no backend** - mock mode runs the whole game loop locally.
 To test against the real server, set `NEXT_PUBLIC_API_URL=http://localhost:8080`
 in `.env.local` and run the server (`cd server && npm run dev`).
 
 ## Running both (API mode)
 
 ```bash
-# terminal 1 — backend
+# terminal 1 - backend
 cd server && npm install && npm run dev      # :8080, stub integrations by default
 
-# terminal 2 — frontend
+# terminal 2 - frontend
 cp .env.local.example .env.local             # keep NEXT_PUBLIC_API_URL=http://localhost:8080
 npm run dev                                  # :3000
 ```
@@ -59,6 +59,12 @@ backend (see `server/.env.example`).
 ## The API surface (frozen)
 
 See `client.ts` for the typed methods and `server/README.md` for the routes:
-`/auth/worldid`, `/auth/verify`, `/quests`, `/quests/:id/challenge`,
-`/quests/:id/submit`, `/me`, `/me/gallery`, `/me/activity`, `/me/payments`,
-`/leaderboard`.
+
+- **Auth** - `GET /auth/worldid/context`, `POST /auth/worldid`, `POST /auth/verify`,
+  `POST /auth/google`, `GET /auth/nonce` (SIWE), `POST /auth/wallet` (SIWE)
+- **Quests** - `GET /quests`, `POST /quests` (partner create + fund),
+  `POST /quests/:id/challenge`, `POST /quests/:id/submit`
+- **Me** - `GET /me`, `POST /me/wallet`, `POST /me/demo-level` (demo skip to L5),
+  `GET /me/gallery`, `GET /me/activity`, `GET /me/payments`,
+  `GET /me/sightings/:id/plausibility` (The Graph plausibility agent)
+- **Leaderboard** - `GET /leaderboard`

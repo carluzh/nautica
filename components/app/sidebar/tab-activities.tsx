@@ -10,8 +10,7 @@ import { timeAgo } from "@/lib/format";
 import type { ActivityEvent } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
-// Icon + token tint for the non-species activity kinds. Species rows use the
-// shared SpeciesBadge so the feed echoes the map exactly.
+// Non-species kinds only; species rows use SpeciesBadge to match the map.
 const KIND_ICON: Record<string, { Icon: LucideIcon; tint: string }> = {
   levelup: { Icon: Sparkles, tint: "text-warning" },
   verify: { Icon: ShieldCheck, tint: "text-success" },
@@ -24,7 +23,7 @@ function Row({ e }: { e: ActivityEvent }) {
   const entry = KIND_ICON[e.kind];
   const KindIcon: LucideIcon = entry?.Icon ?? Sparkles;
 
-  // A sighting with coords can be focused on the map (fly + open its popup).
+  // Only sightings with coords can be focused (flies the map + opens the popup).
   const focusable = e.lng != null && e.lat != null && e.species != null;
   const focus = focusable
     ? () => focusSighting({ lng: e.lng!, lat: e.lat!, species: e.species!, title: e.title })
@@ -83,7 +82,7 @@ function Row({ e }: { e: ActivityEvent }) {
 /** Default sidebar tab: the live sightings feed. */
 export function TabActivities() {
   const { history } = useGame();
-  // Only logged sightings (quest-kind events) show here.
+  // Quest-kind events are the logged sightings.
   const sightings = history.filter((e) => e.kind === "quest");
 
   return (

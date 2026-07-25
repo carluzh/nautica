@@ -13,7 +13,6 @@ import {
   speciesCategory,
   type Category,
 } from "@/lib/game/content";
-import { REAL_SIGHTINGS as SEED_SIGHTINGS } from "@/sightings";
 import type { GalleryItem, SpeciesId } from "@/lib/game/types";
 import { GameProvider, useGame } from "@/lib/game/provider";
 import { Sidebar } from "./sidebar/sidebar";
@@ -29,9 +28,8 @@ import { GalleryDialog } from "./panels/gallery-dialog";
 import { SettingsDialog } from "./panels/settings-dialog";
 import { PaymentsDialog } from "./panels/payments-dialog";
 
-// Pre-render each CATEGORY's Lucide icon to an SVG string once — the same 4 icons
-// as the left-column filter tiles. The imperative map markers embed this;
-// `currentColor` lets each pin tint the icon by category color.
+// Pre-render each category's Lucide icon to an SVG string once; markers embed it,
+// and `currentColor` lets each pin tint the icon by category color.
 const ICON_SVG = Object.fromEntries(
   CATEGORY_ORDER.map((cat) => [
     cat,
@@ -41,16 +39,14 @@ const ICON_SVG = Object.fromEntries(
   ]),
 ) as Record<Category, string>;
 
-/** Marker color + icon + category (glanceable, matches the filter tiles); tooltip = species + place. */
 function toMarker(species: SpeciesId): Pick<SeaMarker, "color" | "icon" | "category"> {
   const cat = speciesCategory(species);
   return { color: CATEGORY_META[cat].color, icon: ICON_SVG[cat], category: cat };
 }
 
-/** Category key + color per finding type — feeds the segmented cluster ring. */
+/** Feeds the segmented cluster ring. */
 const CLUSTER_CATEGORIES = CATEGORY_ORDER.map((c) => ({ key: c, color: CATEGORY_META[c].color }));
 
-/** Time-period windows (ms) for the map filter. */
 const PERIOD_MS: Record<"24h" | "7d" | "1m", number> = {
   "24h": 24 * 3600e3,
   "7d": 7 * 24 * 3600e3,
@@ -69,7 +65,7 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 }
 
-/** Styled HTML for a map marker's click popup (item 6 — data on the map). */
+/** Styled HTML for a map marker's click popup. */
 function popupHtml(opts: {
   title: string;
   species: SpeciesId;
@@ -96,7 +92,7 @@ function popupHtml(opts: {
 }
 
 function Hub() {
-  const { gallery, user, focusTarget, clearFocus } = useGame();
+  const { gallery, sightings, user, focusTarget, clearFocus } = useGame();
   const [hidden, setHidden] = useState<Set<Category>>(new Set());
   const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -128,8 +124,16 @@ function Hub() {
     const species = Object.fromEntries(
       (Object.keys(SPECIES_META) as SpeciesId[]).map((s) => [s, 0]),
     ) as Record<SpeciesId, number>;
-    for (const s of SEED_SIGHTINGS) if (inPeriod(s.at)) species[s.species] += 1;
-    for (const g of gallery) if (inPeriod(g.at)) species[g.species] += 1;
+    // Count the community store + the player's own captures as ONE set, deduped by
+    // id (a submitted capture lives in both, but must only be tallied once).
+    const counted = new Set<string>();
+    const tally = (id: string, sp: SpeciesId, at?: number) => {
+      if (counted.has(id) || !inPeriod(at)) return;
+      counted.add(id);
+      species[sp] += 1;
+    };
+    for (const s of sightings) tally(s.id, s.species, s.at);
+    for (const g of gallery) tally(g.id, g.species, g.at);
     const cat = new Map<Category, number>(CATEGORY_ORDER.map((c) => [c, 0]));
     for (const s of Object.keys(species) as SpeciesId[])
       cat.set(speciesCategory(s), (cat.get(speciesCategory(s)) ?? 0) + species[s]);
@@ -137,7 +141,7 @@ function Hub() {
       speciesCounts: species,
       categoryCounts: CATEGORY_ORDER.map((category) => ({ category, count: cat.get(category) ?? 0 })),
     };
-  }, [gallery, period]);
+  }, [gallery, sightings, period]);
 
   // Location search: geocode via Photon (keyless, CORS-friendly), biased to the
   // Lisbon coast, then fly the map there. Does NOT filter markers.
@@ -208,7 +212,12 @@ function Hub() {
     const visible = (species: SpeciesId) =>
       !hidden.has(speciesCategory(species)) && !hiddenSpecies.has(species);
 
-    const community: SeaMarker[] = SEED_SIGHTINGS.filter((s) => visible(s.species) && inPeriod(s.at)).map((s) => ({
+    // The player's own captures render via the `mine` layer below; keep them out of
+    // the community layer so a submitted sighting isn't drawn twice.
+    const ownIds = new Set(gallery.map((g) => g.id));
+    const community: SeaMarker[] = sightings
+      .filter((s) => !ownIds.has(s.id) && visible(s.species) && inPeriod(s.at))
+      .map((s) => ({
       id: s.id,
       lng: s.lng,
       lat: s.lat,
@@ -244,14 +253,13 @@ function Hub() {
       }));
 
     return [...community, ...mine];
-  }, [gallery, hidden, hiddenSpecies, period]);
+  }, [gallery, sightings, hidden, hiddenSpecies, period]);
 
   return (
     <div className="theme-dark relative flex h-svh w-full overflow-hidden bg-background">
-      {/* Left column — fixed on lg+ */}
       <Sidebar filter={filter} className="hidden w-[440px] shrink-0 border-r lg:flex" />
 
-      {/* Left column — slide-in overlay on smaller screens */}
+      {/* Slide-in sidebar overlay on smaller screens */}
       {mobileOpen ? (
         <div className="absolute inset-0 z-40 lg:hidden">
           <button
@@ -265,7 +273,6 @@ function Hub() {
         </div>
       ) : null}
 
-      {/* Map area */}
       <div className="relative min-w-0 flex-1">
         <SeaMap
           ref={mapRef}
@@ -287,13 +294,12 @@ function Hub() {
           <Menu className="size-4" />
         </Button>
 
-        {/* Full HUD — level, streak, quick actions, profile — floating top-right. */}
         <MapHud />
 
         <MissionsBoard />
       </div>
 
-      {/* Modals — each binds to its own openPanel id via useGame(). */}
+      {/* Modals - each binds to its own openPanel id via useGame(). */}
       <QuestSubmitDialog />
       <LevelDialog />
       <ProfileDialog />
@@ -308,10 +314,10 @@ function Hub() {
 }
 
 export function GameHub() {
-  // Dark theme is scoped to the app: add `.theme-dark` to <html> while the hub is
-  // mounted so portaled UI (dialogs, dropdowns, toasts) is dark too, then remove it
-  // on unmount so marketing/pro stay light. The hub's own root also carries the
-  // class (above) so the first paint is dark with no flash.
+  // Scope dark theme to the app: add `.theme-dark` to <html> while the hub is mounted
+  // so portaled UI (dialogs, dropdowns, toasts) is dark too, then remove it on unmount
+  // so the rest of the site stays light. The hub root also carries the class (above)
+  // so the first paint is dark with no flash.
   useEffect(() => {
     const root = document.documentElement;
     root.classList.add("theme-dark");

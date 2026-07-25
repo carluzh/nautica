@@ -11,8 +11,8 @@ export function Wordmark({
   size?: number;
 }) {
   const inner = (
-    <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)}>
-      {/* Coral brand mark (public/logo.png) tinted via CSS mask — same treatment
+    <span className={cn("inline-flex items-center gap-2 font-extrabold tracking-tight", className)}>
+      {/* Coral brand mark (public/logo.png) tinted via CSS mask - same treatment
           as the in-app sidebar so the wordmark is consistent everywhere. */}
       <span
         role="img"
@@ -32,7 +32,9 @@ export function Wordmark({
           WebkitMaskPosition: "center",
         }}
       />
-      <span className="text-[0.95em]">Nautica</span>
+      {/* Nudge the type up a hair against the mark - same optical tweak as the
+          in-app sidebar logo; looks better than a perfect baseline. */}
+      <span className="relative top-[-2px] text-[0.95em]">nautica</span>
     </span>
   );
   if (href === null) return inner;

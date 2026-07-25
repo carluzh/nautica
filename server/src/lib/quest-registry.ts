@@ -4,7 +4,7 @@ import type { Quest } from "../types";
 // Server-side quest registry: the source of truth for which quests exist and the
 // full off-chain metadata the escrow contract can't carry (spec, requirements,
 // partner). Seeded from DAILY_QUESTS at load so the board is non-empty at demo
-// start (and beat 1 — completing a seeded quest — still works). Partner-created
+// start (and beat 1 - completing a seeded quest - still works). Partner-created
 // quests are appended here after their on-chain escrow lands. In-memory: a restart
 // re-seeds and forgets partner quests, which is fine for the demo.
 

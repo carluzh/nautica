@@ -44,7 +44,7 @@ export function ProfileDialog() {
               <Button
                 variant="outline"
                 size="sm"
-                // mock: no photo backend — surface intent only.
+                // mock: no photo backend - surface intent only.
                 onClick={() => toast("Photo upload coming soon")}
               >
                 <ImagePlus className="size-3.5" />

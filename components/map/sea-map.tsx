@@ -12,22 +12,21 @@ import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
-// Real, professionally-designed keyless basemaps used as-is: CARTO Positron (light,
-// the marketing hero) and Dark Matter (dark, the app). The ONLY app customization is
-// a slightly blue-ish water fill (see the load handler) — nothing else is touched.
+// CARTO Positron (light, marketing) and Dark Matter (dark, app) basemaps, used as-is.
+// The only app customization is a slightly blue water fill (see the load handler).
 const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-const WATER_BLUE = "#12314c"; // a bit blueish, still dark
+const WATER_BLUE = "#12314c";
 
 const TEAL = "oklch(0.702 0.132 194)";
-const MARKER_INK = "#0b1420"; // near-black dark blue (≈ the landmass) — the marker glyph color
-const NEAR_PX = 42; // filled icon-circles closer than this (px) collapse to pulsing dots
-const ICON_MIN_ZOOM = 13.5; // below this, always show the cleaner dots; icons only when very zoomed in
+const MARKER_INK = "#0b1420"; // marker glyph color, near-black to match the landmass
+const NEAR_PX = 42; // icon-circles closer than this (px) collapse to pulsing dots
+const ICON_MIN_ZOOM = 13.5; // below this, only show dots; icons appear when zoomed in
 
 // Crosshair "locate me" glyph for the recenter control (inherits currentColor).
 const LOCATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`;
 
-// A standalone recenter/locate button — its own control group, separate from the
+// A standalone recenter/locate button - its own control group, separate from the
 // built-in +/- zoom control (it sits just above it in the bottom-left stack).
 class LocateControl implements IControl {
   private container: HTMLDivElement | null = null;
@@ -61,9 +60,9 @@ export type SeaMarker = {
   /** Pre-rendered SVG markup drawn inside the pin (uses currentColor → tinted by `color`). */
   icon?: string;
   label?: string;
-  /** Category key — drives the segmented cluster ring. */
+  /** Category key - drives the segmented cluster ring. */
   category?: string;
-  /** HTML shown in a click popup on the marker (item 6 — data on the map). */
+  /** HTML shown in a click popup on the marker. */
   popupHtml?: string;
   onClick?: (id: string) => void;
 };
@@ -90,7 +89,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   dark?: boolean;
   /** Basemap style URL; overrides the theme default (light/dark). Used by the marketing maps. */
   styleUrl?: string;
-  /** Category key + color per finding type — drives the segmented cluster ring. */
+  /** Category key + color per finding type - drives the segmented cluster ring. */
   clusterCategories?: { key: string; color: string }[];
   /** Opt-in: track + show a live blue user-location dot. */
   showUserLocation?: boolean;
@@ -124,7 +123,6 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   // Standalone popup for a focused sighting (from the activity feed).
   const focusPopupRef = useRef<maplibregl.Popup | null>(null);
 
-  // Fly to the live user-location dot (used by the recenter control + the handle).
   const recenterToUser = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -133,7 +131,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       map.flyTo({ center: known, zoom: 12, duration: 800 });
       return;
     }
-    // No fix yet — ask once, then fly.
+    // No fix yet - ask once, then fly.
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -146,7 +144,6 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     );
   }, []);
 
-  // Imperative actions for the hub (location search + focus popup).
   useImperativeHandle(ref, () => ({
     recenterToUser,
     flyTo: (center, zoom = 13) => {
@@ -197,7 +194,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sighting markers — a 3-tier density system over MapLibre's GeoJSON clustering:
+  // Sighting markers - a 3-tier density system over MapLibre's GeoJSON clustering:
   //   roomy    → a filled colored circle with a dark-ink glyph (buildIcon);
   //   crowding → a small pulsing solid dot in the finding's color (buildDot);
   //   dense    → a segmented donut cluster by category with a small count (buildCluster).
@@ -262,7 +259,6 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       }
     };
 
-    // Tier 1 — filled colored circle with a dark-ink glyph.
     const buildIcon = (mk: SeaMarker) => {
       const el = document.createElement("button");
       el.type = "button";
@@ -279,7 +275,6 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       return el;
     };
 
-    // Tier 2 — small pulsing solid dot in the finding's color.
     const buildDot = (mk: SeaMarker) => {
       const el = document.createElement("button");
       el.type = "button";
@@ -294,7 +289,6 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       return el;
     };
 
-    // Tier 3 — segmented donut cluster.
     const clusterSize = (count: number) => (count < 10 ? 34 : count < 50 ? 40 : count < 100 ? 46 : 52);
     const paintCluster = (el: HTMLElement, props: Record<string, unknown>) => {
       const count = Number(props.point_count) || 0;
@@ -394,12 +388,19 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         }
         const el = buildCluster(c.props);
         const clusterId = Number(c.props.cluster_id);
-        el.addEventListener("click", () => {
-          (map.getSource(SOURCE_ID) as GeoJSONSource | undefined)
-            ?.getClusterExpansionZoom(clusterId)
-            .then((z) => map.easeTo({ center: c.coords, zoom: z, duration: 500 }))
-            .catch(() => {});
-        });
+        // Clusters navigate (zoom to expand) only on interactive maps. On a static
+        // map (e.g. the marketing hero) disable pointer events entirely so the CSS
+        // hover (scale) and pointer cursor don't fire and there's no click.
+        if (interactive) {
+          el.addEventListener("click", () => {
+            (map.getSource(SOURCE_ID) as GeoJSONSource | undefined)
+              ?.getClusterExpansionZoom(clusterId)
+              .then((z) => map.easeTo({ center: c.coords, zoom: z, duration: 500 }))
+              .catch(() => {});
+          });
+        } else {
+          el.style.pointerEvents = "none";
+        }
         pool[c.key] = { marker: new maplibregl.Marker({ element: el }).setLngLat(c.coords).addTo(map), mode: "cluster" };
       }
 
@@ -473,7 +474,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         try {
           pool[key].marker.remove();
         } catch {
-          /* map may already be torn down (unmount) — the container unmounts anyway */
+          /* map may already be torn down (unmount) - the container unmounts anyway */
         }
         delete pool[key];
       }
@@ -481,20 +482,19 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
         if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
       } catch {
-        /* style already torn down on unmount — map.remove() handles the rest */
+        /* style already torn down on unmount - map.remove() handles the rest */
       }
     };
   }, [markers, clusterCategories, cluster]);
 
   // Live user location (opt-in). Watches the device position and drops a blue dot,
   // and reports whether the view has moved off that dot so the hub can show the
-  // recenter button. Missing/denied geolocation degrades silently — no dot, no crash.
+  // recenter button. Missing/denied geolocation degrades silently - no dot, no crash.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !showUserLocation) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
 
-    // Build the dot element once: pulsing accuracy ring behind a ringed blue dot.
     const el = document.createElement("div");
     el.className = "nautica-user-location";
     const pulse = document.createElement("span");
@@ -528,7 +528,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => apply(pos.coords.longitude, pos.coords.latitude),
       () => {
-        /* permission denied / position unavailable — keep the dot hidden */
+        /* permission denied / position unavailable - keep the dot hidden */
       },
       { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
     );

@@ -1,7 +1,7 @@
 import type { SpeciesId, SpeciesRecognition } from "../types";
 
 // Mock of an open-source species-recognition model (iNaturalist-style CV) that runs as
-// an INDEPENDENT second signal alongside 0G's TEE classification — defence in depth for
+// an INDEPENDENT second signal alongside 0G's TEE classification - defence in depth for
 // the "verify before payout" story. The real version would POST the photo to the model's
 // inference API; here we synthesise a stable, believable prediction from the recorded
 // species so the demo shows the multi-signal verification. Deterministic per sighting id

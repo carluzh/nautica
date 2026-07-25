@@ -29,7 +29,6 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-/** A disabled, "coming soon" sign-in option — shown for parity but not yet live. */
 function ComingSoonButton({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <Button variant="outline" size="lg" className="w-full gap-2" disabled>
@@ -42,19 +41,13 @@ function ComingSoonButton({ icon, label }: { icon: ReactNode; label: string }) {
   );
 }
 
-/**
- * Entry gate. World ID is the only live method for now — one real human, one account,
- * which is what keeps the citizen-science dataset and leaderboards honest. University
- * SSO and Google are shown as coming-soon; wallet sign-in has been retired.
- */
 export function LoginGate() {
   const { connectWorldId, connecting, error } = useGame();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-sm rounded-2xl border bg-card/90 p-6 text-center shadow-2xl">
         <div className="mx-auto flex size-12 items-center justify-center rounded-xl border bg-background">
-          {/* The real brand mark (public/logo.png), tinted coral via CSS mask —
-              same treatment as the sidebar so login matches the app chrome. */}
+          {/* Brand mark tinted coral via CSS mask, matching the sidebar. */}
           <span
             role="img"
             aria-label="Nautica"
@@ -77,7 +70,6 @@ export function LoginGate() {
           One real human, one account. World ID keeps the dataset and leaderboards fair.
         </p>
 
-        {/* Primary — World ID (the only live method) */}
         <Button
           className="mt-5 w-full"
           size="lg"
@@ -92,14 +84,12 @@ export function LoginGate() {
           {connecting ? "Verifying…" : "Continue with World ID"}
         </Button>
 
-        {/* Divider */}
         <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           or
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Coming soon — University SSO + Google (inactive) */}
         <div className="grid gap-2">
           <ComingSoonButton icon={<GraduationCap className="size-4" />} label="Continue with University" />
           <ComingSoonButton icon={<GoogleIcon className="size-4" />} label="Continue with Google" />

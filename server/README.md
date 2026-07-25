@@ -3,14 +3,14 @@
 The backend that sits between the frontend and The Graph. It does the four things
 the client cannot be trusted to do itself:
 
-1. **World ID verification** — verifies IDKit proofs server-side (World requires
+1. **World ID verification** - verifies IDKit proofs server-side (World requires
    this) and enforces one-human-per-account via nullifiers.
-2. **Subgraph broker** — the only thing that talks to The Graph; the frontend
+2. **Subgraph broker** - the only thing that talks to The Graph; the frontend
    never sees the endpoint or key.
-3. **0G verification** — runs each quest photo through 0G Compute's TEE-attested
+3. **0G verification** - runs each quest photo through 0G Compute's TEE-attested
    vision model and only awards XP on a pass (with a freshness challenge to kill
    stock/pre-generated photos).
-4. **Chain relayer** — a trusted attestor that records completions + settles USDC
+4. **Chain relayer** - a trusted attestor that records completions + settles USDC
    payouts on Base after 0G passes.
 
 Node + TypeScript + [Hono](https://hono.dev). Runs via `tsx` (no build step).
@@ -19,7 +19,7 @@ Node + TypeScript + [Hono](https://hono.dev). Runs via `tsx` (no build step).
 
 ```bash
 cd server
-cp .env.example .env      # optional — every integration has a stub fallback
+cp .env.example .env      # optional - every integration has a stub fallback
 npm install
 npm run dev               # tsx watch, http://localhost:8080
 # npm start               # same, no watch (use this on the VM)
@@ -66,16 +66,16 @@ client → POST /quests/:id/submit {imageDataUrl, nonce, lat?, lng?}
 
 ## What is stubbed (and where the real thing plugs in)
 
-- **World ID** (`services/worldid.ts`) — real cloud-verify call is written; unset
+- **World ID** (`services/worldid.ts`) - real cloud-verify call is written; unset
   `WORLD_APP_ID` runs dev-mock. On-chain verify on Base is the alternative.
-- **0G** (`services/zerog.ts`) — real OpenAI-compatible request to the 0G router
+- **0G** (`services/zerog.ts`) - real OpenAI-compatible request to the 0G router
   is written; the only TODO is capturing/verifying the TeeTLS quote and flipping
   `simulated:false`.
-- **Subgraph** (`services/subgraph.ts`) — GraphQL queries document the expected
+- **Subgraph** (`services/subgraph.ts`) - GraphQL queries document the expected
   event schema; without `SUBGRAPH_URL` reads come from the in-memory store.
-- **Chain** (`services/chain.ts`) — viem write path against a placeholder ABI;
+- **Chain** (`services/chain.ts`) - viem write path against a placeholder ABI;
   swap in dev C's contract ABI + address.
-- **Store** (`lib/store.ts`) — in-memory behind a `Store` interface; swap for
+- **Store** (`lib/store.ts`) - in-memory behind a `Store` interface; swap for
   Redis/Postgres for multi-instance.
 
 ## Deploy to a Google Cloud VM

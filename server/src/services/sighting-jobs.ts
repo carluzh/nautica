@@ -34,7 +34,7 @@ export function enqueuePlausibility(input: { userId: string; txHash: string }): 
         log.error("plausibility-job: subgraph lookup failed", { err: String(err), attempt });
         continue;
       }
-      if (!sightingId) continue; // not indexed yet — keep polling
+      if (!sightingId) continue; // not indexed yet - keep polling
       try {
         const verdict = await primePlausibility(userId, sightingId);
         log.info("plausibility-job: verdict ready", { sightingId, verdict: verdict?.verdict, attempt });

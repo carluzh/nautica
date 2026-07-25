@@ -94,7 +94,7 @@ function credentialConfig(credential: WorldCredentialChoice) {
 // ---- World ID (IDKit 4.0) ---------------------------------------------------
 // The IDKit response forwarded from the client. Passed through UNCHANGED to the
 // v4 verifier, so we validate loosely and keep every field. We only read
-// identifier + nullifier here; do NOT type `proof` et al. — it is a string in a
+// identifier + nullifier here; do NOT type `proof` et al. - it is a string in a
 // v3 Selfie Check proof and a string[] in a v4 proof, and over-typing it would
 // reject a valid Selfie Check login ("invalid proof payload").
 const idkitResponseSchema = z

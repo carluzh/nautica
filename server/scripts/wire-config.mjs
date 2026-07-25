@@ -13,7 +13,7 @@ const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC
 
 const broadcastPath = root("contracts/broadcast/Deploy.s.sol/84532/run-latest.json");
 if (!existsSync(broadcastPath)) {
-  console.error("No broadcast receipt found — run the deploy first.");
+  console.error("No broadcast receipt found - run the deploy first.");
   process.exit(1);
 }
 const bc = JSON.parse(readFileSync(broadcastPath, "utf8"));
@@ -37,7 +37,7 @@ yaml = yaml
   .replace(/startBlock: \d+/, `startBlock: ${startBlock}`);
 writeFileSync(yamlPath, yaml);
 
-// 3. server/.env — flip the relayer + chain integration live
+// 3. server/.env - flip the relayer + chain integration live
 const key = readFileSync(root("contracts/.env"), "utf8").match(/DEPLOYER_PRIVATE_KEY=(0x[0-9a-fA-F]+)/)?.[1];
 const envPath = root("server/.env");
 const upserts = {

@@ -11,8 +11,7 @@ import type { PickedPlace } from "@/lib/game/types";
 
 export type { PickedPlace };
 
-// Match the app's dark basemap (components/map/sea-map.tsx): CARTO Dark Matter with
-// a slightly blue water fill. Kept self-contained so it never touches that component.
+// Mirrors the app's dark basemap (components/map/sea-map.tsx) but stays self-contained.
 const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 const WATER_BLUE = "#12314c";
 const LISBON: [number, number] = [-9.15, 38.7];
@@ -22,8 +21,8 @@ export const MAX_PLACEMENT_KM = 5;
 const MIN_RADIUS_M = 100;
 const MAX_RADIUS_M = 2000;
 const DEFAULT_RADIUS_M = 250;
-const PIN_HEX = "#0e9bb0"; // teal pin, matching the app primary closely enough
-const ZONE_HEX = "#64748b"; // neutral slate for the placement leash
+const PIN_HEX = "#0e9bb0";
+const ZONE_HEX = "#64748b";
 
 const R_EARTH = 6_371_000;
 function haversineM(a: [number, number], b: [number, number]): number {
@@ -35,7 +34,7 @@ function haversineM(a: [number, number], b: [number, number]): number {
   return 2 * R_EARTH * Math.asin(Math.sqrt(h));
 }
 
-/** Clamp a point to within maxM of the anchor (linear in lng/lat — fine at these scales). */
+/** Clamp a point to within maxM of the anchor (linear in lng/lat, fine at these scales). */
 function clampToZone(spot: [number, number], anchor: [number, number], maxM: number): [number, number] {
   const d = haversineM(anchor, spot);
   if (d <= maxM || d === 0) return spot;
@@ -111,8 +110,8 @@ export function LocationPicker({
     src?.setData(shapes(anchorRef.current, spotRef.current, radiusRef.current));
   };
 
-  // Map init (once). The marker + circle layers are imperative; React state drives
-  // only the slider, the coords readout and the GPS status line.
+  // Map init (once). Marker + circle layers are imperative; React state drives only
+  // the slider, coords readout and GPS status line.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
@@ -125,7 +124,7 @@ export function LocationPicker({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
 
-    // Dialogs mount at zero size then animate open — keep the canvas in sync.
+    // Dialogs mount at zero size then animate open - keep the canvas in sync.
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(containerRef.current);
 
@@ -154,12 +153,11 @@ export function LocationPicker({
     });
 
     map.on("load", () => {
-      // Match the app map's blue-ish water.
       if (map.getLayer("water")) {
         try {
           map.setPaintProperty("water", "fill-color", WATER_BLUE);
         } catch {
-          /* water layer shape differs on this style version — ignore */
+          /* water layer shape differs on this style version - ignore */
         }
       }
       map.addSource("picker", { type: "geojson", data: shapes(null, LISBON, DEFAULT_RADIUS_M) });

@@ -8,10 +8,10 @@ API calls: the data is prebuilt.
 
 ## Files
 
-- `pull-sightings.ts` — one-shot, re-runnable build step that fetches and
+- `pull-sightings.ts` - one-shot, re-runnable build step that fetches and
   normalizes the observations.
-- `sightings.real.json` — the committed output the app imports.
-- `index.ts` — exports `REAL_SIGHTINGS` (the JSON typed as `Sighting[]`).
+- `sightings.real.json` - the committed output the app imports.
+- `index.ts` - exports `REAL_SIGHTINGS` (the JSON typed as `Sighting[]`).
 
 ## Regions
 
@@ -20,9 +20,13 @@ Two bounding boxes:
 - Lisbon coast (Lisbon to Cascais)
 - Mallorca
 
-The query is biased server-side toward marine and coastal iconic taxa, and
-clearly terrestrial taxa (birds, insects, mammals, arachnids, fungi) are dropped
-so the map reads marine.
+The puller queries per category by iNaturalist `taxon_id` (descendants
+included), one request per group per region, for specific marine and coastal
+taxa: ray-finned fish, true crabs, jellyfish, Portuguese man o' war, sea stars,
+sea turtles, seagrass and marine algae, and lionfish. Because only these taxa
+are requested, terrestrial life never enters the map, and each observation is
+correct by construction on its species. Every group is capped per region for a
+balanced spread.
 
 ## Photos and licensing
 

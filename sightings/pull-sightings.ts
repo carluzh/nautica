@@ -1,27 +1,18 @@
 /**
- * Nautica — real community sightings puller.
- *
- * Pulls historical citizen-science observations from iNaturalist (open, keyless)
- * for the Lisbon coast + Mallorca, normalizes them onto the app's existing
- * `Sighting` type, and writes a committed JSON the map ingests INSTEAD of the
- * faked `SEED_SIGHTINGS`. No runtime/client API calls — this is a one-shot,
- * re-runnable build step:
+ * Nautica real community sightings puller. One-shot, re-runnable build step:
  *
  *     npx tsx sightings/pull-sightings.ts
  *
- * Downstream (marker color = category, icon = species, clustering, filter counts,
- * click popup) is unchanged — this only produces the data.
- *
- * We query PER CATEGORY by iNaturalist taxon_id (which includes descendants), so
- * every observation is inherently mapped to the correct SpeciesId. This avoids the
- * coastal box flooding with terrestrial plants/insects: only genuinely marine +
- * coastal taxa are requested, and each group is capped for a balanced map that
- * clusters smoothly (~250-300 points across the 4 map categories).
+ * Pulls research-grade iNaturalist observations (open, keyless) for the Lisbon
+ * coast + Mallorca, normalizes them onto the `Sighting` type, and writes a
+ * committed JSON the map ingests. Querying PER CATEGORY by taxon_id (descendants
+ * included) makes every observation correct-by-construction on SpeciesId and
+ * keeps the coastal box from flooding with terrestrial taxa; each group is capped
+ * for a balanced, smoothly-clustering map.
  */
 import { writeFileSync } from "node:fs";
 import type { Sighting, SpeciesId } from "../lib/game/types";
 
-// Two bounding boxes: the Lisbon–Cascais coast and Mallorca.
 const REGIONS = [
   { name: "Lisbon coast", swlat: 38.4, swlng: -9.6, nelat: 39.0, nelng: -9.05 },
   { name: "Mallorca", swlat: 39.2, swlng: 2.3, nelat: 40.0, nelng: 3.5 },
@@ -29,11 +20,8 @@ const REGIONS = [
 
 const UA = "Nautica/0.1 (ETHGlobal Lisbon hackathon; contact: lerhinox@gmail.com)";
 
-// One query per group, mapped straight to a SpeciesId. taxon_id lists resolved from
-// the iNaturalist taxonomy (comma = union, descendants included). `cap` is the max
-// pulled per region (most recent first), sized for a balanced, smoothly-clustering
-// map. Lionfish (Pterois, 47284) is genuinely absent from these waters, so the
-// invasive category stays empty rather than faked.
+// taxon_id lists from the iNaturalist taxonomy (comma = union, descendants
+// included); `cap` is the max pulled per region, most recent first.
 const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
   { species: "ShoreFish", taxa: "47178", cap: 42 }, // Actinopterygii (ray-finned fish)
   { species: "Crab", taxa: "121639", cap: 26 }, // Brachyura (true crabs)
@@ -41,14 +29,13 @@ const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
   { species: "Physalia", taxa: "117305", cap: 30 }, // Physalia (Portuguese man o' war)
   { species: "SeaStar", taxa: "47668", cap: 20 }, // Asteroidea (sea stars)
   { species: "Turtle", taxa: "39657,39619", cap: 12 }, // Cheloniidae + Dermochelyidae (sea turtles only)
-  // Seagrass (Posidonia, Zostera) + marine algae (brown, green, red) → shore plant.
-  // Kept deliberately small: plants otherwise dominate and overwhelm the map.
+  // Seagrass + marine algae. Capped small: plants otherwise dominate the map.
   { species: "ShorePlant", taxa: "118944,52616,48220,50863,57774", cap: 6 },
-  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (invasive) — likely 0 here
+  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (invasive); likely 0 here
 ];
 
-// Only surface a photo when it carries a Creative-Commons license (occurrence facts
-// are free; photos are not). Everything else → dot only, no image.
+// Only surface a photo when it carries a Creative-Commons license (occurrence
+// facts are free, photos are not); everything else is a dot with no image.
 const CC = new Set([
   "cc0",
   "cc-by",
@@ -63,7 +50,7 @@ const CC = new Set([
 function bestPhoto(o: any): { photo?: string; attribution?: string } {
   const p = (o.photos ?? [])[0];
   if (!p || !p.url || !CC.has(p.license_code)) return {};
-  // iNat serves ".../<id>/square.jpg" — bump to medium for the popup.
+  // iNat serves ".../<id>/square.jpg"; bump to medium for the popup.
   const photo = String(p.url).replace("/square.", "/medium.");
   const who = o.user?.login ? `© ${o.user.login}` : "iNaturalist";
   const lic = p.license_code ? ` · ${String(p.license_code).toUpperCase()}` : "";
@@ -115,7 +102,7 @@ async function build(): Promise<Sighting[]> {
         const { photo, attribution } = bestPhoto(o);
         out.push({
           id,
-          species: g.species, // direct, correct-by-construction mapping
+          species: g.species,
           lng,
           lat,
           label: `${common} · ${o.place_guess ?? r.name}`,

@@ -9,7 +9,7 @@ const REAL_SIG_RE = /^0x[0-9a-fA-F]{130}$/; // a real 65-byte ECDSA signature
 
 // Sign-In With Ethereum (EIP-4361) verification for wallet login + wallet attach.
 // Uses viem's native SIWE utilities (no extra dependency). EOA signatures only
-// (EIP-1271 smart-wallet support would need a public client — future).
+// (EIP-1271 smart-wallet support would need a public client - future).
 
 const NONCE_TTL_MS = 1000 * 60 * 10;
 const nonces = new Map<string, number>(); // nonce -> expiresAt
@@ -56,7 +56,7 @@ export async function verifySiwe(message: string, signature: string): Promise<Si
   if (!parsed.address || !parsed.nonce) return { ok: false, reason: "SIWE message missing address/nonce" };
 
   const exp = nonces.get(parsed.nonce);
-  if (!exp) return { ok: false, reason: "unknown nonce — request a fresh one" };
+  if (!exp) return { ok: false, reason: "unknown nonce - request a fresh one" };
   if (Date.now() > exp) {
     nonces.delete(parsed.nonce);
     return { ok: false, reason: "nonce expired" };

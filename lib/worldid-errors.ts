@@ -1,8 +1,6 @@
-// World ID surfaces errors as snake_case codes — from the IDKit widget (onError) and
-// from the verify API (passed through as the server's `reason`). Both are machine-like
-// (e.g. "verification_rejected", "max_verifications_reached"). This turns them into
-// readable, user-facing text; unknown codes are de-snake-cased so an underscore never
-// reaches a toast, and already-human sentences are left as-is.
+// World ID errors arrive as snake_case codes from both the IDKit widget (onError) and the
+// verify API's `reason`. Map known codes to copy; de-snake-case unknown ones so an underscore
+// never reaches a toast.
 
 const MESSAGES: Record<string, string> = {
   verification_rejected: "Verification cancelled.",
@@ -22,16 +20,13 @@ const MESSAGES: Record<string, string> = {
   connection_failed: "Couldn't reach World App. Check your connection and try again.",
 };
 
-/** Turn a World ID error code / reason into human-readable text. Maps known codes,
- *  de-snake-cases unknown ones, and leaves already-human sentences intact. */
 export function humanizeWorldIdError(input?: string): string {
   const raw = (input ?? "").trim();
   if (!raw) return "Verification failed. Please try again.";
   const key = raw.toLowerCase();
   if (MESSAGES[key]) return MESSAGES[key];
-  // Already a human sentence (contains a space): keep wording, ensure a capital start.
+  // Already a human sentence (has a space): keep wording, just capitalize.
   if (/\s/.test(raw)) return raw.charAt(0).toUpperCase() + raw.slice(1);
-  // Bare snake_case / kebab code: de-snake and capitalize into a sentence.
   const words = key.replace(/[_-]+/g, " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1) + ".";
 }

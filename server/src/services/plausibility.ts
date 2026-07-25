@@ -15,7 +15,7 @@ type Region = { latMin: number; latMax: number; lngMin: number; lngMax: number }
 type SpeciesRange = {
   habitat: string;
   absLatMax: number;
-  /** Effectively global — skips the native/invasive geo check. */
+  /** Effectively global - skips the native/invasive geo check. */
   cosmopolitan: boolean;
   /** Plausible months (1-12), N-hemisphere reference; flipped by 6 below the equator. */
   months?: number[];
@@ -92,7 +92,7 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-/** Pure, deterministic scoring core (no I/O) — the plausibility reasoning. */
+/** Pure, deterministic scoring core (no I/O) - the plausibility reasoning. */
 export function scoreSighting(
   sighting: { id?: string; species: SpeciesId; lat: number; lng: number; at: number },
   cohort: SightingPoint[],
@@ -118,7 +118,7 @@ export function scoreSighting(
       rangeNote = `Within the native range (${range.habitat}).`;
     } else if (invasive) {
       notable = true;
-      rangeNote = `Outside the native range but an established invasive population occurs here — notable.`;
+      rangeNote = `Outside the native range but an established invasive population occurs here - notable.`;
       reasons.push(`${sighting.species} is invasive in this region; a valid but noteworthy record.`);
     } else {
       score -= 0.4;

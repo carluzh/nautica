@@ -22,7 +22,7 @@ const account = privateKeyToAccount(pk);
 writeFileSync(
   envPath,
   [
-    "# Nautica deploy + relayer wallet — Base Sepolia, TESTNET ONLY. Gitignored.",
+    "# Nautica deploy + relayer wallet - Base Sepolia, TESTNET ONLY. Gitignored.",
     "# Never fund with real assets or reuse on mainnet.",
     `DEPLOYER_PRIVATE_KEY=${pk}`,
     "",

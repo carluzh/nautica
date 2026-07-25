@@ -72,7 +72,7 @@ export async function saveImageFromDataUrl(dataUrl: string): Promise<SavedImage 
 
 /** Read a stored image by id (for GET /images/:id). */
 export async function readImage(id: string): Promise<{ bytes: Buffer; contentType: string } | null> {
-  // ids are `<sha256>.<ext>` — reject anything else so the id can't traverse the fs.
+  // ids are `<sha256>.<ext>` - reject anything else so the id can't traverse the fs.
   if (!/^[a-f0-9]{64}\.[a-z0-9]{2,5}$/.test(id)) return null;
   try {
     const bytes = await readFile(join(IMAGE_DIR, id));
@@ -89,7 +89,7 @@ export async function readImage(id: string): Promise<{ bytes: Buffer; contentTyp
 // holds it. Serving still comes from the local cache above (speed); 0G is the durable
 // copy + provenance. Turn on with ZEROG_STORAGE=1 once its wallet holds some 0G:
 //   ZEROG_STORAGE=1         (enable flag)
-//   ZEROG_STORAGE_KEY       (optional — defaults to RELAYER_PRIVATE_KEY, i.e. the same
+//   ZEROG_STORAGE_KEY       (optional - defaults to RELAYER_PRIVATE_KEY, i.e. the same
 //                            wallet you fund on 0G; set only to use a separate wallet)
 //   ZEROG_STORAGE_INDEXER   (default https://indexer-storage-testnet-turbo.0g.ai)
 //   ZEROG_STORAGE_RPC       (default https://evmrpc-testnet.0g.ai)
@@ -125,7 +125,7 @@ async function zeroGUpload(bytes: Buffer): Promise<string | null> {
   const [tree, treeErr] = await file.merkleTree();
   if (treeErr) throw treeErr;
   // ethers ships dual ESM/CJS builds; the SDK's types reference the CJS Signer while our
-  // dynamic import resolves the ESM one. Same class at runtime — bridge the type here.
+  // dynamic import resolves the ESM one. Same class at runtime - bridge the type here.
   const [tx, uploadErr] = await indexer.upload(
     file,
     STORAGE_RPC,

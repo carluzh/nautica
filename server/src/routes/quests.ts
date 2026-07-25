@@ -42,7 +42,7 @@ const submitSchema = z.object({
 export const questRoutes = new Hono<AppEnv>();
 questRoutes.use("*", requireAuth);
 
-/** GET /quests — daily board with this user's done + paid-unlock status. */
+/** GET /quests - daily board with this user's done + paid-unlock status. */
 questRoutes.get("/", async (c) => {
   const u = store.getUser(c.get("userId"));
   const done = new Set((u?.gallery ?? []).map((g) => g.questId));
@@ -101,7 +101,7 @@ function slugQuestId(title: string, species: string): string {
   return id;
 }
 
-/** POST /quests — a research partner posts + funds a quest. Escrows the reward
+/** POST /quests - a research partner posts + funds a quest. Escrows the reward
  *  on-chain (relayer as funder) BEFORE the quest is added to the registry, so a
  *  reverted escrow never leaves a phantom quest on the board. */
 questRoutes.post("/", async (c) => {
@@ -151,14 +151,14 @@ questRoutes.post("/", async (c) => {
   return c.json({ quest: { ...q, status: "available" }, txHash: chainRes.txHash, simulated: chainRes.simulated });
 });
 
-/** POST /quests/:id/challenge — issue a single-use freshness nonce. */
+/** POST /quests/:id/challenge - issue a single-use freshness nonce. */
 questRoutes.post("/:id/challenge", (c) => {
   const id = c.req.param("id");
   if (!questRegistry.get(id)) return c.json({ error: "unknown quest" }, 404);
   return c.json(issueChallenge(c.get("userId"), id));
 });
 
-/** POST /quests/:id/submit — verify a photo with 0G and, on pass, award XP + settle. */
+/** POST /quests/:id/submit - verify a photo with 0G and, on pass, award XP + settle. */
 questRoutes.post("/:id/submit", async (c) => {
   const id = c.req.param("id");
   const quest = questRegistry.get(id);
@@ -231,7 +231,7 @@ questRoutes.post("/:id/submit", async (c) => {
     lng = parsed.data.anchorLng;
   }
 
-  // Record on-chain (trusted attestor). If this throws, nothing landed — return
+  // Record on-chain (trusted attestor). If this throws, nothing landed - return
   // cleanly so a retry is safe (no duplicate on-chain record).
   let chainRes: Awaited<ReturnType<typeof recordQuestCompletion>>;
   try {
@@ -275,7 +275,7 @@ questRoutes.post("/:id/submit", async (c) => {
   if (after > before) activity.unshift({ id: `a_${now}_lvl`, kind: "levelup", title: `Reached Level ${after}`, at: now });
 
   // Settle payout best-effort: recordCompletion already landed, so the quest is
-  // awarded regardless. A payout failure leaves the payment pending — never a 500
+  // awarded regardless. A payout failure leaves the payment pending - never a 500
   // or an un-marked quest (which would let a retry duplicate the on-chain record).
   let payments = u.payments;
   let balanceUsd = u.balanceUsd;
