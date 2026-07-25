@@ -22,6 +22,7 @@ import {
   type CreateQuestBody,
   type WorldContext,
 } from "@/lib/api/client";
+import { humanizeWorldIdError } from "@/lib/worldid-errors";
 import { connectInjectedWallet, signSiweWithWallet } from "../wallet";
 
 // Real World ID widget — browser-only (IDKit pulls WASM). ssr:false keeps it out
@@ -271,7 +272,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         try {
           await finishWorldId(mode, credential, ctx, result);
         } catch (e) {
-          const msg = e instanceof Error ? e.message : "verification failed";
+          const msg = humanizeWorldIdError(e instanceof Error ? e.message : "verification failed");
           setError(msg);
           toast.error(msg);
         } finally {
@@ -306,7 +307,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setWorldId({ open: true, mode: "login", credential: "face", ctx });
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "sign-in failed");
+        setError(humanizeWorldIdError(e instanceof Error ? e.message : "sign-in failed"));
         setConnecting(false);
       }
     })();
@@ -420,7 +421,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             setWorldId({ open: true, mode: "upgrade", credential: step, ctx });
           }
         } catch (e) {
-          const msg = e instanceof Error ? e.message : "verification failed";
+          const msg = humanizeWorldIdError(e instanceof Error ? e.message : "verification failed");
           setError(msg);
           toast.error(msg);
         }
@@ -706,8 +707,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
           }}
           onResult={onWorldIdResult}
           onError={(code) => {
-            setError(code);
-            toast.error(code);
+            const msg = humanizeWorldIdError(code);
+            setError(msg);
+            toast.error(msg);
             setConnecting(false);
             setWorldId((w) => ({ ...w, open: false }));
           }}
