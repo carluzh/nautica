@@ -11,15 +11,31 @@ import { issueChallenge, validateChallenge } from "../services/freshness";
 import { classifyImage } from "../services/zerog";
 import { recordQuestCompletion, settlePayout } from "../services/chain";
 import { getQuests } from "../services/subgraph";
+import { setSightingRadius } from "../services/sighting-meta";
+import { enqueuePlausibility } from "../services/sighting-jobs";
 import type { ActivityEvent, GalleryItem, Payment, SubmitResult } from "../types";
 
 const LISBON = { lng: -9.15, lat: 38.7 };
 const MIN_CONFIDENCE = 0.6; // a weak "pass" (low model confidence) does not award XP
+const MAX_PLACEMENT_KM = 5; // a submitted spot must sit within this of its GPS anchor
+
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
 const submitSchema = z.object({
   imageDataUrl: z.string().min(16),
   nonce: z.string(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  radiusM: z.number().optional(),
+  anchorLat: z.number().optional(),
+  anchorLng: z.number().optional(),
 });
 
 export const questRoutes = new Hono<AppEnv>();
@@ -105,10 +121,23 @@ questRoutes.post("/:id/submit", async (c) => {
     return c.json({ ok: false, reason, attestation } satisfies SubmitResult);
   }
 
-  // Fixed before the on-chain record so the emitted event and the gallery item
-  // carry identical lat/lng.
-  const lat = parsed.data.lat ?? LISBON.lat + (Math.random() - 0.5) * 0.4;
-  const lng = parsed.data.lng ?? LISBON.lng + (Math.random() - 0.5) * 0.4;
+  // Location is a soft, client-supplied signal. Use the chosen spot; if a GPS anchor
+  // came with it, snap back to the anchor when the spot lands beyond the placement
+  // leash (a photo can't be pinned an ocean away from where it was taken). Absent
+  // coords keep a labeled Lisbon-area default. Fixed before the on-chain record so the
+  // emitted event and the gallery item carry identical lat/lng.
+  let lat = parsed.data.lat ?? LISBON.lat + (Math.random() - 0.5) * 0.4;
+  let lng = parsed.data.lng ?? LISBON.lng + (Math.random() - 0.5) * 0.4;
+  if (
+    parsed.data.lat != null &&
+    parsed.data.lng != null &&
+    parsed.data.anchorLat != null &&
+    parsed.data.anchorLng != null &&
+    haversineKm(parsed.data.anchorLat, parsed.data.anchorLng, lat, lng) > MAX_PLACEMENT_KM
+  ) {
+    lat = parsed.data.anchorLat;
+    lng = parsed.data.anchorLng;
+  }
 
   // Record on-chain (trusted attestor). If this throws, nothing landed — return
   // cleanly so a retry is safe (no duplicate on-chain record).
@@ -142,7 +171,9 @@ questRoutes.post("/:id/submit", async (c) => {
     usdc: quest.usdc,
     lat,
     lng,
+    radiusM: parsed.data.radiusM,
     at: now,
+    txHash: chainRes.simulated ? undefined : chainRes.txHash,
   };
 
   const activity: ActivityEvent[] = [
@@ -187,6 +218,14 @@ questRoutes.post("/:id/submit", async (c) => {
     activity: [...activity, ...u.activity],
     payments,
   });
+
+  // Eager plausibility: once the sighting is genuinely on-chain, warm its verdict as
+  // soon as The Graph indexes it (real path only; simulated-fallback records never
+  // index, so they keep the lazy GET path). Also stash the off-chain precision radius.
+  if (!chainRes.simulated) {
+    if (parsed.data.radiusM != null) setSightingRadius(chainRes.txHash, parsed.data.radiusM);
+    enqueuePlausibility({ userId, txHash: chainRes.txHash });
+  }
 
   return c.json({
     ok: true,

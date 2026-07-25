@@ -150,6 +150,8 @@ type GameValue = {
   lastLevelUp: number | null;
   /** Plausibility verdicts keyed by sighting id, filled lazily by loadPlausibility. */
   plausibility: Record<string, PlausibilityVerdict>;
+  /** Sighting ids whose verdict is still being fetched/awaited (indexing lag). */
+  plausibilityPending: Record<string, boolean>;
 
   setOpenPanel: (p: PanelId | null) => void;
   /** Ask the plausibility agent about a sighting (no-op until API mode + signed in). */
@@ -183,6 +185,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [lastLevelUp, setLastLevelUp] = useState<number | null>(null);
   const [plausibility, setPlausibility] = useState<Record<string, PlausibilityVerdict>>({});
+  const [plausibilityPending, setPlausibilityPending] = useState<Record<string, boolean>>({});
   // Sightings already requested, so a re-rendered card never refetches.
   const plausibilityRequested = useRef<Set<string>>(new Set());
   // Real World ID widget flow. `mode` = login vs tier upgrade; `credential` picks
@@ -515,17 +518,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Lazily fetch the plausibility verdict for one sighting (API mode only). Cards
-  // call this on open; the ref guard makes it fire once per sighting per session.
+  // Fetch the plausibility verdict for one sighting (API mode only). Cards call this
+  // on open; the ref guard makes it fire once per sighting per session. A just-recorded
+  // sighting isn't indexed yet, so a miss retries on a fixed interval (bounded) until
+  // the server's eager job has the verdict — no manual reopen needed.
   const loadPlausibility = useCallback(
     (sightingId: string) => {
       if (!apiEnabled || !token) return;
       if (plausibilityRequested.current.has(sightingId)) return;
       plausibilityRequested.current.add(sightingId);
-      api
-        .getPlausibility(token, sightingId)
-        .then((v) => setPlausibility((m) => ({ ...m, [sightingId]: v })))
-        .catch(() => plausibilityRequested.current.delete(sightingId));
+      setPlausibilityPending((m) => ({ ...m, [sightingId]: true }));
+      let attempts = 0;
+      const attempt = () => {
+        api
+          .getPlausibility(token, sightingId)
+          .then((v) => {
+            setPlausibility((m) => ({ ...m, [sightingId]: v }));
+            setPlausibilityPending((m) => ({ ...m, [sightingId]: false }));
+          })
+          .catch(() => {
+            attempts += 1;
+            if (attempts < 10) {
+              setTimeout(attempt, 5000); // not indexed/assessed yet — keep waiting
+            } else {
+              plausibilityRequested.current.delete(sightingId); // allow a later re-request
+              setPlausibilityPending((m) => ({ ...m, [sightingId]: false }));
+            }
+          });
+      };
+      attempt();
     },
     [token],
   );
@@ -540,6 +561,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setHistory([]);
     setPayments([]);
     setPlausibility({});
+    setPlausibilityPending({});
     plausibilityRequested.current.clear();
     setLeaderboard(apiEnabled ? [] : LEADERBOARD);
     setQuests(DAILY_QUESTS);
@@ -566,6 +588,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     activeQuestId,
     lastLevelUp,
     plausibility,
+    plausibilityPending,
     setOpenPanel,
     loadPlausibility,
     openQuest,

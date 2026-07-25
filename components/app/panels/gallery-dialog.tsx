@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, Images, MapPin } from "lucide-react";
+import { AlertTriangle, Images, Loader2, MapPin } from "lucide-react";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
@@ -41,8 +41,9 @@ function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
 
 function Card({ item }: { item: GalleryItem }) {
   const meta = SPECIES_META[item.species];
-  const { plausibility, loadPlausibility } = useGame();
+  const { plausibility, plausibilityPending, loadPlausibility } = useGame();
   const verdict = plausibility[item.id];
+  const checking = plausibilityPending[item.id];
 
   useEffect(() => {
     loadPlausibility(item.id);
@@ -97,7 +98,14 @@ function Card({ item }: { item: GalleryItem }) {
           </span>
           <span className="tnum">{timeAgo(item.at)}</span>
         </div>
-        {verdict ? <PlausibilityChip verdict={verdict} /> : null}
+        {verdict ? (
+          <PlausibilityChip verdict={verdict} />
+        ) : checking ? (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Loader2 className="size-3 animate-spin" />
+            Checking plausibility…
+          </div>
+        ) : null}
       </div>
     </div>
   );

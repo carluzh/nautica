@@ -85,7 +85,12 @@ export type GalleryItem = {
   usdc?: number;
   lat: number;
   lng: number;
+  /** Precision radius (m) the user set around the spot; off-chain, may be absent. */
+  radiusM?: number;
   at: number;
+  /** On-chain tx that recorded this sighting; reconciles the optimistic item with
+   *  the subgraph-indexed one (same txHash). Absent on mock + simulated-fallback items. */
+  txHash?: string;
 };
 
 export type ActivityEvent = {

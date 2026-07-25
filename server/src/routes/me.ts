@@ -37,18 +37,19 @@ meRoutes.get("/payments", (c) => {
   return c.json(store.getUser(c.get("userId"))?.payments ?? []);
 });
 
-/** GET /me/sightings/:id/plausibility — the agent's verdict for one sighting,
- *  cached per id. 404 when the sighting isn't the caller's. */
-meRoutes.get("/sightings/:id/plausibility", async (c) => {
-  const userId = c.get("userId");
-  const sightingId = c.req.param("id");
+/** Assess (or return the cached) plausibility verdict for one sighting, scoped to
+ *  the caller. Exported so the eager post-record job (services/sighting-jobs.ts) can
+ *  warm this same cache the moment the subgraph indexes the sighting. */
+export async function primePlausibility(
+  userId: string,
+  sightingId: string,
+): Promise<PlausibilityVerdict | null> {
   const cacheKey = `${userId}:${sightingId}`;
-
   const cached = plausibilityCache.get(cacheKey);
-  if (cached) return c.json(cached);
+  if (cached) return cached;
 
   const verdict = await assessSighting(userId, sightingId);
-  if (!verdict) return c.json({ error: "sighting not found" }, 404);
+  if (!verdict) return null;
 
   // Bound the cache (simple FIFO eviction) so it can't grow without limit.
   if (plausibilityCache.size >= 5000) {
@@ -56,6 +57,14 @@ meRoutes.get("/sightings/:id/plausibility", async (c) => {
     if (oldest) plausibilityCache.delete(oldest);
   }
   plausibilityCache.set(cacheKey, verdict);
+  return verdict;
+}
+
+/** GET /me/sightings/:id/plausibility — the agent's verdict for one sighting,
+ *  cached per id. 404 when the sighting isn't the caller's (or not yet indexed). */
+meRoutes.get("/sightings/:id/plausibility", async (c) => {
+  const verdict = await primePlausibility(c.get("userId"), c.req.param("id"));
+  if (!verdict) return c.json({ error: "sighting not found" }, 404);
   return c.json(verdict);
 });
 
