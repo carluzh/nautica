@@ -46,6 +46,16 @@ function att(label: string, confidence: number, offset: number): Attestation {
       Math.abs(offset * 2654435761 % 0xffffffffffff).toString(16).padStart(12, "0") +
       "…",
     at: BASE - offset,
+    simulated: false,
+    teeVerified: true,
+    attestationSource: "0g-router:verify_tee",
+    provider: "0x4415ef5CBb415347bb18493af7cE01f225Fc0868",
+    verifiability: "TeeTLS",
+    teeSigner: "0x03716ddFbA77600C33b605FABD2F70Fe89856b0d",
+    providerVerifiability: "TeeML",
+    providerAcknowledged: true,
+    quoteVerified: true,
+    quoteVerifier: "automata-onchain",
   };
 }
 

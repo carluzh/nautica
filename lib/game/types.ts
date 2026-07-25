@@ -30,6 +30,19 @@ export type Attestation = {
   tee: string; // attestation tech, e.g. "Intel TDX · TeeTLS"
   hash: string; // 0x… digest of the attestation
   at: number; // epoch ms
+  // Verifiable-inference detail (present on live 0G submissions; absent on
+  // on-chain-reconstructed gallery items and pure-mock records).
+  simulated?: boolean;
+  teeVerified?: boolean;
+  attestationSource?: "0g-router:verify_tee" | "unverified" | "simulated" | "error";
+  provider?: string | null; // TEE provider address (0G chain)
+  requestId?: string | null;
+  verifiability?: string; // "TeeTLS" | "TeeML"
+  teeSigner?: string | null; // provider's on-chain registered TEE signer
+  providerVerifiability?: string | null;
+  providerAcknowledged?: boolean | null;
+  quoteVerified?: boolean | null; // independent Intel TDX quote (DCAP) verified
+  quoteVerifier?: string | null; // "automata-onchain" | "phala-offchain"
 };
 
 export type QuestKind = "free" | "paid";

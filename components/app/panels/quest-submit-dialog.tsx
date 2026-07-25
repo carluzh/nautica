@@ -15,7 +15,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AttestationBadge } from "@/components/app/attestation";
+import { AttestationBadge, AttestationDetail } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -311,6 +311,10 @@ function SuccessView({
       </div>
 
       <AttestationBadge attestation={ok.attestation} />
+
+      <div className="w-full max-w-[18rem] rounded-lg border bg-muted/30 p-3 text-left">
+        <AttestationDetail attestation={ok.attestation} />
+      </div>
 
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="tnum inline-flex items-center rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">

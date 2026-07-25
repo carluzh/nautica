@@ -86,6 +86,16 @@ async function classify(label: string): Promise<Attestation> {
     tee: "Intel TDX · TeeTLS",
     hash: fakeHash(),
     at: Date.now(),
+    simulated: false,
+    teeVerified: true,
+    attestationSource: "0g-router:verify_tee",
+    provider: "0x4415ef5CBb415347bb18493af7cE01f225Fc0868",
+    verifiability: "TeeTLS",
+    teeSigner: "0x03716ddFbA77600C33b605FABD2F70Fe89856b0d",
+    providerVerifiability: "TeeML",
+    providerAcknowledged: true,
+    quoteVerified: true,
+    quoteVerifier: "automata-onchain",
   };
 }
 
