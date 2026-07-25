@@ -53,7 +53,7 @@ export function AppShowcase() {
         {/* Hero copy + CTAs. */}
         <div className="pointer-events-none relative z-10 flex flex-1 flex-col items-start justify-center px-6 py-12 text-left sm:px-12 lg:px-16">
           <h2 className="max-w-2xl text-balance text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl">
-            Help protect what you love.
+            Protect the ocean by taking pictures of it.
           </h2>
           <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/70 sm:text-lg">
             Join a global network of ocean explorers mapping marine biodiversity.

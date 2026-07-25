@@ -25,7 +25,7 @@ export function StatsBand() {
               width={1001}
               height={1121}
               sizes="380px"
-              className="nautica-jelly pointer-events-auto absolute -bottom-16 -left-6 z-20 w-56 select-none lg:w-72"
+              className="nautica-jelly pointer-events-auto absolute -bottom-48 -left-6 z-20 w-56 select-none lg:w-72"
             />
           </div>
 

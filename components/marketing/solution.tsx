@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { SeaMap, type SeaMarker } from "@/components/map/sea-map";
 import { SwimmingShark } from "@/components/marketing/swimming-shark";
@@ -18,7 +17,7 @@ export function Solution() {
     <section id="how" className="scroll-mt-20 py-14 lg:py-20">
       <div className="px-4 sm:px-6 lg:px-8">
         {/* (a) Two sides — who it's for */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
           {/* LEFT — For citizen scientists */}
           <div className="rounded-2xl border border-border bg-card p-6 lg:p-8">
             <p className="text-sm font-medium text-[#FF6F61]">
@@ -50,8 +49,7 @@ export function Solution() {
         {/* Leopard shark swimming under the two-column cards */}
         <SwimmingShark />
 
-        {/* (b) Thin reef-text CTA bar over the real map, with the rainbow
-            wrasse overlapping its bottom-left in front */}
+        {/* (b) Thin reef-text CTA bar over the real map */}
         <div className="relative mx-auto mt-12 max-w-2xl">
           <div className="relative overflow-hidden rounded-3xl bg-[#0a1017] ring-1 ring-white/10">
             <SeaMap
@@ -80,22 +78,12 @@ export function Solution() {
                   WebkitBackgroundClip: "text",
                   color: "transparent",
                   WebkitTextFillColor: "transparent",
-                  WebkitTextStroke: "1.5px #ffffff",
                 }}
               >
                 Log your first sighting →
               </Link>
             </div>
           </div>
-
-          <Image
-            src="/animals/rainbowwrasse.png"
-            alt=""
-            width={1372}
-            height={768}
-            sizes="240px"
-            className="pointer-events-none absolute -bottom-8 -left-10 z-20 w-40 select-none drop-shadow-lg lg:w-52"
-          />
         </div>
 
         {/* (c) Thin trust row — last, before the footer */}
