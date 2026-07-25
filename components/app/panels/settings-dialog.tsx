@@ -12,7 +12,6 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +24,7 @@ import { TIERS } from "@/lib/game/content";
 import { PAID_UNLOCK_LEVEL } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
 import { cn } from "@/lib/utils";
+import { AccountHeader } from "./account-header";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -70,8 +70,8 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
     >
       <span
         className={cn(
-          "absolute top-0.5 size-3.5 rounded-full bg-foreground shadow-sm transition-transform",
-          checked ? "translate-x-4" : "translate-x-0.5",
+          "absolute top-0.5 left-0.5 size-3.5 rounded-full bg-foreground shadow-sm transition-transform",
+          checked ? "translate-x-4" : "translate-x-0",
         )}
       />
     </button>
@@ -81,7 +81,6 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 export function SettingsDialog() {
   const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, demoLevel, attachWallet, signOut } = useGame();
   const [notify, setNotify] = useState({ quests: true, payouts: true, streak: false });
-  const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
   return (
     <Dialog open={openPanel === "settings"} onOpenChange={(o) => !o && setOpenPanel(null)}>
@@ -94,32 +93,23 @@ export function SettingsDialog() {
         <div className="-mr-2 mt-3 max-h-[70svh] space-y-5 overflow-y-auto pr-2">
           {/* Account */}
           <Section title="Account">
-            <div className="divide-y rounded-lg border">
-              <div className="flex items-center gap-3 px-3 py-3">
-                <Avatar className="size-9 border">
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{user.handle || "Guest"}</p>
-                  <p className="tnum flex items-center gap-1 truncate text-xs text-muted-foreground">
-                    <Wallet className="size-3" />
-                    {user.wallet || "Not connected"}
-                  </p>
-                </div>
+            <div className="space-y-2">
+              <AccountHeader />
+              <div className="rounded-lg border">
+                <Row label="Sign out" sub="Ends this session">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      signOut();
+                      toast("Signed out");
+                    }}
+                  >
+                    <LogOut className="size-3.5" />
+                    Sign out
+                  </Button>
+                </Row>
               </div>
-              <Row label="Sign out" sub="Ends this session">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    signOut();
-                    toast("Signed out");
-                  }}
-                >
-                  <LogOut className="size-3.5" />
-                  Sign out
-                </Button>
-              </Row>
             </div>
           </Section>
 
@@ -183,6 +173,8 @@ export function SettingsDialog() {
           </Section>
 
           {/* Notifications */}
+          {/* mock: these toggles are local-only UI state — there is no backend endpoint
+              to persist notification preferences (or deliver the alerts) yet. */}
           <Section title="Notifications">
             <div className="divide-y rounded-lg border">
               <Row label="Quest reminders" sub="A nudge when new dailies drop">

@@ -88,7 +88,7 @@ export function TabActivities() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+      <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground">
         <span>Sightings</span>
         <span className="inline-flex items-center gap-1.5">
           <span className="relative flex size-1.5">

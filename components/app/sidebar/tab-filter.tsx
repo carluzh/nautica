@@ -1,16 +1,30 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { Check, Loader2, MapPin, Search } from "lucide-react";
+import { Check, Clock, Loader2, MapPin, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { CATEGORY_META, SPECIES_GROUPS, SPECIES_META, type Category } from "@/lib/game/content";
 import { cn } from "@/lib/utils";
-import type { FilterState } from "./types";
+import type { FilterState, TimePeriod } from "./types";
 
-/** Filter tab: search a place (pans the map), toggle the 4 map categories in a 2x2
- *  grid, and refine by species via a searchable, grouped checklist. */
+const PERIODS: { value: TimePeriod; label: string }[] = [
+  { value: "24h", label: "Last 24 hours" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "1m", label: "Last month" },
+  { value: "all", label: "All time" },
+];
+
+/** Filter tab: search a place (pans the map), pick a time window, toggle the 4 map
+ *  categories in a 2x2 grid, and refine by species via a searchable, grouped checklist. */
 export function TabFilter({ filter }: { filter: FilterState }) {
   const { categories } = filter;
   const allHidden = categories.every((c) => filter.hidden.has(c.category));
@@ -46,27 +60,6 @@ export function TabFilter({ filter }: { filter: FilterState }) {
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col">
-        {/* Location search — geocodes + pans the map (does not filter markers). */}
-        <form onSubmit={onSearch} className="border-b px-3 py-2.5">
-          <div className="relative">
-            <MapPin className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={place}
-              onChange={(e) => setPlace(e.target.value)}
-              placeholder="Search a place… (e.g. Cascais)"
-              className="h-8 pr-8 pl-8 text-sm"
-              enterKeyHint="search"
-            />
-            <button
-              type="submit"
-              aria-label="Search location"
-              className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-            >
-              {filter.searching ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
-            </button>
-          </div>
-        </form>
-
         {/* Category grid — 2x2, all on by default. */}
         <div className="flex items-center justify-between px-3 pt-3 pb-2">
           <span className="text-xs font-medium text-muted-foreground">Categories</span>
@@ -122,8 +115,49 @@ export function TabFilter({ filter }: { filter: FilterState }) {
           })}
         </ul>
 
+        {/* Time & Place — location search (pans the map) + a time-window filter. */}
+        <div className="px-3 pt-3 pb-3">
+          <span className="text-xs font-medium text-muted-foreground">Time &amp; Place</span>
+          <div className="mt-2 flex items-center gap-2">
+            <form onSubmit={onSearch} className="min-w-0 flex-1">
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={place}
+                  onChange={(e) => setPlace(e.target.value)}
+                  placeholder="Search a place… (e.g. Cascais)"
+                  className="h-8 pr-8 pl-8 text-sm"
+                  enterKeyHint="search"
+                />
+                <button
+                  type="submit"
+                  aria-label="Search location"
+                  className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+                >
+                  {filter.searching ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                </button>
+              </div>
+            </form>
+            <Select value={filter.period} onValueChange={(v) => filter.onPeriod(v as TimePeriod)}>
+              <SelectTrigger size="sm" className="w-[150px] shrink-0">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* Species checklist — grouped, searchable. */}
-        <div className="border-t px-3 pt-3 pb-2">
+        <div className="px-3 pt-3 pb-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Species</span>
             <button
@@ -172,7 +206,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
                           <button
                             onClick={() => filter.onToggleSpecies(s)}
                             aria-pressed={checked}
-                            className="flex w-full items-center gap-2.5 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-accent/40"
+                            className="flex w-full items-center gap-2.5 rounded-md px-1 py-1.5 text-left"
                           >
                             <span
                               className={cn(

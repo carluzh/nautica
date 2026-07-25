@@ -79,15 +79,18 @@ export function MissionsBoard() {
   return (
     <div className="pointer-events-auto absolute right-3 bottom-3 z-10 w-[min(94vw,440px)] sm:right-4 sm:bottom-4">
       <div className="flex max-h-[min(76svh,640px)] flex-col overflow-hidden rounded-xl border bg-card/80 shadow-xl backdrop-blur-md">
-        {/* header: coral band with the title + streak (black flame). */}
-        <div className="flex shrink-0 items-center justify-between gap-2 bg-primary px-3 py-2.5">
+        {/* header: coral band (tight dot-grid texture) with the title + streak. */}
+        <div
+          className="flex shrink-0 items-center justify-between gap-2 bg-primary px-3 py-2.5"
+          style={{
+            backgroundImage: "radial-gradient(rgba(0,0,0,0.13) 1px, transparent 1.2px)",
+            backgroundSize: "7px 7px",
+          }}
+        >
           <span className="text-sm font-semibold text-black/90">Daily quests</span>
           <span className="inline-flex shrink-0 items-center gap-0.5 text-black">
             <Flame className="size-4" fill="currentColor" />
-            <span className="tnum text-sm font-medium">
-              {user.streak}
-              <span className="text-black/50">d</span>
-            </span>
+            <span className="tnum text-sm font-medium">{user.streak}d</span>
           </span>
         </div>
 

@@ -29,4 +29,11 @@ export type FilterState = {
   // Location search — geocodes the query and pans the map (no filtering).
   onSearchPlace: (query: string) => void;
   searching: boolean;
+
+  // Time period — filters the map markers + counts by observation age.
+  period: TimePeriod;
+  onPeriod: (period: TimePeriod) => void;
 };
+
+/** Time window for the map filter. */
+export type TimePeriod = "24h" | "7d" | "1m" | "all";

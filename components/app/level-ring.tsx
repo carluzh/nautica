@@ -27,7 +27,12 @@ export function LevelRing({
           className="stroke-primary transition-[stroke-dashoffset] duration-500"
         />
       </svg>
-      <span className="tnum absolute text-[11px] font-semibold leading-none">{level}</span>
+      <span
+        className="tnum absolute font-semibold leading-none"
+        style={{ fontSize: Math.round(size * 0.34) }}
+      >
+        {level}
+      </span>
     </span>
   );
 }

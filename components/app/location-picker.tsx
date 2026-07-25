@@ -11,9 +11,10 @@ import type { PickedPlace } from "@/lib/game/types";
 
 export type { PickedPlace };
 
-// Same keyless CARTO Positron basemap the main map uses (components/map/sea-map.tsx),
-// kept as a self-contained picker so it never touches that shared component.
-const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+// Match the app's dark basemap (components/map/sea-map.tsx): CARTO Dark Matter with
+// a slightly blue water fill. Kept self-contained so it never touches that component.
+const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const WATER_BLUE = "#12314c";
 const LISBON: [number, number] = [-9.15, 38.7];
 
 /** Anti-spoof leash: the chosen spot must sit within this many km of the live GPS fix. */
@@ -116,7 +117,7 @@ export function LocationPicker({
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: LIGHT_STYLE,
+      style: DARK_STYLE,
       center: LISBON,
       zoom: 11,
       attributionControl: false,
@@ -153,6 +154,14 @@ export function LocationPicker({
     });
 
     map.on("load", () => {
+      // Match the app map's blue-ish water.
+      if (map.getLayer("water")) {
+        try {
+          map.setPaintProperty("water", "fill-color", WATER_BLUE);
+        } catch {
+          /* water layer shape differs on this style version — ignore */
+        }
+      }
       map.addSource("picker", { type: "geojson", data: shapes(null, LISBON, DEFAULT_RADIUS_M) });
       map.addLayer({
         id: "zone-fill",

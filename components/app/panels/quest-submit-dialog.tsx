@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { basescanTx, shortAddr } from "@/lib/format";
-import { SPECIES_META } from "@/lib/game/content";
+import { CATEGORY_META, SPECIES_META, mapIcon, speciesCategory } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { Attestation, PickedPlace, Quest } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,8 @@ export function QuestSubmitDialog() {
   const open = openPanel === "quest";
   const isPaid = quest?.kind === "paid";
   const meta = quest ? SPECIES_META[quest.species] : null;
+  // Use the consolidated map/category icon (e.g. crab shows the Marine-life fish, not a beetle).
+  const QuestIcon = quest ? mapIcon(quest.species) : null;
 
   const [step, setStep] = useState<Step>(1);
   const [file, setFile] = useState<File | null>(null);
@@ -145,66 +147,81 @@ export function QuestSubmitDialog() {
       <DialogContent className="max-h-[92svh] gap-0 overflow-hidden p-0 sm:max-w-lg">
         {quest ? (
           <>
-            <DialogHeader className="gap-2 border-b p-5">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {meta ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border bg-background py-0.5 pr-2 pl-1 text-[11px] text-muted-foreground">
-                    <SpeciesBadge species={quest.species} className="size-5 rounded" iconClassName="size-3" />
-                    {meta.short}
+            <DialogHeader className="p-5">
+              <div className="flex items-center gap-3">
+                {QuestIcon ? (
+                  <span
+                    className="grid size-14 shrink-0 place-items-center rounded-full"
+                    style={{
+                      backgroundColor: `color-mix(in oklch, ${CATEGORY_META[speciesCategory(quest.species)].color} 14%, transparent)`,
+                      color: CATEGORY_META[speciesCategory(quest.species)].color,
+                    }}
+                  >
+                    <QuestIcon className="size-7" fill="currentColor" />
                   </span>
                 ) : null}
-                {isPaid ? (
-                  <span className="tnum inline-flex items-center gap-1 rounded-md bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">
-                    <Coins className="size-3" /> Paid · ${quest.usdc}
-                  </span>
-                ) : (
-                  <span className="tnum inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
-                    +{quest.reward} XP
-                  </span>
-                )}
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-left text-base leading-tight">{quest.title}</DialogTitle>
+                  <DialogDescription className="mt-1 text-left">{quest.spec}</DialogDescription>
+                </div>
               </div>
-              <DialogTitle className="text-left">{quest.title}</DialogTitle>
-              <DialogDescription className="text-left">
-                <span className="font-medium text-foreground/80">0G checks: </span>
-                {quest.spec}
-              </DialogDescription>
             </DialogHeader>
 
             {success ? (
-              <SuccessView quest={quest} ok={ok} isPaid={isPaid} />
+              <SuccessView quest={quest} ok={ok} isPaid={isPaid} onClose={close} />
+            ) : phase === "error" ? (
+              <FailureView
+                reason={err}
+                onRetry={() => {
+                  setErr(null);
+                  setPhase("idle");
+                  setStep(1);
+                }}
+                onClose={close}
+              />
             ) : (
               <>
-                {/* step indicator */}
-                <div className="flex items-center gap-1.5 border-b px-5 py-2.5">
-                  {STEPS.map((it, i) => (
-                    <div key={it.n} className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "flex size-5 items-center justify-center rounded-full text-[11px] font-medium transition-colors",
-                          step > it.n
-                            ? "bg-primary text-primary-foreground"
-                            : step === it.n
-                              ? "bg-primary/15 text-primary ring-1 ring-primary/30"
-                              : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {step > it.n ? <Check className="size-3" /> : it.n}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-xs",
-                          step === it.n ? "font-medium text-foreground" : "text-muted-foreground",
-                        )}
-                      >
-                        {it.label}
-                      </span>
-                      {i < STEPS.length - 1 ? <div className="mx-1 h-px w-4 bg-border" /> : null}
-                    </div>
-                  ))}
+                {/* step indicator + reward goal */}
+                <div className="flex items-center justify-between gap-2 px-5 pb-3">
+                  <div className="flex items-center gap-3">
+                    {STEPS.map((it) => (
+                      <div key={it.n} className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "flex size-5 items-center justify-center rounded-full text-[11px] font-medium transition-colors",
+                            step > it.n
+                              ? "bg-primary text-primary-foreground"
+                              : step === it.n
+                                ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                                : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {step > it.n ? <Check className="size-3" /> : it.n}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs",
+                            step === it.n ? "font-medium text-foreground" : "text-muted-foreground",
+                          )}
+                        >
+                          {it.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {isPaid ? (
+                    <span className="tnum inline-flex shrink-0 items-center rounded-md bg-success/15 px-2 py-1 text-xs font-semibold text-success">
+                      ${quest.usdc}
+                    </span>
+                  ) : (
+                    <span className="tnum inline-flex shrink-0 items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                      +{quest.reward} XP
+                    </span>
+                  )}
                 </div>
 
-                {/* step body — fixed height so the dialog doesn't jump and the map gets room */}
-                <div className="flex h-[46svh] max-h-[440px] min-h-[340px] flex-col p-5">
+                {/* step body — sizes to each step's content so the modal height adapts */}
+                <div className="px-5 pb-5">
                   {step === 1 ? (
                     <PhotoStep
                       quest={quest}
@@ -215,11 +232,11 @@ export function QuestSubmitDialog() {
                       onPick={onPick}
                     />
                   ) : step === 2 ? (
-                    <div className="flex h-full flex-col gap-2">
+                    <div className="flex flex-col gap-2">
                       <span className="text-xs font-medium text-muted-foreground">
                         Where did you see it?
                       </span>
-                      <div className="min-h-0 flex-1">
+                      <div className="h-[320px]">
                         <LocationPicker onChange={setPlace} />
                       </div>
                     </div>
@@ -230,13 +247,12 @@ export function QuestSubmitDialog() {
                       passport={user.verification.passport}
                       preview={preview}
                       place={place}
-                      err={phase === "error" ? err : null}
                     />
                   )}
                 </div>
 
                 {/* footer nav */}
-                <DialogFooter className="flex-row gap-2 border-t p-4">
+                <DialogFooter className="flex-row gap-2 p-4">
                   {step > 1 ? (
                     <Button
                       variant="outline"
@@ -255,15 +271,21 @@ export function QuestSubmitDialog() {
                       Next
                     </Button>
                   ) : (
-                    <Button className="flex-1" onClick={onSubmit} disabled={!file || submitting}>
+                    <Button
+                      className="flex-1 bg-[#B75FFF] text-white hover:bg-[#B75FFF]/90"
+                      onClick={onSubmit}
+                      disabled={!file || submitting}
+                    >
                       {submitting ? (
                         <>
                           <Loader2 className="size-4 animate-spin" /> 0G TEE classifying…
                         </>
                       ) : (
-                        <>
-                          <Sparkles className="size-4" /> Verify with 0G
-                        </>
+                        <span className="inline-flex items-center gap-1">
+                          Verify with
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/0g-logo.png" alt="0G" className="h-4 w-auto brightness-0 invert" />
+                        </span>
                       )}
                     </Button>
                   )}
@@ -296,15 +318,17 @@ function PhotoStep({
   onPick: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
-      {/* freshness nonce: anti-fraud challenge */}
-      <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-2">
+    <div className="flex flex-col gap-3">
+      {/* per-submission challenge + what 0G checks */}
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
         <Fingerprint className="size-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium">
             Challenge <span className="tnum text-primary">#{nonce || "····"}</span>
           </p>
-          <p className="text-[11px] text-muted-foreground">Photo must be taken now. No library uploads.</p>
+          <p className="text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground/80">0G checks</span> your photo against the quest.
+          </p>
         </div>
       </div>
 
@@ -337,7 +361,7 @@ function PhotoStep({
       ) : null}
 
       {/* photo capture + preview */}
-      <label className="group relative flex flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed bg-background/50 transition-colors hover:border-primary/50">
+      <label className="group relative flex h-[220px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed bg-background/50 transition-colors hover:border-primary/50">
         <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPick} />
         {preview ? (
           <>
@@ -370,18 +394,16 @@ function ReviewStep({
   passport,
   preview,
   place,
-  err,
 }: {
   quest: Quest;
   isPaid: boolean;
   passport: boolean;
   preview: string | null;
   place: PickedPlace | null;
-  err: string | null;
 }) {
   const meta = SPECIES_META[quest.species];
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto">
+    <div className="flex flex-col gap-3">
       <div className="flex gap-3">
         <div className="size-20 shrink-0 overflow-hidden rounded-lg border bg-muted">
           {preview ? (
@@ -421,16 +443,9 @@ function ReviewStep({
         </div>
       ) : null}
 
-      <p className="text-xs text-muted-foreground">
+      <div className="rounded-lg bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         Your photo is classified in a 0G TEE (qwen3-vl-30b · Intel TDX). Only a verified pass awards XP.
-      </p>
-
-      {err ? (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-          <span>{err}</span>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -439,10 +454,12 @@ function SuccessView({
   quest,
   ok,
   isPaid,
+  onClose,
 }: {
   quest: Quest;
   ok: OkResult;
   isPaid: boolean;
+  onClose: () => void;
 }) {
   const meta = SPECIES_META[quest.species];
   return (
@@ -491,6 +508,43 @@ function SuccessView({
           <Sparkles className="size-3.5 text-primary" /> Reached Level {ok.leveledTo}
         </p>
       ) : null}
+
+      <Button className="mt-1 w-full" onClick={onClose}>
+        Done
+      </Button>
+    </div>
+  );
+}
+
+/** Failure screen — a fresh modal state shown when 0G rejects the submission. */
+function FailureView({
+  reason,
+  onRetry,
+  onClose,
+}: {
+  reason: string | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 p-5 text-center">
+      <div className="flex size-14 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+        <TriangleAlert className="size-7" />
+      </div>
+      <div className="space-y-1">
+        <p className="text-base font-semibold">Not verified</p>
+        <p className="max-w-[18rem] text-xs text-muted-foreground">
+          {reason ?? "0G could not verify this submission. Retake the photo and try again."}
+        </p>
+      </div>
+      <div className="mt-1 flex w-full gap-2">
+        <Button variant="outline" className="flex-1" onClick={onClose}>
+          Close
+        </Button>
+        <Button className="flex-1" onClick={onRetry}>
+          Try again
+        </Button>
+      </div>
     </div>
   );
 }

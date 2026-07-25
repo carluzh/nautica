@@ -1,153 +1,81 @@
 "use client";
 
-import { Check, Gauge, ShieldCheck, Zap } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Check, ImagePlus, LogOut, ShieldCheck, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { TIERS } from "@/lib/game/content";
-import { LEVEL_UNLOCKS } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
-import { cn } from "@/lib/utils";
+import { AccountHeader } from "./account-header";
 
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="px-3 py-3 text-center">
-      <p className="tnum text-lg font-semibold leading-none">{value}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-/** Profile: the XP LEVEL ladder and the SEPARATE World ID verification tiers. */
+/** Profile: account identity + editing, World ID verification tiers, payout wallet. */
 export function ProfileDialog() {
-  const { openPanel, setOpenPanel, user, level, gallery, leaderboard, verify } = useGame();
-
-  const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
-  const rank = leaderboard.find((e) => e.you)?.rank ?? null;
-
-  const unlockLevels = Object.keys(LEVEL_UNLOCKS)
-    .map(Number)
-    .sort((a, b) => a - b);
-  const nextLockedLevel = unlockLevels.find((l) => level.level < l) ?? null;
+  const { openPanel, setOpenPanel, user, verify, attachWallet, setHandle, signOut } = useGame();
 
   return (
     <Dialog open={openPanel === "profile"} onOpenChange={(o) => !o && setOpenPanel(null)}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
-        <DialogDescription className="sr-only">
-          Your XP level progress and your separate World ID verification tiers.
-        </DialogDescription>
+      <DialogContent className="max-h-[88svh] gap-0 overflow-hidden">
+        <DialogHeader className="pr-8">
+          <DialogTitle>Profile</DialogTitle>
+          <DialogDescription>Your account, verification, and payout wallet.</DialogDescription>
+        </DialogHeader>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 p-5 pr-12">
-          <Avatar size="lg" className="border">
-            <AvatarFallback className="text-sm">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="truncate text-base leading-tight">{user.handle || "Guest"}</DialogTitle>
-            <p className="tnum truncate text-xs text-muted-foreground">{user.wallet || "Not connected"}</p>
-          </div>
-          <Badge variant="secondary" className="tnum shrink-0 gap-1">
-            <Zap className="size-3 text-primary" />
-            {level.totalXp} XP
-          </Badge>
-        </div>
+        <div className="-mr-2 mt-3 max-h-[74svh] space-y-5 overflow-y-auto pr-2">
+          {/* Account identity + editing */}
+          <section className="space-y-3">
+            <AccountHeader />
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 divide-x divide-border border-y">
-          <Stat label="Sightings" value={gallery.length} />
-          <Stat label="Day streak" value={user.streak} />
-          <Stat label="Rank" value={rank ? `#${rank}` : "Unranked"} />
-        </div>
-
-        <ScrollArea className="flex-1">
-          {/* Section 1 - Level */}
-          <section className="p-5">
-            <div className="flex items-center gap-2">
-              <Gauge className="size-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold">Level</h3>
+            {/* mock: name/photo are local only; a real build persists them to the backend keyed to the World ID signup + connected wallet. */}
+            <div className="space-y-1.5">
+              <label htmlFor="profile-name" className="px-0.5 text-xs font-medium text-muted-foreground">
+                Display name
+              </label>
+              <Input
+                id="profile-name"
+                value={user.handle}
+                placeholder="Guest"
+                onChange={(e) => setHandle(e.target.value)}
+              />
             </div>
 
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <p className="tnum text-3xl font-semibold leading-none">Level {level.level}</p>
-              <div className="min-w-0 text-right">
-                {level.nextUnlock ? (
-                  <>
-                    <p className="tnum text-sm">
-                      <span className="font-semibold text-primary">{level.xpToNext}</span> XP to Level {level.level + 1}
-                    </p>
-                    <p className="truncate text-[11px] text-muted-foreground">Next: {level.nextUnlock}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Top level reached</p>
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                // mock: no photo backend — surface intent only.
+                onClick={() => toast("Photo upload coming soon")}
+              >
+                <ImagePlus className="size-3.5" />
+                Change photo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  signOut();
+                  toast("Signed out");
+                }}
+              >
+                <LogOut className="size-3.5" />
+                Sign out
+              </Button>
             </div>
-
-            <div className="mt-3">
-              <Progress value={level.progress * 100} className="h-2" />
-              <div className="tnum mt-1 flex justify-between text-[11px] text-muted-foreground">
-                <span>Level {level.level}</span>
-                <span>
-                  {level.xpInto}/{level.xpSpan} XP
-                </span>
-                <span>Level {level.level + 1}</span>
-              </div>
-            </div>
-
-            <p className="mt-5 mb-2 text-xs font-medium text-muted-foreground">Unlocks</p>
-            <ul className="flex flex-col gap-1.5">
-              {unlockLevels.map((lvl) => {
-                const unlocked = level.level >= lvl;
-                const isNext = lvl === nextLockedLevel;
-                return (
-                  <li
-                    key={lvl}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg border px-3 py-2",
-                      isNext ? "border-primary/40 bg-primary/5" : "border-transparent",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "tnum grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold",
-                        unlocked ? "bg-primary/15 text-primary" : "border bg-muted/40 text-muted-foreground",
-                      )}
-                    >
-                      {unlocked ? <Check className="size-3.5" /> : lvl}
-                    </div>
-                    <p className={cn("min-w-0 flex-1 truncate text-sm", !unlocked && "text-muted-foreground")}>
-                      {LEVEL_UNLOCKS[lvl]}
-                    </p>
-                    {unlocked ? (
-                      <span className="shrink-0 text-[10px] font-medium text-success">Unlocked</span>
-                    ) : isNext ? (
-                      <Badge variant="outline" className="shrink-0 border-primary/40 text-[10px] text-primary">
-                        Next
-                      </Badge>
-                    ) : (
-                      <span className="tnum shrink-0 text-[10px] text-muted-foreground">Level {lvl}</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
           </section>
 
-          {/* Section 2 - World ID verification (separate from level) */}
-          <section className="border-t p-5">
-            <div className="flex items-center gap-2">
+          {/* World ID verification */}
+          <section className="space-y-2">
+            <div className="flex items-center gap-2 px-0.5">
               <ShieldCheck className="size-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold">World ID verification</h3>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Verification is separate from your XP level. Your level comes from completing quests. These tiers prove you
-              are a unique human and gate real payouts.
+            <p className="px-0.5 text-xs text-muted-foreground">
+              Verification is separate from your XP level. These tiers prove you are a unique human and gate real
+              payouts.
             </p>
 
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="flex flex-col gap-2">
               {TIERS.map((tier) => {
                 const done = user.verification[tier.step];
                 return (
@@ -170,12 +98,7 @@ export function ProfileDialog() {
                         <Check className="size-3" /> Verified
                       </Badge>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="shrink-0"
-                        onClick={() => verify(tier.step)}
-                      >
+                      <Button size="sm" variant="secondary" className="shrink-0" onClick={() => verify(tier.step)}>
                         Verify
                       </Button>
                     )}
@@ -184,7 +107,33 @@ export function ProfileDialog() {
               })}
             </ul>
           </section>
-        </ScrollArea>
+
+          {/* Payout wallet */}
+          <section className="space-y-2">
+            <div className="flex items-center gap-2 px-0.5">
+              <Wallet className="size-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Payout wallet</h3>
+            </div>
+            <div className="space-y-2 rounded-lg border p-3">
+              {user.wallet ? (
+                <p className="tnum flex items-center gap-2 text-sm">
+                  <Wallet className="size-4 text-muted-foreground" />
+                  {user.wallet}
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Attach a wallet to receive USDC from paid quests.
+                  </p>
+                  <Button size="sm" className="w-full" onClick={attachWallet}>
+                    <Wallet className="size-3.5" />
+                    Connect wallet
+                  </Button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -178,6 +178,8 @@ type GameValue = {
   /** Partner: post + fund a quest. Re-hydrates the board on success (API mode). */
   createQuest: (body: CreateQuestBody) => Promise<CreateQuestResult>;
   withdraw: () => void;
+  /** Local-only rename of the profile name (no backend persistence yet). */
+  setHandle: (name: string) => void;
   grantXp: (n: number) => void;
   /** Demo shortcut: floor the user to Level 5 (persisted in API mode). */
   demoLevel: () => void;
@@ -687,6 +689,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     submitQuest,
     createQuest,
     withdraw,
+    // mock: real persistence needs a backend endpoint that ties the profile name/photo to the World ID identity and the connected wallet (not built yet).
+    setHandle: (name) => setUser((u) => ({ ...u, handle: name })),
     grantXp,
     demoLevel,
     signOut,

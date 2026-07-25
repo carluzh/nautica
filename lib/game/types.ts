@@ -113,6 +113,12 @@ export type Sighting = {
   lng: number;
   lat: number;
   label?: string;
+  /** Epoch ms of the observation (drives the time-period filter). */
+  at?: number;
+  /** iNaturalist photo (medium) shown in the click popup, when CC-licensed. */
+  photo?: string;
+  /** Photo credit line, e.g. "© observer · iNaturalist · CC-BY-NC". */
+  attribution?: string;
 };
 
 /** An independent species-recognition signal — a second model cross-checking 0G's
@@ -159,8 +165,16 @@ export type ActivityEvent = {
   at: number;
 };
 
-/** A sighting the user clicked in the activity feed, to fly to + popup on the map. */
-export type FocusTarget = { lng: number; lat: number; species: SpeciesId; title: string };
+/** A sighting the user clicked (activity feed or header polaroids), to fly to + popup. */
+export type FocusTarget = {
+  lng: number;
+  lat: number;
+  species: SpeciesId;
+  title: string;
+  place?: string;
+  photo?: string;
+  attribution?: string;
+};
 
 export type Payment = {
   id: string;
@@ -204,6 +218,7 @@ export type UserState = {
 /** Which overlay/modal is open in the hub. */
 export type PanelId =
   | "quest"
+  | "level"
   | "profile"
   | "gallery"
   | "settings"

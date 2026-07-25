@@ -1,11 +1,12 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import maplibregl, {
   type Map as MLMap,
   type LngLatLike,
   type GeoJSONSource,
   type GeoJSONSourceSpecification,
+  type IControl,
 } from "maplibre-gl";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -22,6 +23,34 @@ const TEAL = "oklch(0.702 0.132 194)";
 const MARKER_INK = "#0b1420"; // near-black dark blue (≈ the landmass) — the marker glyph color
 const NEAR_PX = 42; // filled icon-circles closer than this (px) collapse to pulsing dots
 const ICON_MIN_ZOOM = 13.5; // below this, always show the cleaner dots; icons only when very zoomed in
+
+// Crosshair "locate me" glyph for the recenter control (inherits currentColor).
+const LOCATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`;
+
+// A standalone recenter/locate button — its own control group, separate from the
+// built-in +/- zoom control (it sits just above it in the bottom-left stack).
+class LocateControl implements IControl {
+  private container: HTMLDivElement | null = null;
+  constructor(private readonly onLocate: () => void) {}
+  onAdd() {
+    const group = document.createElement("div");
+    group.className = "maplibregl-ctrl maplibregl-ctrl-group";
+    const locate = document.createElement("button");
+    locate.type = "button";
+    locate.className = "nautica-locate-btn";
+    locate.title = "My location";
+    locate.setAttribute("aria-label", "My location");
+    locate.innerHTML = LOCATE_ICON;
+    locate.addEventListener("click", this.onLocate);
+    group.appendChild(locate);
+    this.container = group;
+    return group;
+  }
+  onRemove() {
+    this.container?.remove();
+    this.container = null;
+  }
+}
 
 export type SeaMarker = {
   id: string;
@@ -95,28 +124,31 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   // Standalone popup for a focused sighting (from the activity feed).
   const focusPopupRef = useRef<maplibregl.Popup | null>(null);
 
-  // Imperative actions for the hub (recenter button + location search).
+  // Fly to the live user-location dot (used by the recenter control + the handle).
+  const recenterToUser = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const known = userCoordRef.current;
+    if (known) {
+      map.flyTo({ center: known, zoom: 12, duration: 800 });
+      return;
+    }
+    // No fix yet — ask once, then fly.
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        userCoordRef.current = c;
+        map.flyTo({ center: c, zoom: 12, duration: 800 });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+    );
+  }, []);
+
+  // Imperative actions for the hub (location search + focus popup).
   useImperativeHandle(ref, () => ({
-    recenterToUser: () => {
-      const map = mapRef.current;
-      if (!map) return;
-      const known = userCoordRef.current;
-      if (known) {
-        map.flyTo({ center: known, zoom: 14, duration: 800 });
-        return;
-      }
-      // No fix yet — ask once, then fly.
-      if (typeof navigator === "undefined" || !navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const c: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-          userCoordRef.current = c;
-          map.flyTo({ center: c, zoom: 14, duration: 800 });
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
-      );
-    },
+    recenterToUser,
     flyTo: (center, zoom = 13) => {
       mapRef.current?.flyTo({ center, zoom, duration: 1200 });
     },
@@ -139,9 +171,12 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       interactive,
       attributionControl: false,
     });
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    // Bottom-LEFT so the controls + attribution don't hide behind the quests panel
+    // (pinned bottom-right). Add order = bottom→top, so: attribution, zoom, locate.
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
     if (interactive) {
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-left");
+      map.addControl(new LocateControl(recenterToUser), "bottom-left");
     }
     mapRef.current = map;
     map.on("load", () => {

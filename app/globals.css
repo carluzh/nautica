@@ -211,9 +211,10 @@
 }
 
 /* Dark app: MapLibre's zoom control + attribution default to white — repaint them
-   to the dark card and invert the +/- glyphs so they stay legible on the dark map. */
+   to the sidebar color (so they match the left column) and invert the +/- glyphs so
+   they stay legible on the dark map. */
 .theme-dark .maplibregl-ctrl-group {
-  background: var(--card);
+  background: var(--sidebar);
 }
 .theme-dark .maplibregl-ctrl-group button + button {
   border-top: 1px solid var(--border);
@@ -222,10 +223,15 @@
   filter: invert(0.9);
 }
 .theme-dark .maplibregl-ctrl-attrib.maplibregl-compact {
-  background: rgba(24, 28, 32, 0.82) !important;
+  background: rgba(24, 28, 32, 0.9) !important;
 }
 .theme-dark .maplibregl-ctrl-attrib-button {
   filter: invert(0.9);
+}
+/* Keep the "© CARTO © OpenStreetMap contributors" text legible on the dark chip. */
+.theme-dark .maplibregl-ctrl-attrib-inner,
+.theme-dark .maplibregl-ctrl-attrib-inner a {
+  color: var(--muted-foreground);
 }
 
 /* Marker click popup — data on the map (item 6). Theme-aware via the popover
@@ -296,6 +302,25 @@
   font-weight: 600;
   color: var(--primary);
   font-variant-numeric: tabular-nums;
+}
+.np .np-photo {
+  margin: -2px -4px 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: var(--muted);
+}
+.np .np-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.np .np-attr {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  opacity: 0.85;
 }
 
 /* ---- Sighting markers: a 3-tier density system ------------------------------
@@ -402,19 +427,25 @@
 /* Recenter / "locate me" control — a crosshair glyph in a card that matches the
    zoom control (it sits in its own `.maplibregl-ctrl-group`, which already gets
    the rounded, soft-shadow chrome above; buttons are sized to 34px there too). */
-.nautica-locate-btn {
+/* Higher specificity than MapLibre's own `.maplibregl-ctrl button` so the flex
+   centering actually wins (otherwise the glyph left-aligns). */
+.maplibregl-ctrl-group button.nautica-locate-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   color: var(--foreground);
   background: transparent;
   transition: color 140ms ease, background 140ms ease;
 }
-.nautica-locate-btn svg {
+.maplibregl-ctrl-group button.nautica-locate-btn svg {
   width: 18px;
   height: 18px;
+  display: block;
 }
-.nautica-locate-btn:hover {
+.maplibregl-ctrl-group button.nautica-locate-btn:hover {
   color: var(--primary);
   background: var(--accent);
 }

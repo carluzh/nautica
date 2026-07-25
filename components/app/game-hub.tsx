@@ -13,16 +13,17 @@ import {
   speciesCategory,
   type Category,
 } from "@/lib/game/content";
-import { SEED_SIGHTINGS } from "@/lib/game/mock";
+import { REAL_SIGHTINGS as SEED_SIGHTINGS } from "@/sightings";
 import type { GalleryItem, SpeciesId } from "@/lib/game/types";
 import { GameProvider, useGame } from "@/lib/game/provider";
 import { Sidebar } from "./sidebar/sidebar";
 import { MapHud } from "./map-hud";
-import type { FilterState } from "./sidebar/types";
+import type { FilterState, TimePeriod } from "./sidebar/types";
 import { LoginGate } from "./login-gate";
 import { LevelUpOverlay } from "./level-up-overlay";
 import { MissionsBoard } from "./panels/missions-board";
 import { QuestSubmitDialog } from "./panels/quest-submit-dialog";
+import { LevelDialog } from "./panels/level-dialog";
 import { ProfileDialog } from "./panels/profile-dialog";
 import { GalleryDialog } from "./panels/gallery-dialog";
 import { SettingsDialog } from "./panels/settings-dialog";
@@ -49,11 +50,23 @@ function toMarker(species: SpeciesId): Pick<SeaMarker, "color" | "icon" | "categ
 /** Category key + color per finding type — feeds the segmented cluster ring. */
 const CLUSTER_CATEGORIES = CATEGORY_ORDER.map((c) => ({ key: c, color: CATEGORY_META[c].color }));
 
+/** Time-period windows (ms) for the map filter. */
+const PERIOD_MS: Record<"24h" | "7d" | "1m", number> = {
+  "24h": 24 * 3600e3,
+  "7d": 7 * 24 * 3600e3,
+  "1m": 30 * 24 * 3600e3,
+};
+
 /** The place portion of a "Species · Place" community label. */
 function placeOf(label?: string): string | undefined {
   if (!label) return undefined;
   const i = label.indexOf("·");
   return i >= 0 ? label.slice(i + 1).trim() : label;
+}
+
+/** Escape user/observation-derived text before it goes into popup innerHTML. */
+function esc(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 }
 
 /** Styled HTML for a map marker's click popup (item 6 — data on the map). */
@@ -64,16 +77,20 @@ function popupHtml(opts: {
   lat: number;
   lng: number;
   reward?: string;
+  photo?: string;
+  attribution?: string;
 }): string {
   const meta = CATEGORY_META[speciesCategory(opts.species)];
   const short = SPECIES_META[opts.species].short;
   return (
     `<div class="np">` +
-    `<div class="np-title">${opts.title}</div>` +
-    `<div class="np-cat"><span class="np-dot" style="background:${meta.color}"></span>${meta.label} · ${short}</div>` +
-    (opts.place ? `<div class="np-sub">${opts.place}</div>` : "") +
+    (opts.photo ? `<div class="np-photo"><img src="${esc(opts.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>` : "") +
+    `<div class="np-title">${esc(opts.title)}</div>` +
+    `<div class="np-cat"><span class="np-dot" style="background:${meta.color}"></span>${esc(meta.label)} · ${esc(short)}</div>` +
+    (opts.place ? `<div class="np-sub">${esc(opts.place)}</div>` : "") +
     `<div class="np-coords">${opts.lat.toFixed(3)}, ${opts.lng.toFixed(3)}</div>` +
-    (opts.reward ? `<div class="np-reward">${opts.reward}</div>` : "") +
+    (opts.reward ? `<div class="np-reward">${esc(opts.reward)}</div>` : "") +
+    (opts.attribution ? `<div class="np-attr">${esc(opts.attribution)}</div>` : "") +
     `</div>`
   );
 }
@@ -83,14 +100,22 @@ function Hub() {
   const [hidden, setHidden] = useState<Set<Category>>(new Set());
   const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [awayFromUser, setAwayFromUser] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [period, setPeriod] = useState<TimePeriod>("all");
   const mapRef = useRef<SeaMapHandle>(null);
 
   // Focus a sighting clicked in the activity feed: fly there and open its popup.
   useEffect(() => {
     if (!focusTarget) return;
-    const html = popupHtml({ title: focusTarget.title, species: focusTarget.species, place: "Your capture", lat: focusTarget.lat, lng: focusTarget.lng });
+    const html = popupHtml({
+      title: focusTarget.title,
+      species: focusTarget.species,
+      place: focusTarget.place ?? "Your capture",
+      lat: focusTarget.lat,
+      lng: focusTarget.lng,
+      photo: focusTarget.photo,
+      attribution: focusTarget.attribution,
+    });
     mapRef.current?.flyTo([focusTarget.lng, focusTarget.lat], 15);
     mapRef.current?.showPopup([focusTarget.lng, focusTarget.lat], html);
     clearFocus();
@@ -98,11 +123,13 @@ function Hub() {
 
   // Marker counts per species and per category (community field + your captures).
   const { speciesCounts, categoryCounts } = useMemo(() => {
+    const cutoff = period === "all" ? 0 : Date.now() - PERIOD_MS[period];
+    const inPeriod = (at?: number) => at == null || at >= cutoff;
     const species = Object.fromEntries(
       (Object.keys(SPECIES_META) as SpeciesId[]).map((s) => [s, 0]),
     ) as Record<SpeciesId, number>;
-    for (const s of SEED_SIGHTINGS) species[s.species] += 1;
-    for (const g of gallery) species[g.species] += 1;
+    for (const s of SEED_SIGHTINGS) if (inPeriod(s.at)) species[s.species] += 1;
+    for (const g of gallery) if (inPeriod(g.at)) species[g.species] += 1;
     const cat = new Map<Category, number>(CATEGORY_ORDER.map((c) => [c, 0]));
     for (const s of Object.keys(species) as SpeciesId[])
       cat.set(speciesCategory(s), (cat.get(speciesCategory(s)) ?? 0) + species[s]);
@@ -110,7 +137,7 @@ function Hub() {
       speciesCounts: species,
       categoryCounts: CATEGORY_ORDER.map((category) => ({ category, count: cat.get(category) ?? 0 })),
     };
-  }, [gallery]);
+  }, [gallery, period]);
 
   // Location search: geocode via Photon (keyless, CORS-friendly), biased to the
   // Lisbon coast, then fly the map there. Does NOT filter markers.
@@ -167,17 +194,21 @@ function Hub() {
       },
       onSearchPlace,
       searching,
+      period,
+      onPeriod: setPeriod,
     }),
-    [hidden, hiddenSpecies, categoryCounts, speciesCounts, onSearchPlace, searching],
+    [hidden, hiddenSpecies, categoryCounts, speciesCounts, onSearchPlace, searching, period],
   );
 
   // Both marker layers honor BOTH filter dimensions (category AND species) and carry
   // a click popup with the sighting's data.
   const markers = useMemo<SeaMarker[]>(() => {
+    const cutoff = period === "all" ? 0 : Date.now() - PERIOD_MS[period];
+    const inPeriod = (at?: number) => at == null || at >= cutoff;
     const visible = (species: SpeciesId) =>
       !hidden.has(speciesCategory(species)) && !hiddenSpecies.has(species);
 
-    const community: SeaMarker[] = SEED_SIGHTINGS.filter((s) => visible(s.species)).map((s) => ({
+    const community: SeaMarker[] = SEED_SIGHTINGS.filter((s) => visible(s.species) && inPeriod(s.at)).map((s) => ({
       id: s.id,
       lng: s.lng,
       lat: s.lat,
@@ -189,11 +220,13 @@ function Hub() {
         place: placeOf(s.label),
         lat: s.lat,
         lng: s.lng,
+        photo: s.photo,
+        attribution: s.attribution,
       }),
     }));
 
     const mine: SeaMarker[] = gallery
-      .filter((g: GalleryItem) => visible(g.species))
+      .filter((g: GalleryItem) => visible(g.species) && inPeriod(g.at))
       .map((g) => ({
         id: g.id,
         lng: g.lng,
@@ -211,7 +244,7 @@ function Hub() {
       }));
 
     return [...community, ...mine];
-  }, [gallery, hidden, hiddenSpecies]);
+  }, [gallery, hidden, hiddenSpecies, period]);
 
   return (
     <div className="theme-dark relative flex h-svh w-full overflow-hidden bg-background">
@@ -243,7 +276,6 @@ function Hub() {
           zoom={9}
           markers={markers}
           showUserLocation
-          onAwayChange={setAwayFromUser}
         />
         <Button
           variant="secondary"
@@ -255,15 +287,15 @@ function Hub() {
           <Menu className="size-4" />
         </Button>
 
-        {/* Full HUD — level, streak, quick actions, profile — floating top-right.
-            The recenter button appears just left of it once you pan off yourself. */}
-        <MapHud showRecenter={awayFromUser} onRecenter={() => mapRef.current?.recenterToUser()} />
+        {/* Full HUD — level, streak, quick actions, profile — floating top-right. */}
+        <MapHud />
 
         <MissionsBoard />
       </div>
 
       {/* Modals — each binds to its own openPanel id via useGame(). */}
       <QuestSubmitDialog />
+      <LevelDialog />
       <ProfileDialog />
       <GalleryDialog />
       <SettingsDialog />

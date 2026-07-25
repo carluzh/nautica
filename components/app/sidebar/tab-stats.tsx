@@ -64,6 +64,8 @@ export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) =>
             ))}
           </ul>
         </div>
+
+        <p className="text-[11px] text-muted-foreground">Community sightings via iNaturalist</p>
       </div>
     </ScrollArea>
   );

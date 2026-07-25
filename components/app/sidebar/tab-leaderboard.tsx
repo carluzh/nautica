@@ -13,7 +13,7 @@ export function TabLeaderboard() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+      <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
         Top divers this season
       </div>
 
@@ -66,10 +66,6 @@ export function TabLeaderboard() {
           })}
         </ul>
       </ScrollArea>
-
-      <div className="border-t px-3 py-2 text-center text-[10px] text-muted-foreground">
-        Indexed live by The Graph · illustrative
-      </div>
     </div>
   );
 }

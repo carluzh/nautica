@@ -9,10 +9,20 @@ import type {
 } from "./types";
 
 // Fixed base timestamp (never Date.now at module scope — keeps SSR deterministic).
-// Seeds are only shown after the World ID connect click, i.e. post-hydration.
-const BASE = 1_753_300_000_000;
+// Kept recent (≈ the demo date) so timeAgo and the time-period filter read sensibly.
+const BASE = 1_784_836_000_000;
 const min = 60_000;
 const hr = 60 * min;
+const day = 24 * hr;
+
+// Ages used to spread the community sightings across the time-period buckets
+// (some in the last 24h, some in 7d, some in 30d, a few older = All-time only).
+const SIGHTING_AGES = [
+  3 * hr, 10 * hr, 20 * hr, // < 24h
+  2 * day, 4 * day, 6 * day, // < 7d
+  11 * day, 18 * day, 27 * day, // < 1 month
+  55 * day, 120 * day, // older
+];
 
 export const INITIAL_USER: UserState = {
   connected: false,
@@ -113,7 +123,7 @@ export const SEED_GALLERY: GalleryItem[] = [
  * bloom, a survey stretch) plus scattered SINGLETONS. Coordinates are approximate
  * coastal/water points — tune freely; this is presentation data, not game state.
  */
-export const SEED_SIGHTINGS: Sighting[] = [
+const RAW_SIGHTINGS: Sighting[] = [
   // ── Cluster A · Cascais bay — a Physalia/jelly wash-up (hazard hotspot) ──
   { id: "s-a1", species: "Physalia", lng: -9.418, lat: 38.686, label: "Physalia · Cascais bay" },
   { id: "s-a2", species: "Jellyfish", lng: -9.424, lat: 38.685, label: "Jellyfish · Cascais bay" },
@@ -151,6 +161,12 @@ export const SEED_SIGHTINGS: Sighting[] = [
   { id: "s-e9", species: "ShoreFish", lng: -9.478, lat: 38.8135, label: "Shore fish · Praia Grande" },
   { id: "s-e10", species: "Lionfish", lng: -9.46, lat: 38.66, label: "Lionfish · open water" },
 ];
+
+// Spread the community sightings across the time-period buckets so the filter bites.
+export const SEED_SIGHTINGS: Sighting[] = RAW_SIGHTINGS.map((s, i) => ({
+  ...s,
+  at: BASE - SIGHTING_AGES[i % SIGHTING_AGES.length],
+}));
 
 export const SEED_HISTORY: ActivityEvent[] = [
   { id: "h-1", kind: "quest", title: "Logged a jellyfish sighting", species: "Physalia", xp: 25, attestation: SEED_GALLERY[0].attestation, lng: -9.421, lat: 38.694, at: BASE - 2 * hr },
