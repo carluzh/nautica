@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { createWalletClient, http, parseAbi, type Hex } from "viem";
+import { createPublicClient, createWalletClient, http, parseAbi, parseUnits, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia } from "viem/chains";
 import { config, integrations } from "../config";
@@ -22,14 +22,90 @@ const QUEST_ABI = parseAbi([
   "function fundQuest(bytes32 questId, uint256 amount) external",
 ]);
 
+// Minimal ERC20 surface for escrowing the reward: approve the quest contract to
+// pull `funding` USDC (it transferFrom's the relayer inside createQuest), and read
+// the relayer's balance for a friendly preflight before a paid quest is posted.
+const ERC20_ABI = parseAbi([
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function balanceOf(address account) external view returns (uint256)",
+]);
+
+const USDC_DECIMALS = 6;
+
 function simulatedTx(): Hex {
   return `0x${randomBytes(32).toString("hex")}`;
 }
 
+function chainFor() {
+  return config.CHAIN_ID === base.id ? base : baseSepolia;
+}
+
 function walletClient() {
-  const chain = config.CHAIN_ID === base.id ? base : baseSepolia;
   const account = privateKeyToAccount(config.RELAYER_PRIVATE_KEY as Hex);
-  return createWalletClient({ account, chain, transport: http(config.CHAIN_RPC_URL) });
+  return createWalletClient({ account, chain: chainFor(), transport: http(config.CHAIN_RPC_URL) });
+}
+
+function publicClient() {
+  return createPublicClient({ chain: chainFor(), transport: http(config.CHAIN_RPC_URL) });
+}
+
+/** The relayer wallet address (the on-chain caller/funder for the app's writes), or null if unconfigured. */
+export function relayerAddress(): Hex | null {
+  if (!config.RELAYER_PRIVATE_KEY) return null;
+  return privateKeyToAccount(config.RELAYER_PRIVATE_KEY as Hex).address;
+}
+
+/** Relayer's USDC balance in whole USDC, or null when chain/USDC/relayer aren't wired (stub mode). */
+export async function relayerUsdcBalance(): Promise<number | null> {
+  const addr = relayerAddress();
+  if (!integrations.chain || !config.USDC_ADDRESS || !addr) return null;
+  const raw = await publicClient().readContract({
+    address: config.USDC_ADDRESS as Hex,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: [addr],
+  });
+  return Number(raw) / 10 ** USDC_DECIMALS;
+}
+
+/** Partner-side create + fund. In live mode approves the reward escrow then calls
+ *  createQuest (relayer as caller/funder). A FREE quest (funding 0) skips approval
+ *  entirely, so it works at a zero USDC balance. Stub mode returns a simulated tx. */
+export async function createQuestOnchain(input: {
+  questId: string;
+  species: string;
+  title: string;
+  xp: number;
+  usdcReward: number;
+  funding: number;
+}): Promise<{ txHash: Hex; simulated: boolean; approveTxHash?: Hex }> {
+  if (!integrations.chain) {
+    log.info("chain: simulated createQuest", { questId: input.questId });
+    return { txHash: simulatedTx(), simulated: true };
+  }
+  const rewardWei = parseUnits(String(input.usdcReward), USDC_DECIMALS);
+  const fundingWei = parseUnits(String(input.funding), USDC_DECIMALS);
+
+  let approveTxHash: Hex | undefined;
+  if (fundingWei > 0n) {
+    if (!config.USDC_ADDRESS) throw new Error("USDC_ADDRESS is not configured; cannot escrow a paid quest.");
+    approveTxHash = await walletClient().writeContract({
+      address: config.USDC_ADDRESS as Hex,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [config.QUEST_CONTRACT_ADDRESS as Hex, fundingWei],
+    });
+    // Wait for the approval to settle so createQuest's transferFrom can't race it.
+    await publicClient().waitForTransactionReceipt({ hash: approveTxHash });
+  }
+
+  const txHash = await walletClient().writeContract({
+    address: config.QUEST_CONTRACT_ADDRESS as Hex,
+    abi: QUEST_ABI,
+    functionName: "createQuest",
+    args: [questIdToBytes32(input.questId), input.species, input.title, input.xp, rewardWei, fundingWei],
+  });
+  return { txHash, simulated: false, approveTxHash };
 }
 
 function questIdToBytes32(questId: string): Hex {

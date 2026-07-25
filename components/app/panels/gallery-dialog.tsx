@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, Database, Images, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, Database, ExternalLink, Images, Loader2, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { GalleryItem, PlausibilityVerdict } from "@/lib/game/types";
-import { shortAddr, timeAgo } from "@/lib/format";
+import { basescanTx, shortAddr, timeAgo } from "@/lib/format";
 
 const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: string; label: string }> = {
   plausible: { dot: "bg-success", text: "text-success", label: "Plausible" },
@@ -39,6 +40,10 @@ function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
   );
 }
 
+// Sighting ids already surfaced as a plausibility toast this session. Module-level
+// so it survives Card unmount/remount (reopening the gallery won't re-toast).
+const flagged = new Set<string>();
+
 function Card({ item }: { item: GalleryItem }) {
   const meta = SPECIES_META[item.species];
   const { plausibility, plausibilityPending, loadPlausibility } = useGame();
@@ -48,6 +53,19 @@ function Card({ item }: { item: GalleryItem }) {
   useEffect(() => {
     loadPlausibility(item.id);
   }, [item.id, loadPlausibility]);
+
+  // Fire a one-time toast when the verdict resolves to unusual/implausible.
+  useEffect(() => {
+    if (!verdict || flagged.has(item.id)) return;
+    if (verdict.verdict === "implausible" || verdict.verdict === "unusual") {
+      flagged.add(item.id);
+      const label = SPECIES_META[item.species].label;
+      const fire = verdict.verdict === "implausible" ? toast.error : toast.warning;
+      fire(`Flagged: ${label} looks ${verdict.verdict} here`, {
+        description: verdict.narrative ?? verdict.reasons[0] ?? verdict.rangeNote,
+      });
+    }
+  }, [verdict, item.id, item.species]);
 
   return (
     <div className="group overflow-hidden rounded-lg border bg-card">
@@ -114,6 +132,18 @@ function Card({ item }: { item: GalleryItem }) {
             <Database className="size-3 text-primary" />
             <span className="tnum">0G Storage · {shortAddr(item.storageRoot)}</span>
           </div>
+        ) : null}
+        {item.txHash ? (
+          <a
+            href={basescanTx(item.txHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-fit items-center gap-1.5 text-[11px] text-muted-foreground hover:underline"
+            title={`Recorded on Base · ${item.txHash}`}
+          >
+            <ExternalLink className="size-3 text-primary" />
+            <span className="tnum">Base · {shortAddr(item.txHash)}</span>
+          </a>
         ) : null}
       </div>
     </div>

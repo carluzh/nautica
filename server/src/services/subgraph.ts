@@ -1,5 +1,5 @@
 import { config, integrations } from "../config";
-import { DAILY_QUESTS } from "../content";
+import { questRegistry } from "../lib/quest-registry";
 import { levelForXp } from "../lib/levels";
 import { log } from "../lib/logger";
 import { store, type UserRecord } from "../lib/store";
@@ -324,9 +324,9 @@ export async function getSpeciesSightings(species: SpeciesId, limit = 500): Prom
 export async function getQuests(): Promise<Record<string, OnchainQuest>> {
   const mock = (): Record<string, OnchainQuest> =>
     Object.fromEntries(
-      DAILY_QUESTS.map((q) => {
+      questRegistry.all().map((q) => {
         const reward = q.usdc ?? 0;
-        return [q.id, { exists: true, remainingUsd: reward * 2, underfunded: false, createdAt: Date.now() }];
+        return [q.id, { exists: true, remainingUsd: reward * 2, underfunded: false, createdAt: q.createdAt }];
       }),
     );
   if (!integrations.subgraph) return mock();

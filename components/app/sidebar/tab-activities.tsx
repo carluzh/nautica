@@ -20,11 +20,36 @@ const KIND_ICON: Record<string, { Icon: LucideIcon; tint: string }> = {
 };
 
 function Row({ e }: { e: ActivityEvent }) {
+  const { focusSighting } = useGame();
   const entry = KIND_ICON[e.kind];
   const KindIcon: LucideIcon = entry?.Icon ?? Sparkles;
 
+  // A sighting with coords can be focused on the map (fly + open its popup).
+  const focusable = e.lng != null && e.lat != null && e.species != null;
+  const focus = focusable
+    ? () => focusSighting({ lng: e.lng!, lat: e.lat!, species: e.species!, title: e.title })
+    : undefined;
+
   return (
-    <li className="flex gap-2.5 border-b px-3 py-2.5 last:border-0">
+    <li
+      role={focusable ? "button" : undefined}
+      tabIndex={focusable ? 0 : undefined}
+      onClick={focus}
+      onKeyDown={
+        focusable
+          ? (ev) => {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                focus?.();
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "flex gap-2.5 border-b px-3 py-2.5 last:border-0",
+        focusable && "cursor-pointer hover:bg-muted/40",
+      )}
+    >
       {e.species ? (
         <SpeciesBadge species={e.species} className="mt-0.5 size-7 rounded-lg" iconClassName="size-3.5" />
       ) : (
@@ -55,14 +80,16 @@ function Row({ e }: { e: ActivityEvent }) {
   );
 }
 
-/** Default sidebar tab: the live activity feed. */
+/** Default sidebar tab: the live sightings feed. */
 export function TabActivities() {
   const { history } = useGame();
+  // Only logged sightings (quest-kind events) show here.
+  const sightings = history.filter((e) => e.kind === "quest");
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-        <span>Recent activity</span>
+        <span>Sightings</span>
         <span className="inline-flex items-center gap-1.5">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
@@ -72,14 +99,14 @@ export function TabActivities() {
         </span>
       </div>
 
-      {history.length === 0 ? (
+      {sightings.length === 0 ? (
         <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-          No activity yet. Complete a daily quest to get started.
+          No sightings yet. Complete a daily quest to log one.
         </p>
       ) : (
         <ScrollArea className="min-h-0 flex-1">
           <ul className="flex flex-col">
-            {history.map((e) => (
+            {sightings.map((e) => (
               <Row key={e.id} e={e} />
             ))}
           </ul>

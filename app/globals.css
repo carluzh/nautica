@@ -104,17 +104,18 @@
   --success: oklch(0.7 0.14 158);
   --warning: oklch(0.82 0.135 74);
 
-  --border: oklch(0.32 0.007 60);
-  --input: oklch(0.34 0.007 60);
+  /* Soft, low-contrast borders so panels/outlines don't "bite" on the dark bg. */
+  --border: oklch(0.275 0.005 60);
+  --input: oklch(0.3 0.006 60);
   --ring: oklch(0.72 0.17 28);
 
-  --sidebar: oklch(0.225 0.006 60);
+  --sidebar: oklch(0.185 0.004 60);
   --sidebar-foreground: oklch(0.955 0.004 90);
   --sidebar-primary: oklch(0.72 0.17 28);
   --sidebar-primary-foreground: oklch(0.99 0.008 28);
   --sidebar-accent: oklch(0.345 0.04 30);
   --sidebar-accent-foreground: oklch(0.86 0.09 32);
-  --sidebar-border: oklch(0.32 0.007 60);
+  --sidebar-border: oklch(0.275 0.005 60);
   --sidebar-ring: oklch(0.72 0.17 28);
 }
 
@@ -297,75 +298,105 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Airbnb-style map markers: white pill, teal ring, soft shadow, gentle hover. */
-.nautica-sea-marker {
-  transition: transform 140ms ease, box-shadow 140ms ease;
-}
-.nautica-sea-marker:hover {
-  transform: scale(1.12);
-  z-index: 5;
-}
+/* ---- Sighting markers: a 3-tier density system ------------------------------
+   Roomy   → a filled colored circle with a dark-ink glyph (.nautica-point).
+   Crowding → shrink to a small pulsing solid dot (.nautica-dot).
+   Dense   → a segmented donut ring by category + a small count (.nautica-cluster).
+   Colors are set inline per marker; the shapes and pulse live here. */
 
-/* Clustered sightings (zoomed out): a clean white dot with the grouped count in
-   the brand foreground. Diameter is set inline so it can scale with the count;
-   the Airbnb-clean chrome (subtle border + soft shadow) lives here. */
-.nautica-cluster {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border-radius: 9999px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: 0 3px 10px rgba(23, 43, 54, 0.16);
-  color: var(--foreground);
-  cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease;
-}
-.nautica-cluster:hover {
-  transform: scale(1.08);
-  box-shadow: 0 5px 16px rgba(23, 43, 54, 0.22);
-  z-index: 6;
-}
-.nautica-cluster-count {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--foreground);
-}
-
-/* Individual sighting (zoomed in): a circular tinted chip matching the left-column
-   filter tiles — the icon's `currentColor` (category color) sits on an opaque tinted
-   circle (set inline), with a faint border + soft shadow lifting it off the basemap. */
+/* Tier 1 — filled colored circle (bg set inline), dark-ink glyph (color inline). */
 .nautica-point {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 9999px;
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 6px rgba(23, 43, 54, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease;
+  transition: transform 140ms ease;
 }
 .nautica-point:hover {
   transform: scale(1.12);
   z-index: 5;
 }
 .nautica-point svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   display: block;
 }
-/* Fallback when a marker has no icon (e.g. decorative hero points): a small
-   colored dot in the same risk color, with a thin white ring. */
+/* Fallback dot when a marker has no icon. */
 .nautica-point-dot {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 9999px;
   background: currentColor;
-  box-shadow: 0 0 0 2px #ffffff;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.4);
+}
+
+/* Tier 2 — a small pulsing solid dot in the finding's color (currentColor). */
+.nautica-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+.nautica-dot .nautica-dot-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.4);
+}
+.nautica-dot .nautica-dot-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.55;
+  animation: nautica-dot-pulse 1.8s ease-out infinite;
+}
+@keyframes nautica-dot-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* Tier 3 — segmented donut cluster: a conic-gradient ring (set inline from the
+   category mix) around a dark center disc holding a small count. Sizes set inline. */
+.nautica-cluster {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+.nautica-cluster:hover {
+  transform: scale(1.08);
+  z-index: 6;
+}
+.nautica-cluster-hole {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--card);
+}
+.nautica-cluster-count {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--foreground);
 }
 
 /* Recenter / "locate me" control — a crosshair glyph in a card that matches the
@@ -407,15 +438,15 @@
   width: 16px;
   height: 16px;
   transform: translate(-50%, -50%);
-  background: #1d7fff;
-  border: 3px solid #ffffff;
+  background: #FF6F61;
+  border: 1.5px solid #ffffff;
   box-shadow: 0 1px 4px rgba(23, 43, 54, 0.35);
 }
 .nautica-user-location .nautica-user-pulse {
   width: 16px;
   height: 16px;
   margin: -8px 0 0 -8px;
-  background: rgba(29, 127, 255, 0.28);
+  background: rgba(255, 111, 97, 0.3);
   animation: nautica-user-pulse 2s ease-out infinite;
 }
 @keyframes nautica-user-pulse {

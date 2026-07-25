@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { basescanTx, shortAddr } from "@/lib/format";
 import { PAID_UNLOCK_LEVEL, xpForLevel } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
 import type { Payment } from "@/lib/game/types";
@@ -43,10 +44,15 @@ function PaymentRow({ p }: { p: Payment }) {
         <p className="truncate text-sm font-medium">{p.quest}</p>
         <p className="truncate text-xs text-muted-foreground">{p.partner}</p>
         {p.txHash ? (
-          <p className="tnum mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground/80">
+          <a
+            href={basescanTx(p.txHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="tnum mt-0.5 flex w-fit items-center gap-1 text-[10px] text-muted-foreground/80 hover:underline"
+          >
             <ArrowUpRight className="size-2.5" />
-            {p.txHash} · Base
-          </p>
+            {shortAddr(p.txHash)} · Base
+          </a>
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">

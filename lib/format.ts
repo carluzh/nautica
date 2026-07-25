@@ -4,6 +4,11 @@
 export const CHAINSCAN = "https://chainscan.0g.ai";
 export const chainscanAddress = (addr: string) => `${CHAINSCAN}/address/${addr}`;
 
+/** Base Sepolia explorer (for recordCompletion / settlePayout tx hashes + addresses). */
+export const BASESCAN = "https://sepolia.basescan.org";
+export const basescanTx = (hash: string) => `${BASESCAN}/tx/${hash}`;
+export const basescanAddress = (addr: string) => `${BASESCAN}/address/${addr}`;
+
 /** "0x1234…abcd" truncation for on-chain addresses. */
 export function shortAddr(addr: string, size = 4): string {
   return addr.length > 2 + size * 2 ? `${addr.slice(0, 2 + size)}…${addr.slice(-size)}` : addr;

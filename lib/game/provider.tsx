@@ -20,6 +20,7 @@ import {
   devSiwe,
   sessionToken,
   type ApiProfile,
+  type CreateQuestBody,
   type WorldContext,
 } from "@/lib/api/client";
 
@@ -30,7 +31,7 @@ const WorldIdWidget = dynamic(
   { ssr: false },
 );
 import { DAILY_QUESTS } from "./content";
-import { levelInfo as computeLevel, PAID_UNLOCK_LEVEL } from "./levels";
+import { levelInfo as computeLevel, PAID_UNLOCK_LEVEL, xpForLevel } from "./levels";
 import {
   INITIAL_USER,
   LEADERBOARD,
@@ -41,6 +42,7 @@ import {
 import type {
   ActivityEvent,
   Attestation,
+  FocusTarget,
   GalleryItem,
   LeaderboardEntry,
   LevelInfo,
@@ -134,6 +136,12 @@ const VERIFY_LABEL: Record<VerifyStep, string> = {
   orb: "Orb",
 };
 
+/** Result of a partner quest post: the created quest on success (with its escrow
+ *  tx), or a reason string to surface to the partner. */
+export type CreateQuestResult =
+  | { ok: true; quest: Quest; txHash?: string; simulated: boolean }
+  | { ok: false; reason: string };
+
 type GameValue = {
   user: UserState;
   level: LevelInfo;
@@ -152,8 +160,12 @@ type GameValue = {
   plausibility: Record<string, PlausibilityVerdict>;
   /** Sighting ids whose verdict is still being fetched/awaited (indexing lag). */
   plausibilityPending: Record<string, boolean>;
+  /** A sighting the feed asked the map to fly to + open its popup (null = none pending). */
+  focusTarget: FocusTarget | null;
 
   setOpenPanel: (p: PanelId | null) => void;
+  focusSighting: (t: FocusTarget) => void;
+  clearFocus: () => void;
   /** Ask the plausibility agent about a sighting (no-op until API mode + signed in). */
   loadPlausibility: (sightingId: string) => void;
   openQuest: (questId: string) => void;
@@ -163,8 +175,12 @@ type GameValue = {
   attachWallet: () => void;
   verify: (step: VerifyStep) => void;
   submitQuest: (questId: string, photo?: File | null, place?: PickedPlace) => Promise<SubmitResult>;
+  /** Partner: post + fund a quest. Re-hydrates the board on success (API mode). */
+  createQuest: (body: CreateQuestBody) => Promise<CreateQuestResult>;
   withdraw: () => void;
   grantXp: (n: number) => void;
+  /** Demo shortcut: floor the user to Level 5 (persisted in API mode). */
+  demoLevel: () => void;
   signOut: () => void;
   dismissLevelUp: () => void;
 };
@@ -186,6 +202,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [lastLevelUp, setLastLevelUp] = useState<number | null>(null);
   const [plausibility, setPlausibility] = useState<Record<string, PlausibilityVerdict>>({});
   const [plausibilityPending, setPlausibilityPending] = useState<Record<string, boolean>>({});
+  const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   // Sightings already requested, so a re-rendered card never refetches.
   const plausibilityRequested = useRef<Set<string>>(new Set());
   // Real World ID widget flow. `mode` = login vs tier upgrade; `credential` picks
@@ -375,7 +392,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const verify = useCallback(
     (step: VerifyStep) => {
       if (!apiEnabled) {
-        setUser((u) => ({ ...u, verification: { ...u.verification, [step]: true } }));
+        // Mirror the server: a tier floors xp (face→75, passport→135, orb→210).
+        const floor = step === "orb" ? 210 : step === "passport" ? 135 : 75;
+        setUser((u) => {
+          const xp = Math.max(u.xp, floor);
+          if (computeLevel(xp).level > computeLevel(u.xp).level) setLastLevelUp(computeLevel(xp).level);
+          return { ...u, verification: { ...u.verification, [step]: true }, xp };
+        });
         setHistory((h) => [
           { id: uid("h"), kind: "verify", title: `Verified with ${VERIFY_LABEL[step]}`, at: Date.now() },
           ...h,
@@ -483,7 +506,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setGallery((g) => [item, ...g]);
       setQuests((qs) => qs.map((q) => (q.id === questId ? { ...q, status: "done" } : q)));
       setHistory((h) => [
-        { id: uid("h"), kind: "quest", title: quest.title, species: quest.species, xp: quest.reward, usdc: quest.usdc, attestation, at: Date.now() },
+        { id: uid("h"), kind: "quest", title: quest.title, species: quest.species, xp: quest.reward, usdc: quest.usdc, attestation, lng: item.lng, lat: item.lat, at: Date.now() },
         ...h,
       ]);
       setUser((u) => ({ ...u, xp: u.xp + quest.reward, balanceUsd: u.balanceUsd + (quest.usdc ?? 0) }));
@@ -502,6 +525,41 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [quests, user.xp, user.verification.passport, user.wallet, token, hydrate],
   );
 
+  // Partner: post + fund a quest. API mode escrows on-chain via the server then
+  // re-hydrates so the new quest joins the board; mock mode adds it locally.
+  const createQuest = useCallback<GameValue["createQuest"]>(
+    async (body) => {
+      if (apiEnabled) {
+        if (!token) return { ok: false, reason: "Not signed in." };
+        try {
+          const res = await api.createQuest(token, body);
+          await hydrate(token);
+          return { ok: true, quest: res.quest, txHash: res.txHash, simulated: res.simulated };
+        } catch (e) {
+          return { ok: false, reason: e instanceof Error ? e.message : "Could not post quest" };
+        }
+      }
+      // mock: no backend — synthesize the quest and prepend it to the board.
+      const q: Quest = {
+        id: uid("q"),
+        kind: body.usdc > 0 ? "paid" : "free",
+        title: body.title,
+        spec: body.spec,
+        species: body.species,
+        reward: body.reward,
+        status: "available",
+        ...(body.usdc > 0
+          ? { usdc: body.usdc, partner: body.partner, requirements: body.requirements }
+          : {}),
+        onchain: true,
+        remainingUsd: body.funding,
+      };
+      setQuests((qs) => [q, ...qs]);
+      return { ok: true, quest: q, simulated: true };
+    },
+    [token, hydrate],
+  );
+
   const withdraw = useCallback(() => {
     // Optimistic in both modes; API mode does not yet persist a withdrawal.
     setPayments((p) => p.map((x) => ({ ...x, status: "settled" as const })));
@@ -517,6 +575,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return { ...u, xp: u.xp + n };
     });
   }, []);
+
+  // Demo shortcut: floor the user to Level 5. Persisted server-side in API mode.
+  const demoLevel = useCallback(() => {
+    if (!apiEnabled) {
+      const target = xpForLevel(PAID_UNLOCK_LEVEL);
+      setUser((u) => {
+        const xp = Math.max(u.xp, target);
+        if (computeLevel(xp).level > computeLevel(u.xp).level) setLastLevelUp(computeLevel(xp).level);
+        return { ...u, xp };
+      });
+      return;
+    }
+    if (!token) return;
+    (async () => {
+      try {
+        await api.demoLevel(token);
+        await hydrate(token); // refresh xp + the level-up activity entry
+        setLastLevelUp(PAID_UNLOCK_LEVEL);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not skip level");
+      }
+    })();
+  }, [token, hydrate]);
 
   // Fetch the plausibility verdict for one sighting (API mode only). Cards call this
   // on open; the ref guard makes it fire once per sighting per session. A just-recorded
@@ -570,6 +651,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setOpenPanel(null);
     setActiveQuestId(null);
     setLastLevelUp(null);
+    setFocusTarget(null);
     setWorldId({ open: false, mode: "login", credential: "face", ctx: null });
   }, []);
 
@@ -589,7 +671,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     lastLevelUp,
     plausibility,
     plausibilityPending,
+    focusTarget,
     setOpenPanel,
+    focusSighting: setFocusTarget,
+    clearFocus: () => setFocusTarget(null),
     loadPlausibility,
     openQuest,
     connectWorldId,
@@ -598,8 +683,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     attachWallet,
     verify,
     submitQuest,
+    createQuest,
     withdraw,
     grantXp,
+    demoLevel,
     signOut,
     dismissLevelUp: () => setLastLevelUp(null),
   };

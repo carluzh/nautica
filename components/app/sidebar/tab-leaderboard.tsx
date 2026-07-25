@@ -14,7 +14,7 @@ export function TabLeaderboard() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-        Top contributors this season
+        Top divers this season
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -58,8 +58,8 @@ export function TabLeaderboard() {
                 <Badge variant="secondary" className="tnum shrink-0">
                   L{e.level}
                 </Badge>
-                <span className="tnum w-12 shrink-0 text-right text-xs font-semibold">
-                  {e.xp.toLocaleString()}
+                <span className="tnum w-12 shrink-0 text-right text-xs font-semibold text-success">
+                  +${(e.earnings ?? 0).toLocaleString()}
                 </span>
               </li>
             );

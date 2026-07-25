@@ -40,11 +40,14 @@ const ICON_SVG = Object.fromEntries(
   ]),
 ) as Record<Category, string>;
 
-/** Marker color + icon = category (glanceable, matches the filter tiles); tooltip = species + place. */
-function toMarker(species: SpeciesId): Pick<SeaMarker, "color" | "icon"> {
+/** Marker color + icon + category (glanceable, matches the filter tiles); tooltip = species + place. */
+function toMarker(species: SpeciesId): Pick<SeaMarker, "color" | "icon" | "category"> {
   const cat = speciesCategory(species);
-  return { color: CATEGORY_META[cat].color, icon: ICON_SVG[cat] };
+  return { color: CATEGORY_META[cat].color, icon: ICON_SVG[cat], category: cat };
 }
+
+/** Category key + color per finding type — feeds the segmented cluster ring. */
+const CLUSTER_CATEGORIES = CATEGORY_ORDER.map((c) => ({ key: c, color: CATEGORY_META[c].color }));
 
 /** The place portion of a "Species · Place" community label. */
 function placeOf(label?: string): string | undefined {
@@ -76,13 +79,22 @@ function popupHtml(opts: {
 }
 
 function Hub() {
-  const { gallery, user } = useGame();
+  const { gallery, user, focusTarget, clearFocus } = useGame();
   const [hidden, setHidden] = useState<Set<Category>>(new Set());
   const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [awayFromUser, setAwayFromUser] = useState(false);
   const [searching, setSearching] = useState(false);
   const mapRef = useRef<SeaMapHandle>(null);
+
+  // Focus a sighting clicked in the activity feed: fly there and open its popup.
+  useEffect(() => {
+    if (!focusTarget) return;
+    const html = popupHtml({ title: focusTarget.title, species: focusTarget.species, place: "Your capture", lat: focusTarget.lat, lng: focusTarget.lng });
+    mapRef.current?.flyTo([focusTarget.lng, focusTarget.lat], 15);
+    mapRef.current?.showPopup([focusTarget.lng, focusTarget.lat], html);
+    clearFocus();
+  }, [focusTarget, clearFocus]);
 
   // Marker counts per species and per category (community field + your captures).
   const { speciesCounts, categoryCounts } = useMemo(() => {
@@ -149,6 +161,10 @@ function Hub() {
           for (const s of species) visible ? next.delete(s) : next.add(s);
           return next;
         }),
+      onSoloSpecies: (species) => {
+        setHiddenSpecies(new Set((Object.keys(SPECIES_META) as SpeciesId[]).filter((s) => s !== species)));
+        setHidden(new Set()); // show all categories so the soloed species is visible
+      },
       onSearchPlace,
       searching,
     }),
@@ -221,6 +237,7 @@ function Hub() {
         <SeaMap
           ref={mapRef}
           dark
+          clusterCategories={CLUSTER_CATEGORIES}
           className="absolute inset-0"
           center={[-9.31, 38.67]}
           zoom={9}

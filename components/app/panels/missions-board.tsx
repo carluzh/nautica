@@ -5,14 +5,17 @@ import {
   Check,
   Circle,
   Coins,
+  Compass,
   Flame,
   IdCard,
   Loader2,
   Lock,
+  Plus,
   Sparkles,
   Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PartnerQuestDialog } from "@/components/app/panels/partner-quest-dialog";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { PAID_UNLOCK_LEVEL, xpForLevel } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
@@ -38,6 +41,7 @@ export function MissionsBoard() {
 
   // Mount-gated so the live clock never mismatches the server render.
   const [reset, setReset] = useState<string>("··");
+  const [postOpen, setPostOpen] = useState(false);
   useEffect(() => {
     const tick = () => setReset(fmtCountdown(msToMidnight(Date.now())));
     tick();
@@ -46,7 +50,7 @@ export function MissionsBoard() {
   }, []);
 
   const free = quests.filter((q) => q.kind === "free");
-  const paid = quests.find((q) => q.kind === "paid");
+  const paid = quests.filter((q) => q.kind === "paid");
   const done = quests.filter((q) => q.status === "done").length;
   const xpToUnlock = Math.max(0, xpForLevel(PAID_UNLOCK_LEVEL) - level.totalXp);
 
@@ -71,28 +75,48 @@ export function MissionsBoard() {
 
         {/* quest list */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {free.map((q) => (
-            <FreeRow key={q.id} quest={q} onStart={() => openQuest(q.id)} />
-          ))}
-          {paid ? (
-            <PaidRow
-              quest={paid}
-              unlocked={paidUnlocked}
-              hasPassport={user.verification.passport}
-              xpToUnlock={xpToUnlock}
-              onStart={() => openQuest(paid.id)}
-            />
-          ) : null}
+          {quests.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <Compass className="size-8 text-muted-foreground/60" />
+              <p className="text-sm font-medium">No quests right now</p>
+              <p className="text-[11px] text-muted-foreground">
+                New research quests appear here as partners fund them.
+              </p>
+            </div>
+          ) : (
+            <>
+              {free.map((q) => (
+                <FreeRow key={q.id} quest={q} onStart={() => openQuest(q.id)} />
+              ))}
+              {paid.map((q) => (
+                <PaidRow
+                  key={q.id}
+                  quest={q}
+                  unlocked={paidUnlocked}
+                  hasPassport={user.verification.passport}
+                  xpToUnlock={xpToUnlock}
+                  onStart={() => openQuest(q.id)}
+                />
+              ))}
+            </>
+          )}
         </div>
 
         {/* footer summary */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-t px-3 py-2 text-[11px] text-muted-foreground">
-          <span className="truncate">0G-verified · open dataset</span>
+          <button
+            type="button"
+            onClick={() => setPostOpen(true)}
+            className="inline-flex items-center gap-1 rounded text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Plus className="size-3" /> Post a research quest
+          </button>
           <span className="tnum shrink-0">
             {done}/{quests.length}
           </span>
         </div>
       </div>
+      <PartnerQuestDialog open={postOpen} onOpenChange={setPostOpen} />
     </div>
   );
 }

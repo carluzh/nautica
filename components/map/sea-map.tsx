@@ -5,17 +5,23 @@ import maplibregl, {
   type Map as MLMap,
   type LngLatLike,
   type GeoJSONSource,
+  type GeoJSONSourceSpecification,
 } from "maplibre-gl";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
-// CARTO Positron (light) / Dark Matter (dark) — clean, near-monochrome basemaps
-// used as-is: neutral land, minimal labels, streets kept, native water. Keyless.
+// Real, professionally-designed keyless basemaps used as-is: CARTO Positron (light,
+// the marketing hero) and Dark Matter (dark, the app). The ONLY app customization is
+// a slightly blue-ish water fill (see the load handler) — nothing else is touched.
 const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const WATER_BLUE = "#12314c"; // a bit blueish, still dark
 
 const TEAL = "oklch(0.702 0.132 194)";
+const MARKER_INK = "#0b1420"; // near-black dark blue (≈ the landmass) — the marker glyph color
+const NEAR_PX = 42; // filled icon-circles closer than this (px) collapse to pulsing dots
+const ICON_MIN_ZOOM = 13.5; // below this, always show the cleaner dots; icons only when very zoomed in
 
 export type SeaMarker = {
   id: string;
@@ -26,6 +32,8 @@ export type SeaMarker = {
   /** Pre-rendered SVG markup drawn inside the pin (uses currentColor → tinted by `color`). */
   icon?: string;
   label?: string;
+  /** Category key — drives the segmented cluster ring. */
+  category?: string;
   /** HTML shown in a click popup on the marker (item 6 — data on the map). */
   popupHtml?: string;
   onClick?: (id: string) => void;
@@ -37,6 +45,8 @@ export type SeaMapHandle = {
   recenterToUser: () => void;
   /** Fly the viewport to a coordinate (used by the location search). */
   flyTo: (center: [number, number], zoom?: number) => void;
+  /** Open a standalone popup at a coordinate (used to focus a clicked sighting). */
+  showPopup: (center: [number, number], html: string) => void;
 };
 
 export const SeaMap = forwardRef<SeaMapHandle, {
@@ -45,8 +55,10 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   zoom?: number;
   markers?: SeaMarker[];
   interactive?: boolean;
-  /** Dark basemap (Dark Matter + dark ocean). Used by the app; marketing stays light. */
+  /** Dark basemap (Dark Matter, water nudged a touch blue). Used by the app; marketing stays light. */
   dark?: boolean;
+  /** Category key + color per finding type — drives the segmented cluster ring. */
+  clusterCategories?: { key: string; color: string }[];
   /** Opt-in: track + show a live blue user-location dot. */
   showUserLocation?: boolean;
   /** Fires as the view moves off / back onto the user's live location (needs showUserLocation). */
@@ -60,6 +72,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     markers = [],
     interactive = true,
     dark = false,
+    clusterCategories = [],
     showUserLocation = false,
     onAwayChange,
     onReady,
@@ -73,6 +86,8 @@ export const SeaMap = forwardRef<SeaMapHandle, {
   // Keep the latest onAwayChange without re-running the location effect.
   const onAwayChangeRef = useRef(onAwayChange);
   onAwayChangeRef.current = onAwayChange;
+  // Standalone popup for a focused sighting (from the activity feed).
+  const focusPopupRef = useRef<maplibregl.Popup | null>(null);
 
   // Imperative actions for the hub (recenter button + location search).
   useImperativeHandle(ref, () => ({
@@ -99,6 +114,13 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     flyTo: (center, zoom = 13) => {
       mapRef.current?.flyTo({ center, zoom, duration: 1200 });
     },
+    showPopup: (center, html) => {
+      const map = mapRef.current;
+      if (!map) return;
+      focusPopupRef.current?.remove();
+      focusPopupRef.current = new maplibregl.Popup({ offset: 14, closeButton: true, closeOnClick: true, className: "nautica-popup", maxWidth: "240px" })
+        .setLngLat(center).setHTML(html).addTo(map);
+    },
   }));
 
   useEffect(() => {
@@ -116,7 +138,17 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     }
     mapRef.current = map;
-    map.on("load", () => onReady?.(map));
+    map.on("load", () => {
+      // The only basemap customization: nudge the water a touch blue on the dark app.
+      if (dark && map.getLayer("water")) {
+        try {
+          map.setPaintProperty("water", "fill-color", WATER_BLUE);
+        } catch {
+          /* ignore if the water layer isn't a simple fill on this style version */
+        }
+      }
+      onReady?.(map);
+    });
     return () => {
       map.remove();
       mapRef.current = null;
@@ -124,18 +156,22 @@ export const SeaMap = forwardRef<SeaMapHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Clustered sightings. Built-in MapLibre GeoJSON clustering feeds a pool of HTML
-  // markers (the "cluster + HTML markers" pattern), so we keep the custom colored
-  // species glyphs: small counted dots when zoomed out, clean colored icons when in.
+  // Sighting markers — a 3-tier density system over MapLibre's GeoJSON clustering:
+  //   roomy    → a filled colored circle with a dark-ink glyph (buildIcon);
+  //   crowding → a small pulsing solid dot in the finding's color (buildDot);
+  //   dense    → a segmented donut cluster by category with a small count (buildCluster).
+  // A small cluster radius handles the dense tier (only when dots would overlap); a
+  // per-frame pixel-proximity pass on the remaining points chooses icon vs dot.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     const SOURCE_ID = "sightings";
     const LAYER_ID = "sightings-src";
+    type Mode = "icon" | "dot" | "cluster";
 
-    // 1) markers -> GeoJSON FeatureCollection (+ an id→SeaMarker lookup so we can
-    // recover the icon/onClick that don't survive the trip through the source).
+    // markers -> GeoJSON (+ an id→SeaMarker lookup for the icon/onClick that don't
+    // survive the source). Each feature carries its `cat` for the cluster tallies.
     const lookup = new Map<string, SeaMarker>();
     const data: FeatureCollection<Point> = {
       type: "FeatureCollection",
@@ -144,59 +180,32 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         return {
           type: "Feature",
           id: i,
-          properties: { id: mk.id, color: mk.color ?? TEAL, key: i },
+          properties: { id: mk.id, cat: mk.category ?? "", color: mk.color ?? TEAL },
           geometry: { type: "Point", coordinates: [mk.lng, mk.lat] },
         };
       }),
     };
 
-    // Live HTML markers, keyed `cluster-<id>` / `pt-<id>`, reused across render
-    // frames (pan/zoom); stale keys are pruned each sync.
-    const pool: Record<string, maplibregl.Marker> = {};
+    // Per-cluster category tallies (cnt_<key>) that feed the segmented ring.
+    const clusterProperties: Record<string, unknown> = {};
+    for (const c of clusterCategories) {
+      clusterProperties[`cnt_${c.key}`] = ["+", ["case", ["==", ["get", "cat"], c.key], 1, 0]];
+    }
+
+    const pool: Record<string, { marker: maplibregl.Marker; mode: Mode }> = {};
     let disposed = false;
-    // One reusable popup for marker clicks (data on the map).
     let popup: maplibregl.Popup | null = null;
 
-    const buildClusterEl = (count: number, abbr: string) => {
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "nautica-cluster";
-      // A gentle size ramp with the count keeps big clusters glanceable.
-      const size = count < 10 ? 30 : count < 50 ? 36 : count < 100 ? 42 : 48;
-      el.style.width = `${size}px`;
-      el.style.height = `${size}px`;
-      const n = document.createElement("span");
-      n.className = "nautica-cluster-count tnum";
-      n.textContent = abbr;
-      el.appendChild(n);
-      return el;
-    };
-
-    const buildPointEl = (mk: SeaMarker) => {
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "nautica-point";
-      // Tinted chip matching the filter tiles: the icon's `currentColor` inherits
-      // this category color, over an opaque tinted circle so it reads on the basemap.
-      el.style.color = mk.color ?? TEAL;
-      el.style.background = `color-mix(in oklch, ${mk.color ?? TEAL} 14%, white)`;
-      if (mk.icon) {
-        el.innerHTML = mk.icon;
-      } else {
-        const dot = document.createElement("span");
-        dot.className = "nautica-point-dot";
-        el.appendChild(dot);
-      }
+    const attach = (el: HTMLElement, mk: SeaMarker) => {
       if (mk.label) el.title = mk.label;
-      const interactive = Boolean(mk.onClick || mk.popupHtml);
-      if (interactive) {
+      if (mk.onClick || mk.popupHtml) {
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();
           mk.onClick?.(mk.id);
           if (mk.popupHtml) {
             popup?.remove();
             popup = new maplibregl.Popup({
-              offset: 16,
+              offset: 14,
               closeButton: true,
               closeOnClick: true,
               className: "nautica-popup",
@@ -210,6 +219,74 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       } else {
         el.style.cursor = "default";
       }
+    };
+
+    // Tier 1 — filled colored circle with a dark-ink glyph.
+    const buildIcon = (mk: SeaMarker) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "nautica-point";
+      el.style.background = mk.color ?? TEAL;
+      el.style.color = MARKER_INK;
+      if (mk.icon) el.innerHTML = mk.icon;
+      else {
+        const d = document.createElement("span");
+        d.className = "nautica-point-dot";
+        el.appendChild(d);
+      }
+      attach(el, mk);
+      return el;
+    };
+
+    // Tier 2 — small pulsing solid dot in the finding's color.
+    const buildDot = (mk: SeaMarker) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "nautica-dot";
+      el.style.color = mk.color ?? TEAL;
+      const pulse = document.createElement("span");
+      pulse.className = "nautica-dot-pulse";
+      const core = document.createElement("span");
+      core.className = "nautica-dot-core";
+      el.append(pulse, core);
+      attach(el, mk);
+      return el;
+    };
+
+    // Tier 3 — segmented donut cluster.
+    const clusterSize = (count: number) => (count < 10 ? 34 : count < 50 ? 40 : count < 100 ? 46 : 52);
+    const paintCluster = (el: HTMLElement, props: Record<string, unknown>) => {
+      const count = Number(props.point_count) || 0;
+      let acc = 0;
+      const stops: string[] = [];
+      for (const c of clusterCategories) {
+        const n = Number(props[`cnt_${c.key}`]) || 0;
+        if (n <= 0) continue;
+        const frac = count > 0 ? n / count : 0;
+        stops.push(`${c.color} ${(acc * 100).toFixed(2)}% ${((acc + frac) * 100).toFixed(2)}%`);
+        acc += frac;
+      }
+      el.style.background = stops.length ? `conic-gradient(${stops.join(", ")})` : TEAL;
+      const label = el.querySelector(".nautica-cluster-count");
+      if (label) label.textContent = String(props.point_count_abbreviated ?? count);
+    };
+    const buildCluster = (props: Record<string, unknown>) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "nautica-cluster";
+      const size = clusterSize(Number(props.point_count) || 0);
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      const hole = document.createElement("span");
+      hole.className = "nautica-cluster-hole";
+      const holeSize = size - 11;
+      hole.style.width = `${holeSize}px`;
+      hole.style.height = `${holeSize}px`;
+      const label = document.createElement("span");
+      label.className = "nautica-cluster-count tnum";
+      hole.appendChild(label);
+      el.appendChild(hole);
+      paintCluster(el, props);
       return el;
     };
 
@@ -219,50 +296,92 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
       if (!source || !map.isSourceLoaded(SOURCE_ID)) return;
 
-      const present = new Set<string>();
-      const features = map.querySourceFeatures(SOURCE_ID);
+      const seen = new Set<string>();
+      const clusters: { key: string; coords: [number, number]; props: Record<string, unknown> }[] = [];
+      const pts: { key: string; id: string; coords: [number, number]; x: number; y: number; mode: Mode }[] = [];
 
-      for (const f of features) {
+      for (const f of map.querySourceFeatures(SOURCE_ID)) {
         if (!f.geometry || f.geometry.type !== "Point") continue;
         const coords = f.geometry.coordinates as [number, number];
         const props = f.properties ?? {};
-        const isCluster = Boolean(props.cluster);
-        const key = isCluster ? `cluster-${props.cluster_id}` : `pt-${props.id}`;
-        if (present.has(key)) continue; // querySourceFeatures repeats across tile seams
-        present.add(key);
-
-        const existing = pool[key];
-        if (existing) {
-          existing.setLngLat(coords);
-          if (isCluster) {
-            const label = existing.getElement().querySelector(".nautica-cluster-count");
-            if (label) label.textContent = String(props.point_count_abbreviated);
-          }
-          continue;
-        }
-
-        let el: HTMLElement | null = null;
-        if (isCluster) {
-          el = buildClusterEl(Number(props.point_count), String(props.point_count_abbreviated));
-          const clusterId = Number(props.cluster_id);
-          el.addEventListener("click", () => {
-            (map.getSource(SOURCE_ID) as GeoJSONSource | undefined)
-              ?.getClusterExpansionZoom(clusterId)
-              .then((zoom) => map.easeTo({ center: coords, zoom, duration: 500 }))
-              .catch(() => {});
-          });
+        if (props.cluster) {
+          const key = `cluster-${props.cluster_id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          clusters.push({ key, coords, props });
         } else {
-          const mk = lookup.get(String(props.id));
-          if (mk) el = buildPointEl(mk);
+          const key = `pt-${props.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const p = map.project(coords);
+          pts.push({ key, id: String(props.id), coords, x: p.x, y: p.y, mode: "icon" });
         }
-        if (!el) continue;
-        pool[key] = new maplibregl.Marker({ element: el }).setLngLat(coords).addTo(map);
       }
 
-      // Prune markers that scrolled out of view / merged into a cluster.
+      // Zoomed out we always show the cleaner dots; icons appear only when very
+      // zoomed in, and even then collapse back to a dot if another point is near.
+      const iconsAllowed = map.getZoom() >= ICON_MIN_ZOOM;
+      for (let i = 0; i < pts.length; i++) {
+        if (!iconsAllowed) {
+          pts[i].mode = "dot";
+          continue;
+        }
+        for (let j = 0; j < pts.length; j++) {
+          if (i === j) continue;
+          const dx = pts[i].x - pts[j].x;
+          const dy = pts[i].y - pts[j].y;
+          if (dx * dx + dy * dy < NEAR_PX * NEAR_PX) {
+            pts[i].mode = "dot";
+            break;
+          }
+        }
+      }
+
+      const present = new Set<string>();
+
+      for (const c of clusters) {
+        present.add(c.key);
+        const ex = pool[c.key];
+        if (ex && ex.mode === "cluster") {
+          ex.marker.setLngLat(c.coords);
+          paintCluster(ex.marker.getElement(), c.props);
+          continue;
+        }
+        if (ex) {
+          ex.marker.remove();
+          delete pool[c.key];
+        }
+        const el = buildCluster(c.props);
+        const clusterId = Number(c.props.cluster_id);
+        el.addEventListener("click", () => {
+          (map.getSource(SOURCE_ID) as GeoJSONSource | undefined)
+            ?.getClusterExpansionZoom(clusterId)
+            .then((z) => map.easeTo({ center: c.coords, zoom: z, duration: 500 }))
+            .catch(() => {});
+        });
+        pool[c.key] = { marker: new maplibregl.Marker({ element: el }).setLngLat(c.coords).addTo(map), mode: "cluster" };
+      }
+
+      for (const p of pts) {
+        present.add(p.key);
+        const mk = lookup.get(p.id);
+        if (!mk) continue;
+        const ex = pool[p.key];
+        if (ex && ex.mode === p.mode) {
+          ex.marker.setLngLat(p.coords);
+          continue;
+        }
+        if (ex) {
+          ex.marker.remove();
+          delete pool[p.key];
+        }
+        const el = p.mode === "dot" ? buildDot(mk) : buildIcon(mk);
+        pool[p.key] = { marker: new maplibregl.Marker({ element: el }).setLngLat(p.coords).addTo(map), mode: p.mode };
+      }
+
       for (const key of Object.keys(pool)) {
         if (!present.has(key)) {
-          pool[key].remove();
+          pool[key].marker.remove();
           delete pool[key];
         }
       }
@@ -280,9 +399,11 @@ export const SeaMap = forwardRef<SeaMapHandle, {
           type: "geojson",
           data,
           cluster: true,
-          clusterRadius: 50,
-          clusterMaxZoom: 14,
-        });
+          // Small radius: only group when the dots themselves would overlap.
+          clusterRadius: 14,
+          clusterMaxZoom: 16,
+          clusterProperties,
+        } as GeoJSONSourceSpecification);
       }
       if (!map.getLayer(LAYER_ID)) {
         map.addLayer({
@@ -309,7 +430,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
       map.off("load", setup); // in case the style never finished loading
       for (const key of Object.keys(pool)) {
         try {
-          pool[key].remove();
+          pool[key].marker.remove();
         } catch {
           /* map may already be torn down (unmount) — the container unmounts anyway */
         }
@@ -322,7 +443,7 @@ export const SeaMap = forwardRef<SeaMapHandle, {
         /* style already torn down on unmount — map.remove() handles the rest */
       }
     };
-  }, [markers]);
+  }, [markers, clusterCategories]);
 
   // Live user location (opt-in). Watches the device position and drops a blue dot,
   // and reports whether the view has moved off that dot so the hub can show the

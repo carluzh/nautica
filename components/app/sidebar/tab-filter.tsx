@@ -5,7 +5,7 @@ import { Check, Loader2, MapPin, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { SpeciesBadge } from "@/components/app/species-badge";
-import { CATEGORY_META, SPECIES_GROUPS, SPECIES_META } from "@/lib/game/content";
+import { CATEGORY_META, SPECIES_GROUPS, SPECIES_META, type Category } from "@/lib/game/content";
 import { cn } from "@/lib/utils";
 import type { FilterState } from "./types";
 
@@ -20,6 +20,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
 
   const [place, setPlace] = useState("");
   const [speciesQuery, setSpeciesQuery] = useState("");
+  const [hoveredCat, setHoveredCat] = useState<Category | null>(null);
 
   function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -85,11 +86,18 @@ export function TabFilter({ filter }: { filter: FilterState }) {
               <li key={category}>
                 <button
                   onClick={() => filter.onToggle(category)}
+                  onMouseEnter={() => setHoveredCat(category)}
+                  onMouseLeave={() => setHoveredCat(null)}
                   aria-pressed={on}
                   className={cn(
                     "flex w-full flex-col gap-2 rounded-lg border px-2.5 py-2.5 text-left transition-colors",
-                    on ? "bg-background hover:bg-accent/40" : "bg-muted/50",
+                    on ? "bg-background" : "bg-muted/50",
                   )}
+                  style={
+                    hoveredCat === category
+                      ? { backgroundColor: `color-mix(in oklch, ${meta.color} 16%, transparent)` }
+                      : undefined
+                  }
                 >
                   <span className="flex w-full items-center justify-between">
                     <span
@@ -141,12 +149,20 @@ export function TabFilter({ filter }: { filter: FilterState }) {
             <p className="px-1 py-4 text-center text-xs text-muted-foreground">No species match.</p>
           ) : (
             groups.map((group) => {
+              const groupOn = group.species.every((s) => !filter.hiddenSpecies.has(s));
               return (
                 <div key={group.label}>
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <button
+                      onClick={() => filter.onToggleGroup(group.species, !groupOn)}
+                      aria-pressed={groupOn}
+                      className={cn(
+                        "text-[11px] font-medium uppercase tracking-wide transition-colors hover:text-foreground",
+                        groupOn ? "text-muted-foreground" : "text-muted-foreground/50",
+                      )}
+                    >
                       {group.label}
-                    </span>
+                    </button>
                   </div>
                   <ul className="flex flex-col">
                     {group.species.map((s) => {

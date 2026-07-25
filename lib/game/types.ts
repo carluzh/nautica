@@ -142,8 +142,13 @@ export type ActivityEvent = {
   usdc?: number;
   species?: SpeciesId;
   attestation?: Attestation;
+  lng?: number; // a sighting's coordinates (quest-kind events)
+  lat?: number;
   at: number;
 };
+
+/** A sighting the user clicked in the activity feed, to fly to + popup on the map. */
+export type FocusTarget = { lng: number; lat: number; species: SpeciesId; title: string };
 
 export type Payment = {
   id: string;
@@ -161,6 +166,7 @@ export type LeaderboardEntry = {
   xp: number;
   level: number;
   you?: boolean;
+  earnings?: number; // lifetime USD earned
 };
 
 export type LevelInfo = {

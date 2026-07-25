@@ -8,6 +8,7 @@ import {
   Circle,
   Coins,
   Crosshair,
+  ExternalLink,
   Fingerprint,
   IdCard,
   Loader2,
@@ -29,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { basescanTx, shortAddr } from "@/lib/format";
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { Attestation, PickedPlace, Quest } from "@/lib/game/types";
@@ -36,7 +38,7 @@ import { cn } from "@/lib/utils";
 
 type Phase = "idle" | "submitting" | "success" | "error";
 type Step = 1 | 2 | 3;
-type OkResult = { attestation: Attestation; leveledTo?: number; usdc?: number };
+type OkResult = { attestation: Attestation; leveledTo?: number; usdc?: number; txHash?: string };
 
 const STEPS: { n: Step; label: string }[] = [
   { n: 1, label: "Photo" },
@@ -121,7 +123,7 @@ export function QuestSubmitDialog() {
     setPhase("submitting");
     const res = await submitQuest(quest.id, file, place ?? undefined);
     if (res.ok) {
-      setOk({ attestation: res.attestation, leveledTo: res.leveledTo, usdc: res.usdc });
+      setOk({ attestation: res.attestation, leveledTo: res.leveledTo, usdc: res.usdc, txHash: res.txHash });
       setPhase("success");
       toast.success("Verified by 0G", {
         description:
@@ -471,6 +473,18 @@ function SuccessView({
           </span>
         ) : null}
       </div>
+
+      {ok.txHash ? (
+        <a
+          href={basescanTx(ok.txHash)}
+          target="_blank"
+          rel="noreferrer"
+          className="tnum inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+        >
+          <ExternalLink className="size-3" />
+          {isPaid && ok.usdc ? "Recorded + paid on Base" : "Recorded on Base"} · {shortAddr(ok.txHash)}
+        </a>
+      ) : null}
 
       {ok.leveledTo ? (
         <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">

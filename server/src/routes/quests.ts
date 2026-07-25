@@ -2,19 +2,19 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { integrations } from "../config";
 import { log } from "../lib/logger";
-import { DAILY_QUESTS, getQuest } from "../content";
 import { levelForXp, PAID_UNLOCK_LEVEL } from "../lib/levels";
+import { questRegistry, type RegisteredQuest } from "../lib/quest-registry";
 import { store } from "../lib/store";
 import type { AppEnv } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
 import { issueChallenge, validateChallenge } from "../services/freshness";
 import { classifyImage } from "../services/zerog";
-import { recordQuestCompletion, settlePayout } from "../services/chain";
+import { createQuestOnchain, recordQuestCompletion, relayerUsdcBalance, settlePayout } from "../services/chain";
 import { getQuests } from "../services/subgraph";
 import { setSightingImage, setSightingRadius } from "../services/sighting-meta";
 import { enqueuePlausibility } from "../services/sighting-jobs";
 import { saveImageFromDataUrl } from "../services/image-store";
-import type { ActivityEvent, GalleryItem, Payment, SubmitResult } from "../types";
+import type { ActivityEvent, GalleryItem, Payment, SpeciesId, SubmitResult } from "../types";
 
 const LISBON = { lng: -9.15, lat: 38.7 };
 const MIN_CONFIDENCE = 0.6; // a weak "pass" (low model confidence) does not award XP
@@ -49,10 +49,13 @@ questRoutes.get("/", async (c) => {
   const paidUnlocked = levelForXp(u?.xp ?? 0) >= PAID_UNLOCK_LEVEL;
   const onchain = await getQuests();
   return c.json({
-    quests: DAILY_QUESTS.map((q) => {
+    // Dynamic board: driven by the registry (seeded quests + partner-created ones),
+    // joined with on-chain state. Empty registry -> quests: [] (board renders empty).
+    quests: questRegistry.all().map((q) => {
+      const { createdAt, ...rest } = q;
       const oc = onchain[q.id];
       return {
-        ...q,
+        ...rest,
         status: done.has(q.id) ? "done" : "available",
         // additive on-chain truth (all optional on the frozen contract)
         onchain: oc?.exists ?? false,
@@ -64,17 +67,101 @@ questRoutes.get("/", async (c) => {
   });
 });
 
+// Partner-facing quest fields the escrow contract can't hold + the create args.
+const createSchema = z
+  .object({
+    title: z.string().min(3).max(80),
+    species: z.string().min(2).max(32),
+    spec: z.string().min(3).max(400),
+    requirements: z.array(z.string().min(1)).max(8).optional(),
+    reward: z.number().int().min(1).max(1000), // XP
+    usdc: z.number().min(0).max(10_000).default(0), // reward per completion
+    funding: z.number().min(0).max(100_000).default(0), // USDC to escrow now
+    partner: z.string().min(2).max(80),
+  })
+  .refine((v) => v.usdc === 0 || v.funding >= v.usdc, {
+    message: "funding must cover at least one reward (funding >= usdc)",
+    path: ["funding"],
+  });
+
+/** Derive a stable, on-chain-safe questId from the title + species. Kept <=24
+ *  chars so questIdToBytes32 (utf8, 31-byte cap) never truncates it, and unique
+ *  within the registry by suffixing a counter on collision. */
+function slugQuestId(title: string, species: string): string {
+  const base = `q-${title}-${species}`
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const trimmed = base.slice(0, 24) || "q-quest";
+  let id = trimmed;
+  let n = 1;
+  while (questRegistry.has(id)) id = `${trimmed}-${n++}`;
+  return id;
+}
+
+/** POST /quests — a research partner posts + funds a quest. Escrows the reward
+ *  on-chain (relayer as funder) BEFORE the quest is added to the registry, so a
+ *  reverted escrow never leaves a phantom quest on the board. */
+questRoutes.post("/", async (c) => {
+  const parsed = createSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? "invalid quest" }, 400);
+  const b = parsed.data;
+
+  // Preflight: fail fast with a clear message when the relayer can't cover the escrow.
+  if (b.funding > 0) {
+    const bal = await relayerUsdcBalance();
+    if (bal != null && bal < b.funding)
+      return c.json({ error: `Relayer USDC balance ($${bal}) can't fund $${b.funding}.` }, 400);
+  }
+
+  const id = slugQuestId(b.title, b.species);
+  const quest: RegisteredQuest = {
+    id,
+    kind: b.usdc > 0 ? "paid" : "free",
+    title: b.title,
+    spec: b.spec,
+    species: b.species as SpeciesId,
+    reward: b.reward,
+    usdc: b.usdc > 0 ? b.usdc : undefined,
+    partner: b.partner,
+    requirements: b.requirements,
+    createdAt: Date.now(),
+  };
+
+  // Chain-first: escrow, then register. A throw leaves the registry untouched.
+  let chainRes: Awaited<ReturnType<typeof createQuestOnchain>>;
+  try {
+    chainRes = await createQuestOnchain({
+      questId: id,
+      species: quest.species,
+      title: quest.title,
+      xp: quest.reward,
+      usdcReward: b.usdc,
+      funding: b.funding,
+    });
+  } catch (err) {
+    log.error("chain: createQuest failed", { err: String(err) });
+    return c.json({ error: "On-chain quest creation failed; nothing was escrowed. Please try again." }, 502);
+  }
+
+  questRegistry.add(quest);
+  const { createdAt: _c, ...q } = quest;
+  return c.json({ quest: { ...q, status: "available" }, txHash: chainRes.txHash, simulated: chainRes.simulated });
+});
+
 /** POST /quests/:id/challenge — issue a single-use freshness nonce. */
 questRoutes.post("/:id/challenge", (c) => {
   const id = c.req.param("id");
-  if (!getQuest(id)) return c.json({ error: "unknown quest" }, 404);
+  if (!questRegistry.get(id)) return c.json({ error: "unknown quest" }, 404);
   return c.json(issueChallenge(c.get("userId"), id));
 });
 
 /** POST /quests/:id/submit — verify a photo with 0G and, on pass, award XP + settle. */
 questRoutes.post("/:id/submit", async (c) => {
   const id = c.req.param("id");
-  const quest = getQuest(id);
+  const quest = questRegistry.get(id);
   if (!quest) return c.json({ error: "unknown quest" }, 404);
 
   const parsed = submitSchema.safeParse(await c.req.json().catch(() => null));

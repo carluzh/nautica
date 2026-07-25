@@ -5,6 +5,7 @@ import { log } from "../lib/logger";
 import { createSession } from "../lib/session";
 import { store } from "../lib/store";
 import { newUser, userIdFor } from "../lib/user";
+import { xpFloorForVerification } from "../lib/levels";
 import type { AppEnv } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
 import { buildRpContext, tiersFromVerify, verifyWorldProof } from "../services/worldid";
@@ -28,7 +29,9 @@ async function establishSession(
     userId = userIdFor(externalKey);
     const verification: Partial<Verification> = {};
     for (const t of opts.grantTiers ?? []) verification[t] = true;
-    store.createUser(newUser({ userId, handle: opts.handle, wallet: opts.wallet ?? null, verification }));
+    // Floor xp by the tier granted at signup (no-tier login floors to 0 = no change).
+    const xp = xpFloorForVerification({ face: false, passport: false, orb: false, ...verification });
+    store.createUser(newUser({ userId, handle: opts.handle, wallet: opts.wallet ?? null, verification, xp }));
     store.linkExternal(externalKey, userId);
   } else {
     const u = store.getUser(userId);
@@ -39,7 +42,11 @@ async function establishSession(
       for (const t of opts.grantTiers ?? []) {
         if (!nextV[t]) { nextV[t] = true; changed = true; }
       }
-      if (changed) patch.verification = nextV;
+      if (changed) {
+        patch.verification = nextV;
+        const floor = xpFloorForVerification(nextV);
+        if (floor > u.xp) patch.xp = floor;
+      }
       if (opts.wallet && !u.wallet) patch.wallet = opts.wallet;
       if (Object.keys(patch).length) store.updateUser(userId, patch);
     }
@@ -180,6 +187,7 @@ authRoutes.post("/verify", requireAuth, async (c) => {
   const label = tiers.map((t) => TIER_LABEL[t]).join(" + ") || "World ID";
   const updated = store.updateUser(userId, {
     verification: nextV,
+    xp: Math.max(u.xp, xpFloorForVerification(nextV)),
     activity: [
       { id: `a_${Date.now()}`, kind: "verify", title: `Verified with ${label}`, at: Date.now() },
       ...u.activity,

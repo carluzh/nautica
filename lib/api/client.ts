@@ -15,6 +15,7 @@ import type {
   PlausibilityVerdict,
   Quest,
   QuestStatus,
+  SpeciesId,
   SubmitResult,
   Verification,
   VerifyStep,
@@ -75,6 +76,24 @@ export type WorldProofSubmission = { rp_id: string; idkitResponse: IdkitResponse
 export type LoginResponse = { token: string; profile: ApiProfile; simulated: boolean };
 export type QuestsResponse = { quests: (Quest & { status: QuestStatus })[]; paidUnlocked: boolean };
 export type ChallengeResponse = { nonce: string; expiresAt: number };
+
+/** What a research partner POSTs to create + fund a quest. `reward` is XP, `usdc`
+ *  the per-completion payout, `funding` the USDC escrowed now. */
+export type CreateQuestBody = {
+  title: string;
+  species: SpeciesId;
+  spec: string;
+  requirements?: string[];
+  reward: number;
+  usdc: number;
+  funding: number;
+  partner: string;
+};
+export type CreateQuestResponse = {
+  quest: Quest & { status: QuestStatus };
+  txHash?: string;
+  simulated: boolean;
+};
 
 export class ApiError extends Error {}
 
@@ -164,8 +183,17 @@ export const api = {
       body: { message, signature },
     });
   },
+  /** Demo shortcut: floor the caller to Level 5 (paid unlock). */
+  demoLevel(token: string) {
+    return req<{ profile: ApiProfile }>("/me/demo-level", { method: "POST", token });
+  },
   getQuests(token: string) {
     return req<QuestsResponse>("/quests", { token });
+  },
+  /** Partner: create + fund a quest. Server errors (underfunded, insufficient
+   *  relayer USDC) surface verbatim via the thrown ApiError. */
+  createQuest(token: string, body: CreateQuestBody) {
+    return req<CreateQuestResponse>("/quests", { method: "POST", token, body });
   },
   challenge(token: string, questId: string) {
     return req<ChallengeResponse>(`/quests/${questId}/challenge`, { method: "POST", token });

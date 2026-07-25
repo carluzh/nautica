@@ -13,13 +13,14 @@ export function newUser(opts: {
   handle: string;
   wallet?: string | null;
   verification?: Partial<Verification>;
+  xp?: number;
 }): UserRecord {
   const now = Date.now();
   return {
     userId: opts.userId,
     handle: opts.handle,
     wallet: opts.wallet ?? null,
-    xp: 0,
+    xp: opts.xp ?? 0,
     streak: 0,
     verification: { face: false, passport: false, orb: false, ...opts.verification },
     balanceUsd: 0,

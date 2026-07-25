@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TIERS } from "@/lib/game/content";
-import { levelInfo, PAID_UNLOCK_LEVEL } from "@/lib/game/levels";
+import { PAID_UNLOCK_LEVEL } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +79,7 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 }
 
 export function SettingsDialog() {
-  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, attachWallet, signOut } = useGame();
+  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, demoLevel, attachWallet, signOut } = useGame();
   const [notify, setNotify] = useState({ quests: true, payouts: true, streak: false });
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
@@ -254,9 +254,8 @@ export function SettingsDialog() {
                   className="flex-1"
                   disabled={paidUnlocked}
                   onClick={() => {
-                    const reached = levelInfo(user.xp + 210).level;
-                    grantXp(210);
-                    toast.success(`Skipped to Level ${reached}`, {
+                    demoLevel();
+                    toast.success(`Skipped to Level ${PAID_UNLOCK_LEVEL}`, {
                       description: "Paid research quests are now unlocked.",
                     });
                   }}

@@ -10,6 +10,7 @@ import { TabFilter } from "./tab-filter";
 import { TabStats } from "./tab-stats";
 import { TabLeaderboard } from "./tab-leaderboard";
 import type { FilterState } from "./types";
+import type { SpeciesId } from "@/lib/game/types";
 
 type TabId = "filter" | "activities" | "stats" | "leaderboard";
 
@@ -17,7 +18,7 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
   { id: "filter", icon: SlidersHorizontal, label: "Filter" },
   { id: "activities", icon: Activity, label: "Activities" },
   { id: "stats", icon: Gauge, label: "Stats" },
-  { id: "leaderboard", icon: Trophy, label: "Leaderboard" },
+  { id: "leaderboard", icon: Trophy, label: "Divers" },
 ];
 
 /**
@@ -35,10 +36,15 @@ export function Sidebar({
   onClose?: () => void;
   className?: string;
 }) {
-  const [tab, setTab] = useState<TabId>("activities");
+  const [tab, setTab] = useState<TabId>("filter");
+
+  const handleFocusSpecies = (species: SpeciesId) => {
+    setTab("filter");
+    filter.onSoloSpecies(species);
+  };
 
   return (
-    <aside className={cn("flex h-full w-full flex-col bg-card", className)}>
+    <aside className={cn("flex h-full w-full flex-col bg-sidebar", className)}>
       {/* Header: logo */}
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3.5">
         <Link
@@ -85,7 +91,7 @@ export function Sidebar({
                 "flex items-center justify-center gap-1.5 min-w-0 rounded-lg px-1 py-2 text-[11px] font-semibold transition-colors",
                 active
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  : "text-muted-foreground hover:bg-primary/5 hover:text-primary/50",
               )}
             >
               <t.icon className="size-4 shrink-0" />
@@ -99,7 +105,7 @@ export function Sidebar({
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "filter" ? <TabFilter filter={filter} /> : null}
         {tab === "activities" ? <TabActivities /> : null}
-        {tab === "stats" ? <TabStats /> : null}
+        {tab === "stats" ? <TabStats onFocusSpecies={handleFocusSpecies} /> : null}
         {tab === "leaderboard" ? <TabLeaderboard /> : null}
       </div>
     </aside>

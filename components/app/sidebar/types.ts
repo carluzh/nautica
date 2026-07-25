@@ -23,6 +23,8 @@ export type FilterState = {
   onToggleSpecies: (species: SpeciesId) => void;
   /** Set a whole group's species visible (true) or hidden (false). */
   onToggleGroup: (species: SpeciesId[], visible: boolean) => void;
+  /** Solo one species in the Filter tab: hide every other species, show all categories. */
+  onSoloSpecies: (species: SpeciesId) => void;
 
   // Location search — geocodes the query and pans the map (no filtering).
   onSearchPlace: (query: string) => void;

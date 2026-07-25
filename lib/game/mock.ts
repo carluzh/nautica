@@ -153,22 +153,34 @@ export const SEED_SIGHTINGS: Sighting[] = [
 ];
 
 export const SEED_HISTORY: ActivityEvent[] = [
-  { id: "h-1", kind: "quest", title: "Logged a jellyfish sighting", species: "Physalia", xp: 25, attestation: SEED_GALLERY[0].attestation, at: BASE - 2 * hr },
+  { id: "h-1", kind: "quest", title: "Logged a jellyfish sighting", species: "Physalia", xp: 25, attestation: SEED_GALLERY[0].attestation, lng: -9.421, lat: 38.694, at: BASE - 2 * hr },
+  { id: "h-7", kind: "quest", title: "Photographed a shore fish", species: "ShoreFish", xp: 5, attestation: att("Shore fish, whole body in frame", 0.94, 5 * hr), lng: -9.329, lat: 38.669, at: BASE - 5 * hr },
+  { id: "h-8", kind: "quest", title: "Logged a sea turtle", species: "Turtle", xp: 25, attestation: att("Sea turtle, carapace visible", 0.96, 9 * hr), lng: -9.324, lat: 38.6675, at: BASE - 9 * hr },
   { id: "h-2", kind: "levelup", title: "Reached Level 3", detail: "Community leaderboard unlocked", at: BASE - 25 * hr },
-  { id: "h-3", kind: "quest", title: "Photographed a crab", species: "Crab", xp: 5, attestation: SEED_GALLERY[1].attestation, at: BASE - 26 * hr },
-  { id: "h-4", kind: "quest", title: "Photographed a shore plant", species: "ShorePlant", xp: 10, attestation: SEED_GALLERY[2].attestation, at: BASE - 30 * hr },
+  { id: "h-3", kind: "quest", title: "Photographed a crab", species: "Crab", xp: 5, attestation: SEED_GALLERY[1].attestation, lng: -9.163, lat: 38.706, at: BASE - 26 * hr },
+  { id: "h-9", kind: "quest", title: "Logged a compass jellyfish", species: "Jellyfish", xp: 25, attestation: att("Chrysaora hysoscella, bell markings clear", 0.95, 28 * hr), lng: -9.245, lat: 38.61, at: BASE - 28 * hr },
+  { id: "h-4", kind: "quest", title: "Photographed a shore plant", species: "ShorePlant", xp: 10, attestation: SEED_GALLERY[2].attestation, lng: -9.32, lat: 38.65, at: BASE - 30 * hr },
+  { id: "h-10", kind: "quest", title: "Spotted a sea star", species: "SeaStar", xp: 10, attestation: att("Sea star, five arms intact", 0.92, 44 * hr), lng: -9.225, lat: 38.41, at: BASE - 44 * hr },
+  { id: "h-11", kind: "quest", title: "Photographed a shore crab", species: "Crab", xp: 5, attestation: att("Brachyura, whole body in frame", 0.91, 50 * hr), lng: -9.22, lat: 38.57, at: BASE - 50 * hr },
   { id: "h-5", kind: "verify", title: "Verified with Face (Selfie Check)", detail: "World ID tier 1", at: BASE - 72 * hr },
   { id: "h-6", kind: "join", title: "Joined Nautica", at: BASE - 74 * hr },
 ];
 
 export const LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, handle: "tide.eth", xp: 640, level: 6 },
-  { rank: 2, handle: "reefwarden", xp: 512, level: 6 },
-  { rank: 3, handle: "marisol", xp: 430, level: 5 },
-  { rank: 4, handle: "coastwatch", xp: 300, level: 5 },
-  { rank: 5, handle: "lena.nautica.eth", xp: 90, level: 3, you: true },
-  { rank: 6, handle: "gaivota", xp: 75, level: 3 },
-  { rank: 7, handle: "salt", xp: 40, level: 2 },
+  { rank: 1, handle: "tide.eth", xp: 640, level: 6, earnings: 342 },
+  { rank: 2, handle: "reefwarden", xp: 512, level: 6, earnings: 310 },
+  { rank: 3, handle: "marisol", xp: 430, level: 5, earnings: 228 },
+  { rank: 4, handle: "coastwatch", xp: 300, level: 5, earnings: 176 },
+  { rank: 5, handle: "lena.nautica.eth", xp: 90, level: 3, you: true, earnings: 54 },
+  { rank: 6, handle: "gaivota", xp: 75, level: 3, earnings: 47 },
+  { rank: 7, handle: "salt", xp: 40, level: 2, earnings: 31 },
+  { rank: 8, handle: "kelp.eth", xp: 34, level: 2, earnings: 22 },
+  { rank: 9, handle: "nerio", xp: 28, level: 2, earnings: 14 },
+  { rank: 10, handle: "dorsal", xp: 22, level: 2, earnings: 9 },
+  { rank: 11, handle: "finn.eth", xp: 15, level: 1, earnings: 6 },
+  { rank: 12, handle: "brackish", xp: 10, level: 1, earnings: 3 },
+  { rank: 13, handle: "lowtide", xp: 6, level: 1, earnings: 0 },
+  { rank: 14, handle: "spume", xp: 3, level: 1, earnings: 0 },
 ];
 
 /**
@@ -186,5 +198,9 @@ export const COMMUNITY_STATS = {
     { species: "Crab", count: 108360 },
     { species: "ShoreFish", count: 98518 },
     { species: "SeaStar", count: 79787 },
+    { species: "ShorePlant", count: 62140 },
+    { species: "Turtle", count: 41205 },
+    { species: "Lionfish", count: 23068 },
+    { species: "Other", count: 15412 },
   ] as { species: SpeciesId; count: number }[],
 };

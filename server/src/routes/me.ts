@@ -4,6 +4,7 @@ import { store } from "../lib/store";
 import type { AppEnv } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
 import { verifySiwe } from "../services/siwe";
+import { PAID_UNLOCK_LEVEL, xpForLevel } from "../lib/levels";
 import { getActivity, getGallery, getProfile } from "../services/subgraph";
 import { assessSighting } from "../services/plausibility";
 import type { PlausibilityVerdict } from "../types";
@@ -79,5 +80,20 @@ meRoutes.post("/wallet", async (c) => {
   const userId = c.get("userId");
   const updated = store.updateUser(userId, { wallet: result.address });
   if (!updated) return c.json({ error: "user not found" }, 404);
+  return c.json({ profile: await getProfile(userId) });
+});
+
+/** POST /me/demo-level — hackathon shortcut: floor the caller to Level 5 (paid unlock). */
+meRoutes.post("/demo-level", async (c) => {
+  const userId = c.get("userId");
+  const u = store.getUser(userId);
+  if (!u) return c.json({ error: "user not found" }, 404);
+  store.updateUser(userId, {
+    xp: Math.max(u.xp, xpForLevel(PAID_UNLOCK_LEVEL)), // 210; never lowers xp
+    activity: [
+      { id: `a_${Date.now()}`, kind: "levelup", title: `Reached Level ${PAID_UNLOCK_LEVEL}`, at: Date.now() },
+      ...u.activity,
+    ],
+  });
   return c.json({ profile: await getProfile(userId) });
 });
