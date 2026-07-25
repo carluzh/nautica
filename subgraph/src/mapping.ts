@@ -1,11 +1,13 @@
-import { BigInt, BigDecimal, Bytes, Address, log } from "@graphprotocol/graph-ts";
+import { BigInt, BigDecimal, Address, log } from "@graphprotocol/graph-ts";
 import {
+  QuestCreated,
+  QuestFunded,
   SightingRecorded,
   PayoutSettled,
   PlayerRegistered,
 } from "../generated/NauticaQuests/NauticaQuests";
-import { Global, Player, Sighting, Attestation, Activity } from "../generated/schema";
-import { decodeQuestId, questMeta } from "./registry";
+import { Global, Player, Quest, Sighting, Attestation, Activity, SpeciesStat } from "../generated/schema";
+import { decodeQuestId } from "./registry";
 import { levelForXp } from "./levels";
 
 const ZERO_BI = BigInt.zero();
@@ -52,33 +54,70 @@ function loadOrCreatePlayer(wallet: Address, at: BigInt): Player {
   return p;
 }
 
+function bumpSpecies(species: string, xp: BigInt, at: BigInt): void {
+  let s = SpeciesStat.load(species);
+  if (s == null) {
+    s = new SpeciesStat(species);
+    s.species = species;
+    s.count = 0;
+    s.totalXp = ZERO_BI;
+    s.firstSeen = at;
+  }
+  s.count = s.count + 1;
+  s.totalXp = s.totalXp.plus(xp);
+  s.lastSeen = at;
+  s.save();
+}
+
+export function handleQuestCreated(event: QuestCreated): void {
+  const id = decodeQuestId(event.params.questId);
+  const q = new Quest(id);
+  q.creator = event.params.creator;
+  q.species = event.params.species;
+  q.title = event.params.title;
+  q.xp = event.params.xp; // uint32 -> BigInt in graph-ts
+  q.usdcReward = event.params.usdcReward.toBigDecimal().div(E6);
+  q.funded = event.params.funded.toBigDecimal().div(E6);
+  q.createdAt = event.block.timestamp;
+  q.save();
+}
+
+export function handleQuestFunded(event: QuestFunded): void {
+  const id = decodeQuestId(event.params.questId);
+  const q = Quest.load(id);
+  if (q == null) return;
+  q.funded = event.params.totalFunded.toBigDecimal().div(E6);
+  q.save();
+}
+
 export function handleSightingRecorded(event: SightingRecorded): void {
   const at = event.block.timestamp;
   const player = loadOrCreatePlayer(event.params.player, at);
+  const questIdStr = decodeQuestId(event.params.questId);
+  const quest = Quest.load(questIdStr); // created on-chain before completion
+  const species = quest ? quest.species : "Other";
+  const title = quest ? quest.title : "Sighting";
 
   const sightingId = event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
-  const questIdStr = decodeQuestId(event.params.questId);
-  const meta = questMeta(questIdStr);
 
-  // Attestation (0G reference carried on-chain; confidence stays off-chain).
   const att = new Attestation(sightingId);
   att.hash = event.params.attestationHash;
   att.verdict = "pass"; // only passes reach the chain
-  att.label = meta.species;
+  att.label = species;
   att.at = at;
   att.save();
 
-  // int64/uint32/uint256 all arrive as BigInt; lat/lng/usdc are 1e6 fixed-point.
-  const xp = event.params.xp;
+  const xp = event.params.xp; // BigInt
   const usdc = event.params.usdc6.toBigDecimal().div(E6);
   const lat = event.params.latE6.toBigDecimal().div(E6);
   const lng = event.params.lngE6.toBigDecimal().div(E6);
 
   const s = new Sighting(sightingId);
   s.player = player.id;
+  s.quest = questIdStr;
   s.questId = questIdStr;
-  s.species = meta.species;
-  s.title = meta.title;
+  s.species = species;
+  s.title = title;
   s.xp = xp;
   s.usdc = usdc;
   s.lat = lat;
@@ -102,16 +141,15 @@ export function handleSightingRecorded(event: SightingRecorded): void {
   player.sightingCount = player.sightingCount + 1;
   player.save();
 
-  // Activity: the quest completion, plus a level-up entry if a boundary was crossed.
-  const quest = new Activity(sightingId + "-quest");
-  quest.player = player.id;
-  quest.kind = "quest";
-  quest.title = meta.title;
-  quest.xp = xp;
-  quest.species = meta.species;
-  if (usdc.gt(ZERO_BD)) quest.usdc = usdc;
-  quest.at = at;
-  quest.save();
+  const questActivity = new Activity(sightingId + "-quest");
+  questActivity.player = player.id;
+  questActivity.kind = "quest";
+  questActivity.title = title;
+  questActivity.xp = xp;
+  questActivity.species = species;
+  if (usdc.gt(ZERO_BD)) questActivity.usdc = usdc;
+  questActivity.at = at;
+  questActivity.save();
 
   if (after > before) {
     const lvl = new Activity(sightingId + "-levelup");
@@ -122,13 +160,14 @@ export function handleSightingRecorded(event: SightingRecorded): void {
     lvl.save();
   }
 
+  bumpSpecies(species, xp, at);
+
   const g = loadGlobal();
   g.totalSightings = g.totalSightings.plus(ONE_BI);
   g.totalXp = g.totalXp.plus(xp);
   g.updatedAt = at;
   g.save();
-  // totalUsdc is accrued only at settlement (handlePayoutSettled), not here, so the
-  // sighting reward and the payout aren't double-counted.
+  // totalUsdc accrues only at settlement (handlePayoutSettled), not here.
 }
 
 export function handlePayoutSettled(event: PayoutSettled): void {
@@ -140,13 +179,17 @@ export function handlePayoutSettled(event: PayoutSettled): void {
   player.save();
 
   const questIdStr = decodeQuestId(event.params.questId);
-  const meta = questMeta(questIdStr);
+  const quest = Quest.load(questIdStr);
+  if (quest != null) {
+    quest.funded = quest.funded.minus(usdc); // escrow drawn down
+    quest.save();
+  }
 
   const id = event.transaction.hash.toHexString() + "-" + event.logIndex.toString() + "-payout";
   const a = new Activity(id);
   a.player = player.id;
   a.kind = "payout";
-  a.title = "Paid for " + meta.title;
+  a.title = quest ? "Paid for " + quest.title : "Payout";
   a.usdc = usdc;
   a.at = at;
   a.save();

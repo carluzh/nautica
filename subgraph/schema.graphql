@@ -1,10 +1,22 @@
 # Serves the broker queries in server/src/services/subgraph.ts field-for-field, so
 # setting SUBGRAPH_URL swaps mock -> real with no frontend change.
 #
-# The SightingRecorded event carries the verifiable numbers (player, questId, lat/lng,
-# xp, usdc, attestationHash); species/title are resolved in the mapping from a static
-# registry (mirror of content.ts) keyed by the bytes32 questId. `level` is not stored
-# (a pure function of xp the broker computes) to avoid a redeploy on curve change.
+# Quests are on-chain: a partner emits QuestCreated (species/title/reward/escrow), so
+# the mapping resolves a Sighting's species/title from the Quest entity — no off-chain
+# registry. `level` is not stored (a pure function of xp the broker computes).
+
+"A partner-created quest with its on-chain USDC escrow. Mutable (funded decreases as it pays out)."
+type Quest @entity(immutable: false) {
+  id: ID! # decoded app quest id, e.g. "q-paid-lionfish"
+  creator: Bytes! # partner wallet that created + funds it
+  species: String!
+  title: String!
+  xp: BigInt!
+  usdcReward: BigDecimal! # paid per completion
+  funded: BigDecimal! # remaining escrow
+  createdAt: BigInt!
+  sightings: [Sighting!]! @derivedFrom(field: "quest")
+}
 
 "Protocol-wide aggregates. Singleton, id = \"global\"."
 type Global @entity(immutable: false) {
@@ -41,11 +53,12 @@ type Player @entity(immutable: false) {
 type Sighting @entity(immutable: true) {
   id: ID!
   player: Player!
-  "Resolved in the mapping: on-chain bytes32 questId -> app quest id string."
+  quest: Quest!
+  "Decoded app quest id string (= quest.id), kept for the frozen frontend contract."
   questId: String!
-  "Resolved from the static quest registry (mirror of content.ts)."
+  "From the linked Quest (on-chain)."
   species: String!
-  "Resolved from the static quest registry."
+  "From the linked Quest (on-chain)."
   title: String!
   "From the event (authoritative anti-cheat XP award)."
   xp: BigInt!
@@ -67,15 +80,19 @@ type Attestation @entity(immutable: true) {
   hash: Bytes!
   "Only passes reach the chain, so this is the constant \"pass\"."
   verdict: String!
-  "NOT on-chain: confidence stays in the 0G layer, enriched off-chain by hash. Nullable."
-  confidence: BigDecimal
-  "Mapping constant (nullable): the model id if known on-chain."
-  model: String
-  "Human label (= species) for display parity with the broker shape."
-  label: String
-  "Enclave tech string (nullable mapping constant)."
-  tee: String
+  "Human label (= species)."
+  label: String!
   at: BigInt!
+}
+
+"Per-species aggregate — powers range/rarity context for the plausibility agent."
+type SpeciesStat @entity(immutable: false) {
+  id: ID! # the species name, e.g. "Lionfish"
+  species: String!
+  count: Int!
+  totalXp: BigInt!
+  firstSeen: BigInt!
+  lastSeen: BigInt!
 }
 
 "History feed entry derived from on-chain events. id = sighting id + suffix."

@@ -1,5 +1,12 @@
 # Nautica subgraph
 
+## Live deployment (Base Sepolia)
+
+- **Contract** `NauticaQuests`: [`0x70219d85cBb0d8d33934f9D77E4988aC2b231519`](https://sepolia.basescan.org/address/0x70219d85cBb0d8d33934f9D77E4988aC2b231519#code) (verified on Basescan + Blockscout). On-chain quest registry with per-quest USDC escrow; a paid quest can't be created without escrowing its reward.
+- **Subgraph query endpoint**: `https://api.studio.thegraph.com/query/114962/nautica/v0.0.4`
+- Set `SUBGRAPH_URL` to that endpoint to serve the app from The Graph. `GET /health` then reports `subgraph: "live"`.
+- The `server/mcp/` Subgraph MCP server exposes this same subgraph as agent tools.
+
 Indexes the Nautica Quest contract on Base into the entities that power the
 leaderboard, per-player stats, and the XP/leveling + activity feed. It is the
 real backend for `server/src/services/subgraph.ts` (the broker): while

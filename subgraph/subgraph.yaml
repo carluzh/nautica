@@ -8,9 +8,9 @@ dataSources:
     # address + startBlock are also mirrored in networks.json (per-network).
     network: base-sepolia
     source:
-      address: "0x20b1f18e4723f81f83151b9a4142e3b3367ca7fa"
+      address: "0x70219d85cbb0d8d33934f9d77e4988ac2b231519"
       abi: NauticaQuests
-      startBlock: 44608340
+      startBlock: 44611994
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -18,13 +18,19 @@ dataSources:
       entities:
         - Global
         - Player
+        - Quest
         - Sighting
         - Attestation
         - Activity
+        - SpeciesStat
       abis:
         - name: NauticaQuests
           file: ./abis/NauticaQuests.json
       eventHandlers:
+        - event: QuestCreated(indexed bytes32,indexed address,string,string,uint32,uint256,uint256)
+          handler: handleQuestCreated
+        - event: QuestFunded(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleQuestFunded
         - event: SightingRecorded(indexed address,indexed bytes32,int64,int64,uint32,uint256,bytes32)
           handler: handleSightingRecorded
         - event: PayoutSettled(indexed address,indexed bytes32,uint256)

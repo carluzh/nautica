@@ -67,6 +67,62 @@
   },
   {
     "type": "function",
+    "name": "createQuest",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "species",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "xp",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "usdcReward",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funding",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "fundQuest",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getRoleAdmin",
     "inputs": [
       {
@@ -172,6 +228,55 @@
   },
   {
     "type": "function",
+    "name": "quests",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "creator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "species",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "xp",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "usdcReward",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funded",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "exists",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "recordCompletion",
     "inputs": [
       {
@@ -193,16 +298,6 @@
         "name": "lngE6",
         "type": "int64",
         "internalType": "int64"
-      },
-      {
-        "name": "xp",
-        "type": "uint32",
-        "internalType": "uint32"
-      },
-      {
-        "name": "usdc6",
-        "type": "uint256",
-        "internalType": "uint256"
       },
       {
         "name": "attestation",
@@ -280,11 +375,6 @@
         "name": "questId",
         "type": "bytes32",
         "internalType": "bytes32"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -432,6 +522,86 @@
         "type": "string",
         "indexed": false,
         "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuestCreated",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "species",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "xp",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "usdcReward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "funded",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuestFunded",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalFunded",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -646,6 +816,49 @@
     "type": "error",
     "name": "FailedInnerCall",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "QuestExists",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "QuestNotFound",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "QuestUnderfunded",
+    "inputs": [
+      {
+        "name": "questId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funded",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
