@@ -85,6 +85,19 @@ export function devProof(level: WorldProof["verification_level"] = "device"): Wo
   };
 }
 
+/** Dev placeholders for Google / SIWE until Stage 2 wires the real SDKs. The
+ *  backend must accept these in dev-mock mode (as it does for devProof). */
+export function devIdToken(): string {
+  return `dev.google.${Math.random().toString(16).slice(2, 10)}`;
+}
+export function devSiwe(address: string, nonce: string): { message: string; signature: string } {
+  const r = Math.random().toString(16).slice(2, 10);
+  return {
+    message: `Nautica dev SIWE\naddress: ${address}\nnonce: ${nonce}`,
+    signature: `0xdevsig${r}`,
+  };
+}
+
 export const api = {
   loginWorldId(proof: WorldProof, action?: string) {
     return req<LoginResponse>("/auth/worldid", { method: "POST", body: { proof, action } });
@@ -94,6 +107,22 @@ export const api = {
       method: "POST",
       token,
       body: { proof, action },
+    });
+  },
+  loginGoogle(idToken: string) {
+    return req<LoginResponse>("/auth/google", { method: "POST", body: { idToken } });
+  },
+  walletNonce(address: string) {
+    return req<{ nonce: string }>(`/auth/nonce?address=${address}`, {});
+  },
+  loginWallet(message: string, signature: string) {
+    return req<LoginResponse>("/auth/wallet", { method: "POST", body: { message, signature } });
+  },
+  attachWallet(token: string, message: string, signature: string) {
+    return req<{ profile: ApiProfile }>("/me/wallet", {
+      method: "POST",
+      token,
+      body: { message, signature },
     });
   },
   getQuests(token: string) {

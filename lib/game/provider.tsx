@@ -12,7 +12,9 @@ import {
 import {
   api,
   apiEnabled,
+  devIdToken,
   devProof,
+  devSiwe,
   sessionToken,
   type ApiProfile,
   type WorldProof,
@@ -50,6 +52,8 @@ export type { SubmitResult } from "./types";
 // ---------------------------------------------------------------------------
 
 const LISBON: [number, number] = [-9.15, 38.7];
+const MOCK_WALLET = "0x8Ac…4F21";
+const DEV_ADDRESS = "0x8Ac0000000000000000000000000000000004F21";
 
 function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
@@ -87,7 +91,7 @@ function userFromProfile(p: ApiProfile): UserState {
   return {
     connected: true,
     handle: p.handle,
-    wallet: p.wallet ?? "",
+    wallet: p.wallet,
     xp: p.xp,
     streak: p.streak,
     verification: p.verification,
@@ -119,6 +123,9 @@ type GameValue = {
   setOpenPanel: (p: PanelId | null) => void;
   openQuest: (questId: string) => void;
   connectWorldId: () => void;
+  connectGoogle: () => void;
+  connectWallet: () => void;
+  attachWallet: () => void;
   verify: (step: VerifyStep) => void;
   submitQuest: (questId: string, photo?: File | null) => Promise<SubmitResult>;
   withdraw: () => void;
@@ -197,6 +204,84 @@ export function GameProvider({ children }: { children: ReactNode }) {
     })();
   }, [hydrate]);
 
+  // Google / Wallet sign-in. In mock mode they seed the same returning player as
+  // World ID so the hub is populated. Real integrations need backend routes that
+  // don't exist yet (server owns /auth/*) — hence the honest API-mode message.
+  const connectGoogle = useCallback(() => {
+    if (!apiEnabled) {
+      // Google sign-in: unverified, no payout wallet yet (set later in Settings).
+      setUser((u) => ({ ...u, ...RETURNING_USER, verification: { face: false, passport: false, orb: false }, wallet: null } as UserState));
+      setGallery(SEED_GALLERY);
+      setHistory(SEED_HISTORY);
+      return;
+    }
+    setConnecting(true);
+    setError(null);
+    (async () => {
+      try {
+        // Stage 2: swap devIdToken() for a real Google Identity Services ID token.
+        const { token: tok } = await api.loginGoogle(devIdToken());
+        sessionToken.set(tok);
+        setToken(tok);
+        await hydrate(tok);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Google sign-in failed");
+      } finally {
+        setConnecting(false);
+      }
+    })();
+  }, [hydrate]);
+
+  const connectWallet = useCallback(() => {
+    if (!apiEnabled) {
+      // Wallet sign-in: the wallet IS the identity — attached at login, still unverified.
+      setUser((u) => ({ ...u, ...RETURNING_USER, verification: { face: false, passport: false, orb: false }, wallet: MOCK_WALLET } as UserState));
+      setGallery(SEED_GALLERY);
+      setHistory(SEED_HISTORY);
+      return;
+    }
+    setConnecting(true);
+    setError(null);
+    (async () => {
+      try {
+        // Stage 2: replace DEV_ADDRESS + devSiwe() with a real wagmi connect + SIWE signature.
+        const { nonce } = await api.walletNonce(DEV_ADDRESS);
+        const { message, signature } = devSiwe(DEV_ADDRESS, nonce);
+        const { token: tok } = await api.loginWallet(message, signature);
+        sessionToken.set(tok);
+        setToken(tok);
+        await hydrate(tok);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Wallet sign-in failed");
+      } finally {
+        setConnecting(false);
+      }
+    })();
+  }, [hydrate]);
+
+  // Attach a payout wallet to a logged-in World ID / Google user (SIWE).
+  const attachWallet = useCallback(() => {
+    if (!apiEnabled) {
+      setUser((u) => ({ ...u, wallet: MOCK_WALLET }));
+      setHistory((h) => [
+        { id: uid("h"), kind: "verify", title: "Payout wallet connected", at: Date.now() },
+        ...h,
+      ]);
+      return;
+    }
+    if (!token) return;
+    (async () => {
+      try {
+        const { nonce } = await api.walletNonce(DEV_ADDRESS);
+        const { message, signature } = devSiwe(DEV_ADDRESS, nonce);
+        const { profile } = await api.attachWallet(token, message, signature);
+        setUser(userFromProfile(profile));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not attach wallet");
+      }
+    })();
+  }, [token]);
+
   const verify = useCallback(
     (step: VerifyStep) => {
       if (!apiEnabled) {
@@ -257,7 +342,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (currentLevel < PAID_UNLOCK_LEVEL)
           return { ok: false, reason: `Reach Level ${PAID_UNLOCK_LEVEL} to unlock paid quests.` };
         if (!user.verification.passport)
-          return { ok: false, reason: "Passport (Identity Check) verification required for paid quests." };
+          return { ok: false, reason: "Verify with World ID (Passport)." };
+        if (!user.wallet)
+          return { ok: false, reason: "Attach a wallet in Settings to get paid." };
       }
 
       setQuests((qs) => qs.map((q) => (q.id === questId ? { ...q, status: "verifying" } : q)));
@@ -299,7 +386,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       return { ok: true, attestation, leveledTo: after > before ? after : undefined, usdc: quest.usdc };
     },
-    [quests, user.xp, user.verification.passport, token, hydrate],
+    [quests, user.xp, user.verification.passport, user.wallet, token, hydrate],
   );
 
   const withdraw = useCallback(() => {
@@ -335,6 +422,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setOpenPanel,
     openQuest,
     connectWorldId,
+    connectGoogle,
+    connectWallet,
+    attachWallet,
     verify,
     submitQuest,
     withdraw,

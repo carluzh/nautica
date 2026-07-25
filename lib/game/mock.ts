@@ -15,7 +15,7 @@ const hr = 60 * min;
 export const INITIAL_USER: UserState = {
   connected: false,
   handle: "",
-  wallet: "",
+  wallet: null,
   xp: 0,
   streak: 0,
   verification: { face: false, passport: false, orb: false },
@@ -26,7 +26,7 @@ export const INITIAL_USER: UserState = {
 export const RETURNING_USER: Partial<UserState> = {
   connected: true,
   handle: "lena.nautica.eth",
-  wallet: "0x8Ac…4F21",
+  wallet: null, // World ID / Google sign-in has no wallet; set later in Settings
   xp: 90, // Level 3
   streak: 4,
   verification: { face: true, passport: false, orb: false },

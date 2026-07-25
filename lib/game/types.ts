@@ -110,7 +110,7 @@ export type LevelInfo = {
 export type UserState = {
   connected: boolean;
   handle: string;
-  wallet: string;
+  wallet: string | null; // payout wallet; null = not connected yet
   xp: number;
   streak: number;
   verification: Verification;
