@@ -1,6 +1,7 @@
 "use client";
 
-import { Globe, Loader2, Wallet } from "lucide-react";
+import type { ReactNode } from "react";
+import { Globe, GraduationCap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/lib/game/provider";
 
@@ -28,14 +29,26 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+/** A disabled, "coming soon" sign-in option — shown for parity but not yet live. */
+function ComingSoonButton({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <Button variant="outline" size="lg" className="w-full gap-2" disabled>
+      {icon}
+      {label}
+      <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        Soon
+      </span>
+    </Button>
+  );
+}
+
 /**
- * Entry gate — three ways in. World ID is primary and is the only method that
- * makes an account Sybil-resistant; Google / Wallet are low-friction entry.
- * In mock mode every method seeds a returning player; real Google/Wallet auth
- * needs backend routes (server/) that don't exist yet.
+ * Entry gate. World ID is the only live method for now — one real human, one account,
+ * which is what keeps the citizen-science dataset and leaderboards honest. University
+ * SSO and Google are shown as coming-soon; wallet sign-in has been retired.
  */
 export function LoginGate() {
-  const { connectWorldId, connectGoogle, connectWallet, connecting, error } = useGame();
+  const { connectWorldId, connecting, error } = useGame();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-sm rounded-2xl border bg-card/90 p-6 text-center shadow-2xl">
@@ -61,11 +74,10 @@ export function LoginGate() {
         </div>
         <h1 className="mt-4 text-lg font-semibold">Sign in to Nautica</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          One real human, one account. World ID keeps leaderboards fair — and
-          unlocks paid quests.
+          One real human, one account. World ID keeps the dataset and leaderboards fair.
         </p>
 
-        {/* Primary — World ID */}
+        {/* Primary — World ID (the only live method) */}
         <Button
           className="mt-5 w-full"
           size="lg"
@@ -87,35 +99,17 @@ export function LoginGate() {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Secondary — Google + Wallet */}
+        {/* Coming soon — University SSO + Google (inactive) */}
         <div className="grid gap-2">
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={connectGoogle}
-            disabled={connecting}
-          >
-            <GoogleIcon className="size-4" />
-            Continue with Google
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={connectWallet}
-            disabled={connecting}
-          >
-            <Wallet className="size-4" />
-            Continue with Wallet
-          </Button>
+          <ComingSoonButton icon={<GraduationCap className="size-4" />} label="Continue with University" />
+          <ComingSoonButton icon={<GoogleIcon className="size-4" />} label="Continue with Google" />
         </div>
 
         {error ? <p className="mt-3 text-xs text-destructive">{error}</p> : null}
 
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          Google or a wallet lets you explore and play free quests. Verify with
-          World ID to earn payouts and rank on the leaderboard.
+          University and Google sign-in are coming soon. For now, verify once with World ID
+          to start logging findings.
         </p>
       </div>
     </div>
