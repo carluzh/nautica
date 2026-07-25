@@ -78,9 +78,12 @@ export function MapHud({
       {/* Streak */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="hidden items-center gap-1 rounded-lg bg-secondary px-2 py-1.5 text-xs sm:inline-flex">
-            <Flame className="size-3.5 text-warning" />
-            <span className="tnum font-medium">{user.streak}</span>
+          <span className="hidden items-center gap-0.5 px-1.5 py-1 text-xs sm:inline-flex">
+            <Flame className="size-3.5 text-primary" fill="currentColor" />
+            <span className="tnum font-medium">
+              {user.streak}
+              <span className="text-muted-foreground">d</span>
+            </span>
           </span>
         </TooltipTrigger>
         <TooltipContent>{user.streak}-day streak</TooltipContent>

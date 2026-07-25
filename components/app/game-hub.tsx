@@ -259,7 +259,6 @@ function Hub() {
             The recenter button appears just left of it once you pan off yourself. */}
         <MapHud showRecenter={awayFromUser} onRecenter={() => mapRef.current?.recenterToUser()} />
 
-        <MapLegend />
         <MissionsBoard />
       </div>
 
@@ -272,26 +271,6 @@ function Hub() {
 
       <LevelUpOverlay />
       {!user.connected && <LoginGate />}
-    </div>
-  );
-}
-
-// Decodes the marker colors. Small, bottom-left of the map area (clear of the
-// missions board). Informational, so it stays click-through.
-function MapLegend() {
-  return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-10 hidden rounded-xl border bg-card/80 px-3 py-2 shadow-xl backdrop-blur-md sm:block sm:bottom-4 sm:left-4">
-      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        Marker colors
-      </p>
-      <ul className="flex flex-col gap-1">
-        {CATEGORY_ORDER.map((k) => (
-          <li key={k} className="flex items-center gap-2 text-xs">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ background: CATEGORY_META[k].color }} />
-            <span className="text-foreground/80">{CATEGORY_META[k].label}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

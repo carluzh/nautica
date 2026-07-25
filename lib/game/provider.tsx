@@ -17,12 +17,12 @@ import {
   apiEnabled,
   devIdToken,
   devIdkitResponse,
-  devSiwe,
   sessionToken,
   type ApiProfile,
   type CreateQuestBody,
   type WorldContext,
 } from "@/lib/api/client";
+import { connectInjectedWallet, signSiweWithWallet } from "../wallet";
 
 // Real World ID widget — browser-only (IDKit pulls WASM). ssr:false keeps it out
 // of the server render. In dev-mock mode it never mounts (we submit a dev proof).
@@ -67,7 +67,6 @@ export type { SubmitResult } from "./types";
 
 const LISBON: [number, number] = [-9.15, 38.7];
 const MOCK_WALLET = "0x8Ac…4F21";
-const DEV_ADDRESS = "0x8Ac0000000000000000000000000000000004F21";
 
 function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
@@ -351,9 +350,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setError(null);
     (async () => {
       try {
-        // Stage 2: replace DEV_ADDRESS + devSiwe() with a real wagmi connect + SIWE signature.
-        const { nonce } = await api.walletNonce(DEV_ADDRESS);
-        const { message, signature } = devSiwe(DEV_ADDRESS, nonce);
+        // Real injected wallet (MetaMask/Base): connect -> nonce -> SIWE sign.
+        const address = await connectInjectedWallet();
+        const { nonce } = await api.walletNonce(address);
+        const { message, signature } = await signSiweWithWallet(address, nonce);
         const { token: tok } = await api.loginWallet(message, signature);
         sessionToken.set(tok);
         setToken(tok);
@@ -379,8 +379,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!token) return;
     (async () => {
       try {
-        const { nonce } = await api.walletNonce(DEV_ADDRESS);
-        const { message, signature } = devSiwe(DEV_ADDRESS, nonce);
+        const address = await connectInjectedWallet();
+        const { nonce } = await api.walletNonce(address);
+        const { message, signature } = await signSiweWithWallet(address, nonce);
         const { profile } = await api.attachWallet(token, message, signature);
         setUser(userFromProfile(profile));
       } catch (e) {

@@ -4,17 +4,14 @@ import { useEffect, useState } from "react";
 import {
   Check,
   Circle,
-  Coins,
   Compass,
   Flame,
-  IdCard,
   Loader2,
   Lock,
   Plus,
-  Sparkles,
   Timer,
+  Wallet,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { PartnerQuestDialog } from "@/components/app/panels/partner-quest-dialog";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { PAID_UNLOCK_LEVEL, xpForLevel } from "@/lib/game/levels";
@@ -35,6 +32,32 @@ function fmtCountdown(ms: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+/** The reward chip on the right of a quest row: shows the amount by default and
+ *  cross-fades to "Log" (white) on row hover. `xp` = coral, `usd` = green. The two
+ *  labels are grid-stacked so the swap fades smoothly instead of jumping. */
+function LogPill({ amount, tone }: { amount: string; tone: "xp" | "usd" }) {
+  return (
+    <span
+      className={cn(
+        "tnum relative inline-grid shrink-0 place-items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors duration-200",
+        tone === "xp" ? "bg-primary/10 group-hover:bg-primary" : "bg-success/15 group-hover:bg-success",
+      )}
+    >
+      <span
+        className={cn(
+          "col-start-1 row-start-1 transition-opacity duration-200 group-hover:opacity-0",
+          tone === "xp" ? "text-primary" : "text-success",
+        )}
+      >
+        {amount}
+      </span>
+      <span className="col-start-1 row-start-1 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        Log
+      </span>
+    </span>
+  );
+}
+
 /** Bottom-right floating glass panel: the daily quest board. */
 export function MissionsBoard() {
   const { quests, paidUnlocked, openQuest, user, level } = useGame();
@@ -51,25 +74,20 @@ export function MissionsBoard() {
 
   const free = quests.filter((q) => q.kind === "free");
   const paid = quests.filter((q) => q.kind === "paid");
-  const done = quests.filter((q) => q.status === "done").length;
   const xpToUnlock = Math.max(0, xpForLevel(PAID_UNLOCK_LEVEL) - level.totalXp);
 
   return (
-    <div className="pointer-events-auto absolute right-3 bottom-3 z-10 w-[min(92vw,360px)] sm:right-4 sm:bottom-4">
+    <div className="pointer-events-auto absolute right-3 bottom-3 z-10 w-[min(94vw,440px)] sm:right-4 sm:bottom-4">
       <div className="flex max-h-[min(76svh,640px)] flex-col overflow-hidden rounded-xl border bg-card/80 shadow-xl backdrop-blur-md">
-        {/* header: title + reset countdown + streak */}
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
-          <div className="flex min-w-0 flex-col">
-            <span className="text-sm font-medium leading-tight">Daily quests</span>
-            <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Timer className="size-3 shrink-0" />
-              Resets in <span className="tnum">{reset}</span>
+        {/* header: coral band with the title + streak (black flame). */}
+        <div className="flex shrink-0 items-center justify-between gap-2 bg-primary px-3 py-2.5">
+          <span className="text-sm font-semibold text-black/90">Daily quests</span>
+          <span className="inline-flex shrink-0 items-center gap-0.5 text-black">
+            <Flame className="size-4" fill="currentColor" />
+            <span className="tnum text-sm font-medium">
+              {user.streak}
+              <span className="text-black/50">d</span>
             </span>
-          </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-secondary px-2 py-1 text-xs">
-            <Flame className="size-3.5 text-warning" />
-            <span className="tnum font-medium">{user.streak}</span>
-            <span className="text-muted-foreground">day</span>
           </span>
         </div>
 
@@ -93,7 +111,7 @@ export function MissionsBoard() {
                   key={q.id}
                   quest={q}
                   unlocked={paidUnlocked}
-                  hasPassport={user.verification.passport}
+                  hasWallet={Boolean(user.wallet)}
                   xpToUnlock={xpToUnlock}
                   onStart={() => openQuest(q.id)}
                 />
@@ -102,7 +120,7 @@ export function MissionsBoard() {
           )}
         </div>
 
-        {/* footer summary */}
+        {/* footer: post a quest (left) + refresh countdown (right) */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-t px-3 py-2 text-[11px] text-muted-foreground">
           <button
             type="button"
@@ -111,8 +129,8 @@ export function MissionsBoard() {
           >
             <Plus className="size-3" /> Post a research quest
           </button>
-          <span className="tnum shrink-0">
-            {done}/{quests.length}
+          <span className="inline-flex shrink-0 items-center gap-1">
+            <Timer className="size-3 shrink-0" /> Refresh in <span className="tnum">{reset}</span>
           </span>
         </div>
       </div>
@@ -125,14 +143,66 @@ function IconTile({ quest, muted }: { quest: Quest; muted?: boolean }) {
   return <SpeciesBadge species={quest.species} className={cn("size-9", muted && "opacity-40 grayscale")} />;
 }
 
+/** Row wrapper that is clickable (role=button) when the quest can be started. */
+function ClickableRow({
+  clickable,
+  onStart,
+  className,
+  children,
+}: {
+  clickable: boolean;
+  onStart: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!clickable) return <div className={className}>{children}</div>;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onStart}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onStart();
+        }
+      }}
+      className={cn("cursor-pointer transition-colors", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
 function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
   const done = quest.status === "done";
   const verifying = quest.status === "verifying";
+  const notLive = quest.onchain === false;
+  const clickable = !done && !verifying && !notLive;
+
+  const right = done ? (
+    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+      <Check className="size-4" />
+    </span>
+  ) : verifying ? (
+    <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+      <Loader2 className="size-3.5 animate-spin" /> Checking
+    </span>
+  ) : notLive ? (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+      <Lock className="size-3" /> Not yet live
+    </span>
+  ) : (
+    <LogPill amount={`+${quest.reward} XP`} tone="xp" />
+  );
 
   return (
-    <div
+    <ClickableRow
+      clickable={clickable}
+      onStart={onStart}
       className={cn(
-        "flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0",
+        "group flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0",
+        clickable && "hover:bg-muted/40",
         done && "opacity-60",
       )}
     >
@@ -141,81 +211,54 @@ function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
         <p className={cn("truncate text-sm font-medium", done && "text-muted-foreground")}>
           {quest.title}
         </p>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          <span className="tnum inline-flex shrink-0 items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
-            +{quest.reward} XP
-          </span>
-          <p className="truncate text-[11px] text-muted-foreground">{quest.spec}</p>
-        </div>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{quest.spec}</p>
       </div>
-      {done ? (
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-          <Check className="size-4" />
-        </span>
-      ) : verifying ? (
-        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" /> Checking
-        </span>
-      ) : quest.onchain === false ? (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
-          <Lock className="size-3" /> Not yet live
-        </span>
-      ) : (
-        <Button size="sm" variant="secondary" className="shrink-0" onClick={onStart}>
-          Start
-        </Button>
-      )}
-    </div>
+      {right}
+    </ClickableRow>
   );
 }
 
 function PaidRow({
   quest,
   unlocked,
-  hasPassport,
+  hasWallet,
   xpToUnlock,
   onStart,
 }: {
   quest: Quest;
   unlocked: boolean;
-  hasPassport: boolean;
+  hasWallet: boolean;
   xpToUnlock: number;
   onStart: () => void;
 }) {
   const done = quest.status === "done";
   const verifying = quest.status === "verifying";
+  const notLive = quest.onchain === false;
+  const dry = quest.underfunded === true;
 
   // Locked: below Level 5. Tease the reward, name the gate.
   if (!unlocked) {
     return (
-      <div className="flex flex-col gap-2 border-t bg-muted/30 px-3 py-3">
-        <div className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            <SpeciesBadge species={quest.species} className="size-9 opacity-40 grayscale" />
-            <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border bg-card text-muted-foreground">
-              <Lock className="size-2.5" />
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-muted-foreground">Paid research quest</p>
-            <p className="text-[11px] text-muted-foreground">
-              Unlocks at Level {PAID_UNLOCK_LEVEL}
-              {xpToUnlock > 0 ? (
-                <>
-                  {" · "}
-                  <span className="tnum">{xpToUnlock} XP</span> to go
-                </>
-              ) : null}
-            </p>
-          </div>
-          <span className="tnum inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
-            <Coins className="size-3" />${quest.usdc}
+      <div className="flex items-center gap-3 border-t bg-muted/30 px-3 py-3">
+        <div className="relative shrink-0">
+          <SpeciesBadge species={quest.species} className="size-9 opacity-40 grayscale" />
+          <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border bg-card text-muted-foreground">
+            <Lock className="size-2.5" />
           </span>
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-md bg-background/60 px-2 py-1 text-[11px] text-muted-foreground">
-          <IdCard className="size-3.5 shrink-0" />
-          Needs World ID Passport verification to earn USDC
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-muted-foreground">Paid research quest</p>
+          <p className="text-[11px] text-muted-foreground">
+            Unlocks at Level {PAID_UNLOCK_LEVEL}
+            {xpToUnlock > 0 ? (
+              <>
+                {" · "}
+                <span className="tnum">{xpToUnlock} XP</span> to go
+              </>
+            ) : null}
+          </p>
         </div>
+        <span className="tnum shrink-0 text-sm font-semibold text-muted-foreground">${quest.usdc}</span>
       </div>
     );
   }
@@ -239,12 +282,33 @@ function PaidRow({
     );
   }
 
-  // Unlocked + available: partner, reward, requirement chips, Start.
-  const notLive = quest.onchain === false;
-  const remaining = quest.remainingUsd;      // remaining escrow, or undefined
-  const dry = quest.underfunded === true;    // server-computed: pool can't cover a payout
+  // Unlocked + available: same clickable row as the free quests, green money chip.
+  const clickable = !verifying && !notLive && !dry;
+  const right = verifying ? (
+    <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+      <Loader2 className="size-3.5 animate-spin" /> Checking
+    </span>
+  ) : notLive ? (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+      <Lock className="size-3" /> Not yet live
+    </span>
+  ) : dry ? (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-warning/30 px-1.5 py-0.5 text-[11px] text-warning">
+      Escrow low
+    </span>
+  ) : (
+    <LogPill amount={`$${quest.usdc}`} tone="usd" />
+  );
+
   return (
-    <div className="flex flex-col gap-2.5 border-t bg-primary/5 px-3 py-3">
+    <ClickableRow
+      clickable={clickable}
+      onStart={onStart}
+      className={cn(
+        "group flex flex-col gap-2.5 border-t bg-primary/5 px-3 py-3",
+        clickable && "hover:bg-primary/10",
+      )}
+    >
       <div className="flex items-center gap-3">
         <SpeciesBadge species={quest.species} className="size-9" />
         <div className="min-w-0 flex-1">
@@ -256,18 +320,7 @@ function PaidRow({
           </div>
           <p className="truncate text-[11px] text-muted-foreground">{quest.partner}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end">
-          <span className="tnum text-sm font-semibold text-success">${quest.usdc}</span>
-          {notLive ? (
-            <span className="tnum text-[11px] text-muted-foreground">not live</span>
-          ) : dry ? (
-            <span className="tnum text-[11px] text-warning">escrow low</span>
-          ) : remaining != null ? (
-            <span className="tnum text-[11px] text-muted-foreground">${remaining} left</span>
-          ) : (
-            <span className="tnum text-[11px] text-muted-foreground">+{quest.reward} XP</span>
-          )}
-        </div>
+        {right}
       </div>
 
       {quest.requirements?.length ? (
@@ -283,29 +336,11 @@ function PaidRow({
         </div>
       ) : null}
 
-      {!hasPassport ? (
+      {!hasWallet ? (
         <div className="inline-flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
-          <IdCard className="size-3.5 shrink-0" /> Passport verification needed before payout
+          <Wallet className="size-3.5 shrink-0" /> Connect a wallet to earn USDC
         </div>
       ) : null}
-
-      {verifying ? (
-        <Button size="sm" className="w-full" disabled>
-          <Loader2 className="size-3.5 animate-spin" /> Verifying…
-        </Button>
-      ) : notLive ? (
-        <Button size="sm" variant="secondary" className="w-full" disabled>
-          <Lock className="size-3.5" /> Not yet available on-chain
-        </Button>
-      ) : dry ? (
-        <Button size="sm" className="w-full" disabled>
-          <Coins className="size-3.5" /> Escrow too low
-        </Button>
-      ) : (
-        <Button size="sm" className="w-full" onClick={onStart}>
-          <Sparkles className="size-3.5" /> Start paid quest
-        </Button>
-      )}
-    </div>
+    </ClickableRow>
   );
 }
