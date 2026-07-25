@@ -79,7 +79,7 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 }
 
 export function SettingsDialog() {
-  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, attachWallet } = useGame();
+  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, attachWallet, signOut } = useGame();
   const [notify, setNotify] = useState({ quests: true, payouts: true, streak: false });
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
@@ -111,11 +111,10 @@ export function SettingsDialog() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    toast("Session kept for the demo", {
-                      description: "Sign-out is disabled so the walkthrough stays live.",
-                    })
-                  }
+                  onClick={() => {
+                    signOut();
+                    toast("Signed out");
+                  }}
                 >
                   <LogOut className="size-3.5" />
                   Sign out

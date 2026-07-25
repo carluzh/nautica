@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, Gauge, ShieldCheck, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TIERS } from "@/lib/game/content";
 import { LEVEL_UNLOCKS } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
-import type { VerifyStep } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -34,11 +32,6 @@ export function ProfileDialog() {
     .map(Number)
     .sort((a, b) => a - b);
   const nextLockedLevel = unlockLevels.find((l) => level.level < l) ?? null;
-
-  function handleVerify(step: VerifyStep, name: string, unlocks: string) {
-    verify(step);
-    toast.success(`${name} verified`, { description: unlocks });
-  }
 
   return (
     <Dialog open={openPanel === "profile"} onOpenChange={(o) => !o && setOpenPanel(null)}>
@@ -181,7 +174,7 @@ export function ProfileDialog() {
                         size="sm"
                         variant="secondary"
                         className="shrink-0"
-                        onClick={() => handleVerify(tier.step, tier.name, tier.unlocks)}
+                        onClick={() => verify(tier.step)}
                       >
                         Verify
                       </Button>

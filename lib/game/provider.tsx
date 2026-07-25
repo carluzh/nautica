@@ -9,16 +9,25 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import dynamic from "next/dynamic";
+import { toast } from "sonner";
 import {
   api,
   apiEnabled,
   devIdToken,
-  devProof,
+  devIdkitResponse,
   devSiwe,
   sessionToken,
   type ApiProfile,
-  type WorldProof,
+  type WorldContext,
 } from "@/lib/api/client";
+
+// Real World ID widget — browser-only (IDKit pulls WASM). ssr:false keeps it out
+// of the server render. In dev-mock mode it never mounts (we submit a dev proof).
+const WorldIdWidget = dynamic(
+  () => import("@/components/app/worldid-widget").then((m) => m.WorldIdWidget),
+  { ssr: false },
+);
 import { DAILY_QUESTS } from "./content";
 import { levelInfo as computeLevel, PAID_UNLOCK_LEVEL } from "./levels";
 import {
@@ -99,10 +108,17 @@ function userFromProfile(p: ApiProfile): UserState {
   };
 }
 
-const STEP_LEVEL: Record<VerifyStep, WorldProof["verification_level"]> = {
-  face: "device",
-  passport: "document",
-  orb: "orb",
+/** Dev-mock credential per tier (the real widget picks its own preset). */
+const STEP_CREDENTIAL: Record<VerifyStep, "selfie" | "passport" | "proof_of_human"> = {
+  face: "selfie",
+  passport: "passport",
+  orb: "proof_of_human",
+};
+
+const VERIFY_LABEL: Record<VerifyStep, string> = {
+  face: "Selfie Check",
+  passport: "Identity Check",
+  orb: "Orb",
 };
 
 type GameValue = {
@@ -130,6 +146,7 @@ type GameValue = {
   submitQuest: (questId: string, photo?: File | null) => Promise<SubmitResult>;
   withdraw: () => void;
   grantXp: (n: number) => void;
+  signOut: () => void;
   dismissLevelUp: () => void;
 };
 
@@ -148,6 +165,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [lastLevelUp, setLastLevelUp] = useState<number | null>(null);
+  // Real World ID widget flow. `mode` = login vs tier upgrade; `credential` picks
+  // the preset/action. Only mounts when a real World ID app is configured.
+  const [worldId, setWorldId] = useState<{
+    open: boolean;
+    mode: "login" | "upgrade";
+    credential: VerifyStep;
+    ctx: WorldContext | null;
+  }>({ open: false, mode: "login", credential: "face", ctx: null });
 
   const level = useMemo(() => computeLevel(user.xp), [user.xp]);
   const paidUnlocked = level.level >= PAID_UNLOCK_LEVEL;
@@ -179,6 +204,46 @@ export function GameProvider({ children }: { children: ReactNode }) {
     hydrate(tok).catch(() => sessionToken.clear());
   }, [hydrate]);
 
+  // Finish a World ID flow once IDKit returns a proof: forward it to the server
+  // verifier, then hydrate. Login mints a session; upgrade raises a tier.
+  const finishWorldId = useCallback(
+    async (mode: "login" | "upgrade", credential: VerifyStep, ctx: WorldContext, result: unknown) => {
+      const submission = { rp_id: ctx.rp_context.rp_id, idkitResponse: result as Record<string, unknown> };
+      if (mode === "upgrade") {
+        if (!token) return;
+        await api.verifyTier(token, submission, credential);
+        await hydrate(token);
+        toast.success(`${VERIFY_LABEL[credential]} verified`);
+      } else {
+        const { token: tok } = await api.loginWorldId(submission);
+        sessionToken.set(tok);
+        setToken(tok);
+        await hydrate(tok);
+      }
+    },
+    [token, hydrate],
+  );
+
+  const onWorldIdResult = useCallback(
+    (result: unknown) => {
+      const { mode, credential, ctx } = worldId;
+      if (!ctx) return;
+      (async () => {
+        try {
+          await finishWorldId(mode, credential, ctx, result);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : "verification failed";
+          setError(msg);
+          toast.error(msg);
+        } finally {
+          setConnecting(false);
+          setWorldId((w) => ({ ...w, open: false }));
+        }
+      })();
+    },
+    [worldId, finishWorldId],
+  );
+
   const connectWorldId = useCallback(() => {
     if (!apiEnabled) {
       // mock: seed a returning player so the hub is populated.
@@ -191,22 +256,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setError(null);
     (async () => {
       try {
-        // TODO: replace devProof() with a real @worldcoin/idkit proof.
-        const { token: tok } = await api.loginWorldId(devProof("device"));
-        sessionToken.set(tok);
-        setToken(tok);
-        await hydrate(tok);
+        const ctx = await api.getWorldContext("face");
+        if (ctx.simulated) {
+          const { token: tok } = await api.loginWorldId(devIdkitResponse("selfie"));
+          sessionToken.set(tok);
+          setToken(tok);
+          await hydrate(tok);
+          setConnecting(false);
+        } else {
+          setWorldId({ open: true, mode: "login", credential: "face", ctx });
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "sign-in failed");
-      } finally {
         setConnecting(false);
       }
     })();
   }, [hydrate]);
 
-  // Google / Wallet sign-in. In mock mode they seed the same returning player as
-  // World ID so the hub is populated. Real integrations need backend routes that
-  // don't exist yet (server owns /auth/*) — hence the honest API-mode message.
+  // Google / Wallet sign-in. Mock mode seeds the returning player; API mode calls the server.
   const connectGoogle = useCallback(() => {
     if (!apiEnabled) {
       // Google sign-in: unverified, no payout wallet yet (set later in Settings).
@@ -287,18 +354,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (!apiEnabled) {
         setUser((u) => ({ ...u, verification: { ...u.verification, [step]: true } }));
         setHistory((h) => [
-          { id: uid("h"), kind: "verify", title: `Verified with ${step[0]?.toUpperCase()}${step.slice(1)}`, at: Date.now() },
+          { id: uid("h"), kind: "verify", title: `Verified with ${VERIFY_LABEL[step]}`, at: Date.now() },
           ...h,
         ]);
+        toast.success(`${VERIFY_LABEL[step]} verified`);
         return;
       }
       if (!token) return;
       (async () => {
         try {
-          await api.verifyTier(token, devProof(STEP_LEVEL[step]));
-          await hydrate(token);
+          const ctx = await api.getWorldContext(step);
+          if (ctx.simulated) {
+            await api.verifyTier(token, devIdkitResponse(STEP_CREDENTIAL[step]), step);
+            await hydrate(token);
+            toast.success(`${VERIFY_LABEL[step]} verified`);
+          } else {
+            setConnecting(true);
+            setWorldId({ open: true, mode: "upgrade", credential: step, ctx });
+          }
         } catch (e) {
-          setError(e instanceof Error ? e.message : "verification failed");
+          const msg = e instanceof Error ? e.message : "verification failed";
+          setError(msg);
+          toast.error(msg);
         }
       })();
     },
@@ -405,6 +482,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // End the session and reset to the logged-out state. Drops the server token so
+  // the next sign-in mints a fresh session — needed to re-test the World ID flow.
+  const signOut = useCallback(() => {
+    sessionToken.clear();
+    setToken(null);
+    setUser(INITIAL_USER);
+    setGallery([]);
+    setHistory([]);
+    setPayments([]);
+    setLeaderboard(apiEnabled ? [] : LEADERBOARD);
+    setQuests(DAILY_QUESTS);
+    setError(null);
+    setConnecting(false);
+    setOpenPanel(null);
+    setActiveQuestId(null);
+    setLastLevelUp(null);
+    setWorldId({ open: false, mode: "login", credential: "face", ctx: null });
+  }, []);
+
   const value: GameValue = {
     user,
     level,
@@ -429,10 +525,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
     submitQuest,
     withdraw,
     grantXp,
+    signOut,
     dismissLevelUp: () => setLastLevelUp(null),
   };
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  return (
+    <GameContext.Provider value={value}>
+      {children}
+      {worldId.ctx && !worldId.ctx.simulated && (
+        <WorldIdWidget
+          ctx={worldId.ctx}
+          credential={worldId.credential}
+          open={worldId.open}
+          onOpenChange={(open) => {
+            setWorldId((w) => ({ ...w, open }));
+            if (!open) setConnecting(false); // user closed the modal
+          }}
+          onResult={onWorldIdResult}
+          onError={(code) => {
+            setError(code);
+            toast.error(code);
+            setConnecting(false);
+            setWorldId((w) => ({ ...w, open: false }));
+          }}
+        />
+      )}
+    </GameContext.Provider>
+  );
 }
 
 export function useGame(): GameValue {

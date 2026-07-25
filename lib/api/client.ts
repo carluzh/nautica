@@ -16,6 +16,7 @@ import type {
   QuestStatus,
   SubmitResult,
   Verification,
+  VerifyStep,
 } from "@/lib/game/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -36,12 +37,31 @@ export type ApiProfile = {
   balanceUsd: number;
 };
 
-export type WorldProof = {
-  proof: string;
-  merkle_root: string;
-  nullifier_hash: string;
-  verification_level: "device" | "document" | "secure_document" | "orb";
+/** RP context the backend signs; handed to the IDKit widget (mirrors idkit-core RpContext). */
+export type RpContext = {
+  rp_id: string;
+  nonce: string;
+  created_at: number;
+  expires_at: number;
+  signature: string;
 };
+
+/** Everything the IDKit widget needs for a request, fetched from the backend. */
+export type WorldContext = {
+  app_id: string;
+  action: string;
+  rp_context: RpContext;
+  environment: "production" | "staging" | "sandbox";
+  allow_legacy_proofs: boolean;
+  /** true when the backend is in dev-mock mode (no real World ID app configured). */
+  simulated: boolean;
+};
+
+/** The IDKit proof result, forwarded verbatim to the backend v4 verifier. */
+export type IdkitResponse = Record<string, unknown>;
+
+/** What the frontend POSTs after IDKit returns a proof. */
+export type WorldProofSubmission = { rp_id: string; idkitResponse: IdkitResponse };
 
 export type LoginResponse = { token: string; profile: ApiProfile; simulated: boolean };
 export type QuestsResponse = { quests: (Quest & { status: QuestStatus })[]; paidUnlocked: boolean };
@@ -71,22 +91,26 @@ async function req<T>(
 }
 
 /**
- * Dev proof for local login without IDKit. The backend accepts it in dev-mock
- * mode (WORLD_APP_ID unset). Swap this for a real @worldcoin/idkit proof once an
- * App ID exists — see lib/api/README.md.
+ * Dev proof for local login without a real World ID app. The backend accepts it
+ * in dev-mock mode (app_id/rp_id/signing key unset). Used only when the fetched
+ * WorldContext says `simulated: true`; a real app opens the IDKit widget instead.
  */
-export function devProof(level: WorldProof["verification_level"] = "device"): WorldProof {
+export function devIdkitResponse(
+  credential: "selfie" | "passport" | "proof_of_human" = "selfie",
+): WorldProofSubmission {
   const rand = Math.random().toString(16).slice(2, 10);
   return {
-    proof: `0xdev${rand}`,
-    merkle_root: `0xroot${rand}`,
-    nullifier_hash: `0xnull_${rand}`,
-    verification_level: level,
+    rp_id: "rp_dev",
+    idkitResponse: {
+      protocol_version: credential === "selfie" ? "3.0" : "4.0",
+      responses: [{ identifier: credential, nullifier: `0xdev_${credential}_${rand}` }],
+      // Identity Check attests attributes; mirror that so the paid tier unlocks in dev.
+      ...(credential === "passport" ? { identity_attested: true } : {}),
+    },
   };
 }
 
-/** Dev placeholders for Google / SIWE until Stage 2 wires the real SDKs. The
- *  backend must accept these in dev-mock mode (as it does for devProof). */
+/** Dev placeholders for Google / SIWE; the backend accepts them in dev-mock mode. */
 export function devIdToken(): string {
   return `dev.google.${Math.random().toString(16).slice(2, 10)}`;
 }
@@ -99,14 +123,20 @@ export function devSiwe(address: string, nonce: string): { message: string; sign
 }
 
 export const api = {
-  loginWorldId(proof: WorldProof, action?: string) {
-    return req<LoginResponse>("/auth/worldid", { method: "POST", body: { proof, action } });
+  /** Step 1: fetch a backend-signed RP context for the requested credential. */
+  getWorldContext(credential: VerifyStep = "face") {
+    return req<WorldContext>(`/auth/worldid/context?credential=${credential}`, {});
   },
-  verifyTier(token: string, proof: WorldProof, action?: string) {
-    return req<{ tier: string; profile: ApiProfile }>("/auth/verify", {
+  /** Step 2 (login): submit the IDKit proof — Selfie Check one-human sign-in. */
+  loginWorldId(submission: WorldProofSubmission) {
+    return req<LoginResponse>("/auth/worldid", { method: "POST", body: submission });
+  },
+  /** Step 2 (upgrade): submit the IDKit proof to raise a tier. */
+  verifyTier(token: string, submission: WorldProofSubmission, credential: VerifyStep = "passport") {
+    return req<{ tiers: string[]; profile: ApiProfile; simulated: boolean }>("/auth/verify", {
       method: "POST",
       token,
-      body: { proof, action },
+      body: { ...submission, credential },
     });
   },
   loginGoogle(idToken: string) {

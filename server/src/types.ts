@@ -3,8 +3,8 @@
 
 export type VerifyStep = "face" | "passport" | "orb";
 
-/** World ID credential strength, as returned by IDKit / the verify API. */
-export type VerificationLevel = "device" | "document" | "secure_document" | "orb";
+/** World ID 4.0 credential identifiers (issuer_schema_id: 1 / 11 / 9303 / 9310). */
+export type WorldCredential = "proof_of_human" | "selfie" | "passport" | "mnc";
 
 export type Verification = { face: boolean; passport: boolean; orb: boolean };
 

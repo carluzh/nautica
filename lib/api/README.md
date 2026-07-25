@@ -39,16 +39,22 @@ Sign in → the app calls `POST /auth/worldid`, stores the session token, and
 hydrates from the server. Everything after (quests, submit, gallery, leaderboard)
 flows through the API.
 
-## Login / World ID
+## Login / World ID (IDKit 4.0)
 
-Sign-in currently sends a **dev-mock proof** (`devProof()` in `client.ts`), which
-the backend accepts while its `WORLD_APP_ID` is unset. To wire real World ID:
+Real World ID is wired. The frontend reads **no** World env var: it calls
+`GET /auth/worldid/context?credential=…`, and the backend returns the `app_id`,
+pinned `action`, signed `rp_context`, and a `simulated` flag. That flag is the
+single source of truth for mode:
 
-1. Add `@worldcoin/idkit`, set `NEXT_PUBLIC_WORLD_APP_ID`.
-2. In `provider.tsx` `connectWorldId()`, replace `devProof("device")` with the
-   proof IDKit returns, and pass it to `api.loginWorldId(proof)`.
+- `simulated: true` (backend has no real World app) → the client submits a
+  `devIdkitResponse()` and the dev-mock backend accepts it.
+- `simulated: false` → the client opens the real `IDKitRequestWidget`
+  (`components/app/worldid-widget.tsx`) with the credential's preset
+  (`selfieCheckLegacy` / `orbLegacy` / `identityCheck`) and forwards the proof to
+  `POST /auth/worldid` (login) or `POST /auth/verify` (tier upgrade).
 
-The backend side is already there — it just verifies whatever proof it receives.
+Real mode needs `WORLD_APP_ID` + `WORLD_RP_ID` + `WORLD_RP_SIGNING_KEY` set on the
+backend (see `server/.env.example`).
 
 ## The API surface (frozen)
 
