@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SiteNav } from "@/components/marketing/site-nav";
-import { HeroBackdrop } from "@/components/marketing/hero-backdrop";
+import { Hero } from "@/components/marketing/hero";
 import { SiteFooter } from "@/components/site/site-footer";
 
 export const metadata: Metadata = {
@@ -96,53 +96,8 @@ export default function MarketingPage() {
       <SiteNav />
 
       <main>
-        {/* ---- Hero (dark) ------------------------------------------------- */}
-        <section className="relative overflow-hidden">
-          <HeroBackdrop />
-          <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="flex min-h-[calc(100svh_-_4rem)] flex-col items-center justify-center py-20 text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-                <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
-                </span>
-                Verified humans
-                <ArrowRight className="size-3 text-muted-foreground/70" />
-                fundable science
-              </div>
-
-              <h1 className="mt-6 max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight duration-700 animate-in fade-in slide-in-from-bottom-4 fill-mode-both sm:text-6xl">
-                Turn nature photos into{" "}
-                <span className="text-primary">a verified biodiversity dataset.</span>
-              </h1>
-
-              <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground delay-100 duration-700 animate-in fade-in slide-in-from-bottom-4 fill-mode-both sm:text-lg">
-                Nautica is a citizen-science game. Complete daily photo quests to
-                earn XP and level up. World ID proves you are human, 0G&apos;s
-                TEE-attested AI proves every shot is real, and at Level 5 your
-                photos start paying out in USDC.
-              </p>
-
-              <div className="mt-9 flex w-full flex-col items-center justify-center gap-3 delay-200 duration-700 animate-in fade-in slide-in-from-bottom-4 fill-mode-both sm:w-auto sm:flex-row">
-                <Button asChild size="lg" className="group w-full sm:w-auto">
-                  <Link href="/app">
-                    Open the app
-                    <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-                  <Link href="/pro">For researchers</Link>
-                </Button>
-              </div>
-
-              <p className="mt-6 flex max-w-xl flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                <BadgeCheck className="size-3.5 text-primary" />
-                Open, GBIF-compatible data. Every record carries World ID
-                provenance and a 0G TEE attestation.
-              </p>
-            </div>
-          </div>
-        </section>
+        {/* ---- Hero -------------------------------------------------------- */}
+        <Hero />
 
         {/* ---- How it works (light band) ---------------------------------- */}
         <section

@@ -32,7 +32,7 @@ export function SiteNav() {
       )}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Wordmark href="/" size={26} className="text-[15px]" />
+        <Wordmark href="/" size={38} className="text-lg" />
 
         <div className="hidden items-center gap-7 md:flex">
           {LINKS.map((l) => (
@@ -46,7 +46,7 @@ export function SiteNav() {
           ))}
         </div>
 
-        <Button asChild size="sm" className="group">
+        <Button asChild size="sm" className="group bg-[#FF6F61] text-white hover:bg-[#f5604f]">
           <Link href="/app">
             Open the app
             <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
