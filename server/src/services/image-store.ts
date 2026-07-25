@@ -87,16 +87,18 @@ export async function readImage(id: string): Promise<{ bytes: Buffer; contentTyp
 // Uploads the exact bytes to 0G Storage for a decentralized, content-addressed record
 // (a root hash), completing the full-0G-stack story: Compute verifies the photo, Storage
 // holds it. Serving still comes from the local cache above (speed); 0G is the durable
-// copy + provenance. Activates when a funded 0G storage key is set; the indexer + chain
-// RPC default to the 0G testnet turbo endpoints and are overridable:
-//   ZEROG_STORAGE_KEY       (funded 0G wallet private key — pays the small storage fee)
+// copy + provenance. Turn on with ZEROG_STORAGE=1 once its wallet holds some 0G:
+//   ZEROG_STORAGE=1         (enable flag)
+//   ZEROG_STORAGE_KEY       (optional — defaults to RELAYER_PRIVATE_KEY, i.e. the same
+//                            wallet you fund on 0G; set only to use a separate wallet)
 //   ZEROG_STORAGE_INDEXER   (default https://indexer-storage-testnet-turbo.0g.ai)
 //   ZEROG_STORAGE_RPC       (default https://evmrpc-testnet.0g.ai)
-const STORAGE_KEY = process.env.ZEROG_STORAGE_KEY;
+const STORAGE_ENABLED = /^(1|true|on|yes)$/i.test(process.env.ZEROG_STORAGE ?? "");
+const STORAGE_KEY = process.env.ZEROG_STORAGE_KEY ?? process.env.RELAYER_PRIVATE_KEY;
 const STORAGE_INDEXER =
   process.env.ZEROG_STORAGE_INDEXER ?? "https://indexer-storage-testnet-turbo.0g.ai";
 const STORAGE_RPC = process.env.ZEROG_STORAGE_RPC ?? "https://evmrpc-testnet.0g.ai";
-const zeroGReady = Boolean(STORAGE_KEY);
+const zeroGReady = STORAGE_ENABLED && Boolean(STORAGE_KEY);
 
 async function uploadToZeroGStorage(id: string, bytes: Buffer): Promise<void> {
   if (!zeroGReady) return;
