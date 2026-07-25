@@ -3,7 +3,7 @@ import { DAILY_QUESTS } from "../content";
 import { levelForXp } from "../lib/levels";
 import { log } from "../lib/logger";
 import { store, type UserRecord } from "../lib/store";
-import { getSightingRadius } from "./sighting-meta";
+import { getSightingImage, getSightingRadius } from "./sighting-meta";
 import type {
   ActivityEvent,
   Attestation,
@@ -156,11 +156,13 @@ function normalizeSighting(s: Record<string, unknown>): GalleryItem {
   // The subgraph mints sighting ids as `txHash-logIndex`, so the recording tx (and
   // its off-chain precision radius) can be recovered without a schema change.
   const txHash = id.includes("-") ? id.slice(0, id.indexOf("-")) : undefined;
+  const imageId = txHash ? getSightingImage(txHash) : undefined;
   return {
     id,
     questId: String(s.questId),
     species: s.species as SpeciesId,
     title: String(s.title),
+    photo: imageId ? `/images/${imageId}` : undefined,
     xp: Number(s.xp ?? 0),
     usdc: s.usdc != null && Number(s.usdc) > 0 ? Number(s.usdc) : undefined,
     lat: Number(s.lat ?? 0),

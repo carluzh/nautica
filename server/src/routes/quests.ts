@@ -11,8 +11,9 @@ import { issueChallenge, validateChallenge } from "../services/freshness";
 import { classifyImage } from "../services/zerog";
 import { recordQuestCompletion, settlePayout } from "../services/chain";
 import { getQuests } from "../services/subgraph";
-import { setSightingRadius } from "../services/sighting-meta";
+import { setSightingImage, setSightingRadius } from "../services/sighting-meta";
 import { enqueuePlausibility } from "../services/sighting-jobs";
+import { saveImageFromDataUrl } from "../services/image-store";
 import type { ActivityEvent, GalleryItem, Payment, SubmitResult } from "../types";
 
 const LISBON = { lng: -9.15, lat: 38.7 };
@@ -121,6 +122,10 @@ questRoutes.post("/:id/submit", async (c) => {
     return c.json({ ok: false, reason, attestation } satisfies SubmitResult);
   }
 
+  // Persist the photo so the gallery can show the actual finding (0G only classified
+  // it, then dropped it). Content-addressed; served via GET /images/:id. Best-effort.
+  const savedImage = await saveImageFromDataUrl(parsed.data.imageDataUrl);
+
   // Location is a soft, client-supplied signal. Use the chosen spot; if a GPS anchor
   // came with it, snap back to the anchor when the spot lands beyond the placement
   // leash (a photo can't be pinned an ocean away from where it was taken). Absent
@@ -166,6 +171,7 @@ questRoutes.post("/:id/submit", async (c) => {
     questId: id,
     species: quest.species,
     title: quest.title,
+    photo: savedImage ? `/images/${savedImage.id}` : undefined,
     attestation,
     xp: quest.reward,
     usdc: quest.usdc,
@@ -224,6 +230,7 @@ questRoutes.post("/:id/submit", async (c) => {
   // index, so they keep the lazy GET path). Also stash the off-chain precision radius.
   if (!chainRes.simulated) {
     if (parsed.data.radiusM != null) setSightingRadius(chainRes.txHash, parsed.data.radiusM);
+    if (savedImage) setSightingImage(chainRes.txHash, savedImage.id);
     enqueuePlausibility({ userId, txHash: chainRes.txHash });
   }
 

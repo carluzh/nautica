@@ -25,6 +25,14 @@ const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 /** True when a backend URL is configured — the provider runs in API mode. */
 export const apiEnabled = Boolean(BASE);
 
+/** Resolve a server-relative asset path (e.g. /images/<id>) to an absolute URL so
+ *  <img> tags load from the API origin, not the Next app origin. */
+export function assetUrl(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  if (/^(https?:|data:|blob:)/.test(path)) return path;
+  return BASE ? `${BASE}${path}` : path;
+}
+
 // ---- Response shapes (mirror server/src/types.ts) ---------------------------
 
 export type ApiProfile = {
@@ -182,7 +190,9 @@ export const api = {
     return req<ApiProfile>("/me", { token });
   },
   getGallery(token: string) {
-    return req<GalleryItem[]>("/me/gallery", { token });
+    return req<GalleryItem[]>("/me/gallery", { token }).then((items) =>
+      items.map((it) => ({ ...it, photo: assetUrl(it.photo) })),
+    );
   },
   getActivity(token: string) {
     return req<ActivityEvent[]>("/me/activity", { token });

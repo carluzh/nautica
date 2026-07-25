@@ -7,6 +7,7 @@ import { log } from "./lib/logger";
 import type { AppEnv } from "./lib/http";
 import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
+import { imageRoutes } from "./routes/images";
 import { leaderboardRoutes } from "./routes/leaderboard";
 import { meRoutes } from "./routes/me";
 import { questRoutes } from "./routes/quests";
@@ -33,6 +34,7 @@ app.get("/", (c) => c.json({ service: "nautica-server", health: "/health" }));
 app.route("/health", healthRoutes);
 app.route("/auth", authRoutes);
 app.route("/quests", questRoutes);
+app.route("/images", imageRoutes);
 app.route("/me", meRoutes);
 app.route("/leaderboard", leaderboardRoutes);
 

@@ -80,6 +80,8 @@ export type GalleryItem = {
   questId: string;
   species: SpeciesId;
   title: string;
+  /** Served URL of the finding photo (relative /images/:id; absent = placeholder). */
+  photo?: string;
   attestation: Attestation;
   xp: number;
   usdc?: number;

@@ -229,9 +229,9 @@ export function LocationPicker({
   };
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <div className="relative overflow-hidden rounded-lg border">
-        <div ref={containerRef} className="h-44 w-full" />
+    <div className={cn("flex h-full flex-col gap-2", className)}>
+      <div className="relative min-h-[11rem] flex-1 overflow-hidden rounded-lg border">
+        <div ref={containerRef} className="h-full w-full" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-background/90 to-transparent px-2.5 py-1.5 text-[11px]">
           <span className="inline-flex items-center gap-1 text-muted-foreground">
             {gpsState === "locating" ? (
