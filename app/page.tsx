@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { SiteNav } from "@/components/marketing/site-nav";
 import { AppShowcase } from "@/components/marketing/app-showcase";
 import { StatsBand } from "@/components/marketing/stats-band";
 import { Solution } from "@/components/marketing/solution";
@@ -13,9 +12,7 @@ export const metadata: Metadata = {
 
 export default function MarketingPage() {
   return (
-    <div className="relative">
-      <SiteNav />
-
+    <div className="relative overflow-x-clip">
       <main>
         <AppShowcase />
         <StatsBand />

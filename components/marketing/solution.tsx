@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { SeaMap, type SeaMarker } from "@/components/map/sea-map";
+import { SwimmingShark } from "@/components/marketing/swimming-shark";
 
 const MARKERS: SeaMarker[] = [
   { id: "a", lng: -9.35, lat: 38.66, color: "#F0506E" },
@@ -9,60 +10,18 @@ const MARKERS: SeaMarker[] = [
 ];
 
 /**
- * Screen 3 — show the product + close. A dark panel over the real dark-matter
- * map with the two-sided value line and CTAs, then a thin "Built with" trust row.
+ * Screen 3 — show the product + close. Two "who it's for" cards, then a narrow
+ * reef-text CTA over the real dark-matter map, then a thin "Built with" trust row.
  */
 export function Solution() {
   return (
     <section id="how" className="scroll-mt-20 py-14 lg:py-20">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-10">
-        {/* (a) Dark product panel showing the real map */}
-        <div className="relative min-h-[24rem] overflow-hidden rounded-3xl bg-[#0a1017] ring-1 ring-white/10 lg:min-h-[28rem]">
-          <SeaMap
-            interactive={false}
-            cluster={false}
-            styleUrl="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-            center={[-9.34, 38.66]}
-            zoom={10}
-            className="absolute inset-0 h-full w-full"
-            markers={MARKERS}
-          />
-
-          {/* Legibility gradient over the map */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0a1017]/95 via-[#0a1017]/40 to-transparent" />
-
-          {/* Overlaid content, bottom-left */}
-          <div className="relative z-10 flex min-h-[24rem] flex-col justify-end p-8 text-white lg:min-h-[28rem] lg:p-12">
-            <p className="max-w-2xl text-2xl font-semibold leading-snug lg:text-3xl">
-              One verified photo — a trophy in your gallery, and research-grade
-              data for science.
-            </p>
-
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link
-                href="/app"
-                className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold uppercase tracking-wide text-white shadow-lg transition-transform hover:-translate-y-0.5"
-                style={{ backgroundColor: "#FF6F61" }}
-              >
-                Open the app
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-
-              <Link
-                href="/pro"
-                className="inline-flex items-center gap-1 text-sm font-medium text-white/70 transition-colors hover:text-white"
-              >
-                For researchers
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* (b) Two sides — who it's for */}
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+      <div className="px-4 sm:px-6 lg:px-8">
+        {/* (a) Two sides — who it's for */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* LEFT — For citizen scientists */}
           <div className="rounded-2xl border border-border bg-card p-6 lg:p-8">
-            <p className="text-sm font-medium text-primary">
+            <p className="text-sm font-medium text-[#FF6F61]">
               For citizen scientists
             </p>
             <h3 className="mt-1 text-xl font-semibold">
@@ -76,7 +35,7 @@ export function Solution() {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6 lg:p-8">
-            <p className="text-sm font-medium text-primary">
+            <p className="text-sm font-medium text-[#FF6F61]">
               For researchers, agencies &amp; NGOs
             </p>
             <h3 className="mt-1 text-xl font-semibold">Data you can act on</h3>
@@ -88,7 +47,58 @@ export function Solution() {
           </div>
         </div>
 
-        {/* (c) Thin trust row */}
+        {/* Leopard shark swimming under the two-column cards */}
+        <SwimmingShark />
+
+        {/* (b) Thin reef-text CTA bar over the real map, with the rainbow
+            wrasse overlapping its bottom-left in front */}
+        <div className="relative mx-auto mt-12 max-w-2xl">
+          <div className="relative overflow-hidden rounded-3xl bg-[#0a1017] ring-1 ring-white/10">
+            <SeaMap
+              interactive={false}
+              cluster={false}
+              styleUrl="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+              center={[-9.34, 38.66]}
+              zoom={10}
+              className="absolute inset-0 h-full w-full"
+              markers={MARKERS}
+            />
+
+            {/* Strong dark overlay for legibility */}
+            <div className="pointer-events-none absolute inset-0 bg-black/70" />
+
+            {/* Slim centered reef-filled CTA bar */}
+            <div className="relative z-10 flex items-center justify-center px-6 py-6 text-center">
+              <Link
+                href="/app"
+                className="text-3xl font-bold lg:text-5xl"
+                style={{
+                  backgroundImage: "url(/animals/reef2.jpg)",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                  WebkitTextFillColor: "transparent",
+                  WebkitTextStroke: "1.5px #ffffff",
+                }}
+              >
+                Log your first sighting →
+              </Link>
+            </div>
+          </div>
+
+          <Image
+            src="/animals/rainbowwrasse.png"
+            alt=""
+            width={1372}
+            height={768}
+            sizes="240px"
+            className="pointer-events-none absolute -bottom-8 -left-10 z-20 w-40 select-none drop-shadow-lg lg:w-52"
+          />
+        </div>
+
+        {/* (c) Thin trust row — last, before the footer */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs">
           <span className="text-muted-foreground">Built with</span>
           {["World ID", "0G", "The Graph"].map((name) => (
