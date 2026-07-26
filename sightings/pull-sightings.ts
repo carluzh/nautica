@@ -100,6 +100,9 @@ async function build(): Promise<Sighting[]> {
         const common: string = o.taxon.preferred_common_name || o.taxon.name || "Unknown";
         const at = o.observed_on ? Date.parse(o.observed_on) : NaN;
         const { photo, attribution } = bestPhoto(o);
+        // Only keep sightings that carry a real (CC-licensed) photo - every map marker
+        // should open an actual image, never a bare dot.
+        if (!photo) continue;
         out.push({
           id,
           species: g.species,
@@ -107,7 +110,8 @@ async function build(): Promise<Sighting[]> {
           lat,
           label: `${common} · ${o.place_guess ?? r.name}`,
           ...(Number.isFinite(at) ? { at } : {}),
-          ...(photo ? { photo, attribution } : {}),
+          photo,
+          attribution,
         });
       }
       // iNat etiquette: < 1 request/second.

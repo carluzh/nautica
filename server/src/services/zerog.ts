@@ -51,16 +51,16 @@ async function getCatalog(): Promise<Catalog> {
 
 function buildPrompt(spec: string, species: string): string {
   return [
-    "You verify citizen-science wildlife photos for a rewards game, and you guard against cheating.",
+    "You verify photos for a citizen-science coastal game, and you guard against cheating.",
     `The quest requires: ${spec}`,
-    `Expected subject: ${species}.`,
-    "PASS only if this is a genuine first-hand photograph that clearly shows the expected subject.",
-    "FAIL if the expected subject is absent, is a different species, or does not match the quest.",
-    "FAIL if it is not a real-world photo of a real animal: reject photos of a screen or monitor, screenshots, printouts or a photo of another photo, drawings, paintings, illustrations, toys, or obvious stock or watermarked images.",
+    species && species !== "Other" ? `The expected subject is a ${species}.` : "",
+    "PASS only if this is a genuine, first-hand photograph that clearly satisfies what the quest requires.",
+    "FAIL if what the quest requires is absent or does not match.",
+    "FAIL if it is not a genuine real-world photograph: reject photos of a screen or monitor, screenshots, printouts or a photo of another photo, drawings, paintings, illustrations, 3D renders, toys, or obvious stock or watermarked images.",
     "Watch for signs of a re-photographed screen or print: moire patterns, an LCD pixel grid, screen glare or bezels, paper or print-dot texture, watermarks, or on-screen UI.",
-    "If you are unsure whether the subject is a genuine live animal, lower your confidence instead of guessing pass.",
+    "If you are unsure whether the photo genuinely satisfies the quest, lower your confidence instead of guessing pass.",
     'Reply with STRICT JSON only, no prose: {"verdict":"pass"|"fail","confidence":0..1,"label":"<short phrase: what you see, or why it failed>"}.',
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 function parseModelJson(text: string): Verdict | null {
