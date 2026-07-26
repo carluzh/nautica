@@ -17,13 +17,13 @@ export const DAILY_QUESTS: Quest[] = [
   {
     id: "q-paid-seastar",
     kind: "paid",
-    title: "Sea star survey",
-    spec: "One clear, well-lit photo of a sea star.",
+    title: "Starfish survey",
+    spec: "One clear, well-lit photo of a starfish.",
     species: "SeaStar",
     reward: 40,
     usdc: 1,
     partner: PARTNERS[0],
-    requirements: ["One clear photo of a sea star"],
+    requirements: ["One clear photo of a starfish"],
   },
 ];
 

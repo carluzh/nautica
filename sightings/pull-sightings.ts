@@ -27,7 +27,7 @@ const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
   { species: "Crab", taxa: "121639", cap: 26 }, // Brachyura (true crabs)
   { species: "Jellyfish", taxa: "48332", cap: 26 }, // Scyphozoa (true jellyfish)
   { species: "Physalia", taxa: "117305", cap: 30 }, // Physalia (Portuguese man o' war)
-  { species: "SeaStar", taxa: "47668", cap: 20 }, // Asteroidea (sea stars)
+  { species: "SeaStar", taxa: "47668", cap: 20 }, // Asteroidea (starfish)
   { species: "Turtle", taxa: "39657,39619", cap: 12 }, // Cheloniidae + Dermochelyidae (sea turtles only)
   // Seagrass + marine algae. Capped small: plants otherwise dominate the map.
   { species: "ShorePlant", taxa: "118944,52616,48220,50863,57774", cap: 6 },

@@ -1,4 +1,4 @@
-// Creates the funded, single-image "sea star" paid quest on-chain (createQuest
+// Creates the funded, single-image "starfish" paid quest on-chain (createQuest
 // escrows the USDC reward; the contract rejects an underfunded paid quest). The
 // live completion + payout happen during the demo. Needs test USDC in the wallet.
 //
@@ -43,8 +43,8 @@ async function send(desc, req) {
 
 console.log(`Creating q-paid-starfish on ${address} from ${account.address}…`);
 await send("approve USDC", { address: USDC, abi: erc20, functionName: "approve", args: [address, FUND] });
-await send("createQuest(sea star, funded 10 USDC)", {
+await send("createQuest(starfish, funded 10 USDC)", {
   address, abi, functionName: "createQuest",
-  args: [Q, "SeaStar", "Sea star survey (paid)", 40, REWARD, FUND],
+  args: [Q, "SeaStar", "Starfish survey (paid)", 40, REWARD, FUND],
 });
 console.log("Done. q-paid-starfish is live on-chain and funded. Completion + payout happen live in the demo.");

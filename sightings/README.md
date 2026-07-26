@@ -22,7 +22,7 @@ Two bounding boxes:
 
 The puller queries per category by iNaturalist `taxon_id` (descendants
 included), one request per group per region, for specific marine and coastal
-taxa: ray-finned fish, true crabs, jellyfish, Portuguese man o' war, sea stars,
+taxa: ray-finned fish, true crabs, jellyfish, Portuguese man o' war, starfish,
 sea turtles, seagrass and marine algae, and lionfish. Because only these taxa
 are requested, terrestrial life never enters the map, and each observation is
 correct by construction on its species. Every group is capped per region for a

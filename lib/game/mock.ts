@@ -113,7 +113,7 @@ export const SEED_HISTORY: ActivityEvent[] = [
   { id: "h-3", kind: "quest", title: "Photographed a crab", species: "Crab", xp: 5, attestation: SEED_GALLERY[1].attestation, lng: -9.163, lat: 38.706, at: BASE - 26 * hr },
   { id: "h-9", kind: "quest", title: "Logged a compass jellyfish", species: "Jellyfish", xp: 25, attestation: att("Chrysaora hysoscella, bell markings clear", 0.95, 28 * hr), lng: -9.245, lat: 38.61, at: BASE - 28 * hr },
   { id: "h-4", kind: "quest", title: "Photographed a shore plant", species: "ShorePlant", xp: 10, attestation: SEED_GALLERY[2].attestation, lng: -9.32, lat: 38.65, at: BASE - 30 * hr },
-  { id: "h-10", kind: "quest", title: "Spotted a sea star", species: "SeaStar", xp: 10, attestation: att("Sea star, five arms intact", 0.92, 44 * hr), lng: -9.225, lat: 38.41, at: BASE - 44 * hr },
+  { id: "h-10", kind: "quest", title: "Spotted a starfish", species: "SeaStar", xp: 10, attestation: att("Starfish, five arms intact", 0.92, 44 * hr), lng: -9.225, lat: 38.41, at: BASE - 44 * hr },
   { id: "h-11", kind: "quest", title: "Photographed a shore crab", species: "Crab", xp: 5, attestation: att("Brachyura, whole body in frame", 0.91, 50 * hr), lng: -9.22, lat: 38.57, at: BASE - 50 * hr },
   { id: "h-5", kind: "verify", title: "Verified with Face (Selfie Check)", detail: "World ID tier 1", at: BASE - 72 * hr },
   { id: "h-6", kind: "join", title: "Joined Nautica", at: BASE - 74 * hr },
