@@ -1,7 +1,6 @@
 import type { LevelInfo } from "./types";
 
-// Cumulative XP thresholds. Tuned so Level 5 (the paid-quest unlock) takes about
-// a week of casual play. After L5 the curve keeps climbing at +120/level.
+// Cumulative XP thresholds. After L5 the curve keeps climbing at +120/level.
 export const THRESHOLDS = [0, 30, 75, 135, 210];
 const POST_L5_STEP = 120;
 
@@ -16,10 +15,7 @@ export const LEVEL_UNLOCKS: Record<number, string> = {
   1: "Daily photo quests",
   2: "Field gallery",
   3: "Community leaderboard",
-  5: "Paid research quests + payouts",
 };
-
-export const PAID_UNLOCK_LEVEL = 5;
 
 export function nextUnlockFrom(level: number): string | null {
   const future = Object.keys(LEVEL_UNLOCKS)

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Nautica backend — World ID verification, subgraph broker, 0G verification, chain relayer. Sits between the frontend and The Graph.",
+  "description": "Nautica backend. Subgraph broker, 0G verification, chain relayer. Sits between the frontend and The Graph.",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
@@ -13,7 +13,6 @@
     "@0glabs/0g-ts-sdk": "^0.3.3",
     "@anthropic-ai/sdk": "^0.115.0",
     "@hono/node-server": "^1.13.7",
-    "@worldcoin/idkit-core": "^4.2.2",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.1",
     "hono": "^4.6.14",

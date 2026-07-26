@@ -17,9 +17,9 @@ import type {
 // everything from the local store, so the frontend contract is identical before and
 // after go-live; when set it queries the deployed subgraph (../../subgraph).
 //
-// The subgraph is address-keyed (Player.id = lowercased wallet) while the app keys
-// users by internal userId, so real-mode reads resolve userId -> wallet via the
-// store and overlay the off-chain identity (handle, verification) the chain lacks.
+// The subgraph is address-keyed (Player.id = lowercased derived address) while the
+// app keys users by internal userId, so real-mode reads resolve userId -> address
+// via the store and overlay the off-chain handle the chain may lag on.
 
 const PLAYER_QUERY = /* GraphQL */ `
   query Player($id: ID!) {
@@ -29,16 +29,12 @@ const PLAYER_QUERY = /* GraphQL */ `
       wallet
       xp
       streak
-      balanceUsd
-      faceVerified
-      passportVerified
-      orbVerified
       sightings(orderBy: at, orderDirection: desc, first: 100) {
-        id questId species title xp usdc lat lng at
+        id questId species title xp lat lng at
         attestation { hash verdict label at }
       }
       activity(orderBy: at, orderDirection: desc, first: 100) {
-        id kind title detail xp usdc species at
+        id kind title detail xp species at
       }
     }
   }
@@ -57,7 +53,7 @@ const LEADERBOARD_QUERY = /* GraphQL */ `
 const SIGHTING_QUERY = /* GraphQL */ `
   query Sighting($id: ID!) {
     sighting(id: $id) {
-      id questId species title xp usdc lat lng at
+      id questId species title xp lat lng at
       player { id }
       attestation { hash verdict label at }
     }
@@ -76,23 +72,18 @@ const SPECIES_SIGHTINGS_QUERY = /* GraphQL */ `
 /** A lightweight point read used by the plausibility agent's corroboration check. */
 export type SightingPoint = { id: string; species: SpeciesId; lat: number; lng: number; at: number };
 
-// On-chain quest state keyed by app questId (subgraph Quest.id === "q-paid-lionfish").
+// On-chain quest state keyed by app questId (subgraph Quest.id === "q-crab").
 // exists=false means the Quest was never createQuest'd -> recordCompletion reverts
-// QuestNotFound. v0.0.4 exposes only `funded` (the REMAINING escrow). underfunded =
-// the pool can't cover one more payout.
+// QuestNotFound.
 export type OnchainQuest = {
   exists: boolean;
-  remainingUsd: number; // funded (remaining escrow) -> the "$X left"
-  underfunded: boolean; // funded < usdcReward (paid only)
-  createdAt: number;    // epoch ms
+  createdAt: number; // epoch ms
 };
 
 const QUESTS_QUERY = /* GraphQL */ `
   query Quests($first: Int!) {
     quests(first: $first) {
       id
-      usdcReward
-      funded
       createdAt
     }
   }
@@ -114,7 +105,8 @@ async function query<T>(q: string, variables: Record<string, unknown>): Promise<
   return json.data;
 }
 
-/** userId -> lowercased wallet (the subgraph's Player id), or null if none attached yet. */
+/** userId -> lowercased derived address (the subgraph's Player id), or null if the
+ *  user doesn't exist. Every user has a derived address, so an indexed guest resolves. */
 function walletKey(userId: string): string | null {
   const w = store.getUser(userId)?.wallet;
   return w ? w.toLowerCase() : null;
@@ -128,8 +120,6 @@ function profileFromRecord(u: UserRecord): Profile {
     xp: u.xp,
     level: levelForXp(u.xp),
     streak: u.streak,
-    verification: u.verification,
-    balanceUsd: u.balanceUsd,
   };
 }
 
@@ -164,7 +154,6 @@ function normalizeSighting(s: Record<string, unknown>): GalleryItem {
     title: String(s.title),
     photo: imageId ? `/images/${imageId}` : undefined,
     xp: Number(s.xp ?? 0),
-    usdc: s.usdc != null && Number(s.usdc) > 0 ? Number(s.usdc) : undefined,
     lat: Number(s.lat ?? 0),
     lng: Number(s.lng ?? 0),
     radiusM: txHash ? getSightingRadius(txHash) : undefined,
@@ -182,7 +171,6 @@ function normalizeActivity(a: Record<string, unknown>): ActivityEvent {
     title: String(a.title),
     detail: a.detail != null ? String(a.detail) : undefined,
     xp: a.xp != null ? Number(a.xp) : undefined,
-    usdc: a.usdc != null ? Number(a.usdc) : undefined,
     species: a.species != null ? (a.species as SpeciesId) : undefined,
     at: toMs(a.at),
   };
@@ -206,17 +194,10 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return {
       userId, // keep the app userId as the profile id (frozen client contract)
       handle: u?.handle ?? String(p.handle ?? ""),
-      wallet: u?.wallet ?? ((p.wallet as string) ?? null),
+      wallet: u?.wallet ?? String(p.wallet ?? ""),
       xp,
       level: levelForXp(xp),
       streak: Number(p.streak ?? 0),
-      // Verification is off-chain (World ID); the store is authoritative when present.
-      verification: u?.verification ?? {
-        face: Boolean(p.faceVerified),
-        passport: Boolean(p.passportVerified),
-        orb: Boolean(p.orbVerified),
-      },
-      balanceUsd: Number(p.balanceUsd ?? 0),
     };
   } catch (err) {
     log.error("subgraph: getProfile failed", { err: String(err) });
@@ -316,32 +297,21 @@ export async function getSpeciesSightings(species: SpeciesId, limit = 500): Prom
 }
 
 /** On-chain quest state by app questId, merged catalog-driven downstream.
- *  Mock: every catalog quest is live + funded (paid pools = reward*2 for a tidy
- *  "$6 · $12 left" demo) so the pure-frontend/dev board stays fully tappable.
+ *  Mock: every catalog quest is live so the pure-frontend/dev board stays tappable.
  *  Real: read the subgraph Quest entities; a catalog quest absent from the result
  *  is exists=false (not yet created). Fails OPEN to catalog-available on a subgraph
  *  error so an indexer blip never bricks the board. */
 export async function getQuests(): Promise<Record<string, OnchainQuest>> {
   const mock = (): Record<string, OnchainQuest> =>
     Object.fromEntries(
-      questRegistry.all().map((q) => {
-        const reward = q.usdc ?? 0;
-        return [q.id, { exists: true, remainingUsd: reward * 2, underfunded: false, createdAt: q.createdAt }];
-      }),
+      questRegistry.all().map((q) => [q.id, { exists: true, createdAt: q.createdAt }]),
     );
   if (!integrations.subgraph) return mock();
   try {
     const data = await query<{ quests: Record<string, unknown>[] }>(QUESTS_QUERY, { first: 100 });
     const out: Record<string, OnchainQuest> = {};
     for (const q of data.quests ?? []) {
-      const reward = Number(q.usdcReward ?? 0);
-      const funded = Number(q.funded ?? 0);
-      out[String(q.id)] = {
-        exists: true,
-        remainingUsd: funded,
-        underfunded: reward > 0 && funded < reward,
-        createdAt: toMs(q.createdAt),
-      };
+      out[String(q.id)] = { exists: true, createdAt: toMs(q.createdAt) };
     }
     return out; // catalog quests missing here -> exists:false when merged in the route
   } catch (err) {

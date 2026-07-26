@@ -21,7 +21,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 
 /** Level: XP total, quick stats, and the level ladder with per-level unlocks. */
 export function LevelDialog() {
-  const { openPanel, setOpenPanel, user, level, gallery, leaderboard, paidUnlocked } = useGame();
+  const { openPanel, setOpenPanel, user, level, gallery, leaderboard } = useGame();
 
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
   const rank = leaderboard.find((e) => e.you)?.rank ?? null;
@@ -47,7 +47,7 @@ export function LevelDialog() {
             <DialogTitle className="truncate text-base leading-tight">{user.handle || "Guest"}</DialogTitle>
             <p className="tnum flex items-center gap-1 truncate text-xs text-muted-foreground">
               <Wallet className="size-3 shrink-0" />
-              {user.wallet ? user.wallet : "No payout wallet connected"}
+              {user.wallet ? user.wallet : "No on-chain address yet"}
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1">
@@ -87,8 +87,8 @@ export function LevelDialog() {
               </div>
             </div>
 
-            {/* Unlocks - hidden once Level 5 (paid) is reached; everything is unlocked by then. */}
-            {!paidUnlocked ? (
+            {/* Unlocks ladder. */}
+            {nextLockedLevel !== null ? (
               <>
                 <p className="mt-5 mb-2 text-xs font-medium text-muted-foreground">Unlocks</p>
                 <ul className="flex flex-col gap-1.5">

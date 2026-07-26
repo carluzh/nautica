@@ -11,15 +11,6 @@ export type SpeciesId =
   | "Turtle"
   | "Other";
 
-/** World ID verification ladder - SEPARATE from the XP level. Gates payouts. */
-export type VerifyStep = "face" | "passport" | "orb";
-
-export type Verification = {
-  face: boolean; // Selfie Check
-  passport: boolean; // Identity / Document Check
-  orb: boolean; // strongest
-};
-
 /** A tamper-proof-ish record of a 0G TEE classification. */
 export type Attestation = {
   model: string; // e.g. "qwen3-vl-30b"
@@ -44,30 +35,20 @@ export type Attestation = {
   quoteVerifier?: string | null; // "automata-onchain" | "phala-offchain"
 };
 
-export type QuestKind = "free" | "paid";
 export type QuestStatus = "available" | "verifying" | "done" | "failed";
 
 export type Quest = {
   id: string;
-  kind: QuestKind;
   title: string;
   /** The 0G spec / what the photo must show. */
   spec: string;
   species: SpeciesId;
-  reward: number; // XP for free quests
+  reward: number; // XP awarded on a verified pass
   status: QuestStatus;
-  // Paid-only:
-  usdc?: number;
-  partner?: string;
-  requirements?: string[]; // e.g. ["Dorsal view", "Ventral view", "Size reference"]
-  // On-chain quest state (from the subgraph via GET /quests). All optional:
-  // absent in mock/pure-frontend mode -> board treats absence as available.
-  // onchain:false = not yet createQuest'd on-chain (recordCompletion would revert)
-  // -> not tappable. remainingUsd = remaining USDC escrow. underfunded = pool can't
-  // cover the next payout.
+  // On-chain quest state (from the subgraph via GET /quests). Optional: absent in
+  // mock/pure-frontend mode -> board treats absence as available. onchain:false =
+  // not yet createQuest'd on-chain (recordCompletion would revert) -> not tappable.
   onchain?: boolean;
-  remainingUsd?: number;
-  underfunded?: boolean;
 };
 
 export type GalleryItem = {
@@ -79,7 +60,6 @@ export type GalleryItem = {
   photo?: string;
   attestation: Attestation;
   xp: number;
-  usdc?: number;
   lat: number;
   lng: number;
   /** Precision radius (m) the user set around the spot; off-chain, may be absent. */
@@ -148,7 +128,7 @@ export type PlausibilityVerdict = {
   at: number;
 };
 
-export type ActivityKind = "quest" | "levelup" | "verify" | "payout" | "join";
+export type ActivityKind = "quest" | "levelup" | "verify" | "join";
 
 export type ActivityEvent = {
   id: string;
@@ -156,7 +136,6 @@ export type ActivityEvent = {
   title: string;
   detail?: string;
   xp?: number;
-  usdc?: number;
   species?: SpeciesId;
   attestation?: Attestation;
   lng?: number; // a sighting's coordinates (quest-kind events)
@@ -175,23 +154,12 @@ export type FocusTarget = {
   attribution?: string;
 };
 
-export type Payment = {
-  id: string;
-  partner: string;
-  quest: string;
-  usdc: number;
-  status: "pending" | "settled";
-  txHash?: string;
-  at: number;
-};
-
 export type LeaderboardEntry = {
   rank: number;
   handle: string;
   xp: number;
   level: number;
   you?: boolean;
-  earnings?: number; // lifetime USD earned
 };
 
 export type LevelInfo = {
@@ -207,11 +175,9 @@ export type LevelInfo = {
 export type UserState = {
   connected: boolean;
   handle: string;
-  wallet: string | null; // payout wallet; null = not connected yet
+  wallet: string | null; // read-only derived on-chain address; null before sign-in
   xp: number;
   streak: number;
-  verification: Verification;
-  balanceUsd: number; // claimable USDC from paid quests
 };
 
 /** Which overlay/modal is open in the hub. */
@@ -221,10 +187,17 @@ export type PanelId =
   | "profile"
   | "gallery"
   | "settings"
-  | "payments"
   | "leaderboard";
 
-/** Result of a quest submission - shared by the provider and the API client. */
+/** A free-form logging submission: photo + free-text description + optional place. */
+export type LogSubmission = {
+  imageDataUrl: string;
+  description: string;
+  species?: SpeciesId;
+  place?: PickedPlace;
+};
+
+/** Result of a quest / log submission - shared by the provider and the API client. */
 export type SubmitResult =
-  | { ok: true; attestation: Attestation; leveledTo?: number; usdc?: number; txHash?: string }
+  | { ok: true; attestation: Attestation; leveledTo?: number; txHash?: string }
   | { ok: false; reason: string; attestation?: Attestation };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Images, Lock, Settings, Wallet, type LucideIcon } from "lucide-react";
+import { Flame, Images, Settings, type LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,16 +11,11 @@ import { LevelRing } from "./level-ring";
 // Floating top-right HUD over the map. The logo and category tabs live in the
 // left sidebar, not here.
 export function MapHud() {
-  const { user, level, paidUnlocked, setOpenPanel } = useGame();
+  const { user, level, setOpenPanel } = useGame();
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
   const nav: { id: PanelId; icon: LucideIcon; label: string }[] = [
     { id: "gallery", icon: Images, label: "Gallery" },
-    {
-      id: "payments",
-      icon: paidUnlocked ? Wallet : Lock,
-      label: paidUnlocked ? "Payments" : "Payments · unlocks at Level 5",
-    },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
 
@@ -58,22 +53,16 @@ export function MapHud() {
 
       <div className="mx-0.5 h-6 w-px bg-border" />
 
-      {nav.map((n) => {
-        const locked = n.id === "payments" && !paidUnlocked;
-        return (
-          <Tooltip key={n.id}>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="relative" onClick={() => setOpenPanel(n.id)}>
-                <n.icon className="size-4" />
-                {locked ? (
-                  <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary ring-2 ring-card" />
-                ) : null}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{n.label}</TooltipContent>
-          </Tooltip>
-        );
-      })}
+      {nav.map((n) => (
+        <Tooltip key={n.id}>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="relative" onClick={() => setOpenPanel(n.id)}>
+              <n.icon className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{n.label}</TooltipContent>
+        </Tooltip>
+      ))}
 
       <Tooltip>
         <TooltipTrigger asChild>

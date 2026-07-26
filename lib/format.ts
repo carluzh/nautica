@@ -2,7 +2,7 @@
 export const CHAINSCAN = "https://chainscan.0g.ai";
 export const chainscanAddress = (addr: string) => `${CHAINSCAN}/address/${addr}`;
 
-/** Base Sepolia explorer (for recordCompletion / settlePayout tx hashes + addresses). */
+/** Base Sepolia explorer (for recordCompletion tx hashes + addresses). */
 export const BASESCAN = "https://sepolia.basescan.org";
 export const basescanTx = (hash: string) => `${BASESCAN}/tx/${hash}`;
 export const basescanAddress = (addr: string) => `${BASESCAN}/address/${addr}`;

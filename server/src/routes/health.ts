@@ -12,8 +12,6 @@ healthRoutes.get("/", (c) => {
     service: "nautica-server",
     uptimeSec: Math.round((Date.now() - startedAt) / 1000),
     integrations: {
-      worldId: integrations.worldId ? "live" : "dev-mock",
-      google: integrations.google ? "live" : "dev-mock",
       zeroG: integrations.zeroG ? "live" : "simulated",
       subgraph: integrations.subgraph ? "live" : "store-fallback",
       chain: integrations.chain ? "live" : "simulated",

@@ -1,13 +1,8 @@
 import { Hono } from "hono";
-import { z } from "zod";
-import { store } from "../lib/store";
 import type { AppEnv } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
-import { verifySiwe } from "../services/siwe";
-import { PAID_UNLOCK_LEVEL, xpForLevel } from "../lib/levels";
 import { getActivity, getGallery, getProfile } from "../services/subgraph";
 import { assessSighting } from "../services/plausibility";
-import { walletUsdcBalance } from "../services/chain";
 import type { PlausibilityVerdict } from "../types";
 
 export const meRoutes = new Hono<AppEnv>();
@@ -17,7 +12,7 @@ meRoutes.use("*", requireAuth);
 // agent runs once per photo rather than on every gallery-card open.
 const plausibilityCache = new Map<string, PlausibilityVerdict>();
 
-/** GET /me - the player's profile (XP, level, streak, verification, balance). */
+/** GET /me - the player's profile (XP, level, streak, derived address). */
 meRoutes.get("/", async (c) => {
   const profile = await getProfile(c.get("userId"));
   if (!profile) return c.json({ error: "user not found" }, 404);
@@ -32,18 +27,6 @@ meRoutes.get("/gallery", async (c) => {
 /** GET /me/activity - the history feed. */
 meRoutes.get("/activity", async (c) => {
   return c.json(await getActivity(c.get("userId")));
-});
-
-/** GET /me/payments - paid-quest settlements. */
-meRoutes.get("/payments", (c) => {
-  return c.json(store.getUser(c.get("userId"))?.payments ?? []);
-});
-
-/** GET /me/wallet-usdc - the connected wallet's live USDC balance on Base Sepolia. */
-meRoutes.get("/wallet-usdc", async (c) => {
-  const u = store.getUser(c.get("userId"));
-  const usdc = await walletUsdcBalance(u?.wallet ?? null);
-  return c.json({ wallet: u?.wallet ?? null, usdc });
 });
 
 /** Assess (or return the cached) plausibility verdict for one sighting, scoped to
@@ -75,33 +58,4 @@ meRoutes.get("/sightings/:id/plausibility", async (c) => {
   const verdict = await primePlausibility(c.get("userId"), c.req.param("id"));
   if (!verdict) return c.json({ error: "sighting not found" }, 404);
   return c.json(verdict);
-});
-
-/** POST /me/wallet - attach a payout wallet to a World ID / Google user (SIWE). */
-meRoutes.post("/wallet", async (c) => {
-  const parsed = z.object({ message: z.string(), signature: z.string() }).safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: "invalid siwe payload" }, 400);
-
-  const result = await verifySiwe(parsed.data.message, parsed.data.signature);
-  if (!result.ok) return c.json({ error: result.reason }, 401);
-
-  const userId = c.get("userId");
-  const updated = store.updateUser(userId, { wallet: result.address });
-  if (!updated) return c.json({ error: "user not found" }, 404);
-  return c.json({ profile: await getProfile(userId) });
-});
-
-/** POST /me/demo-level - hackathon shortcut: floor the caller to Level 5 (paid unlock). */
-meRoutes.post("/demo-level", async (c) => {
-  const userId = c.get("userId");
-  const u = store.getUser(userId);
-  if (!u) return c.json({ error: "user not found" }, 404);
-  store.updateUser(userId, {
-    xp: Math.max(u.xp, xpForLevel(PAID_UNLOCK_LEVEL)), // 210; never lowers xp
-    activity: [
-      { id: `a_${Date.now()}`, kind: "levelup", title: `Reached Level ${PAID_UNLOCK_LEVEL}`, at: Date.now() },
-      ...u.activity,
-    ],
-  });
-  return c.json({ profile: await getProfile(userId) });
 });

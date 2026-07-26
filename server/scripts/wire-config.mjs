@@ -9,7 +9,6 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const root = (p) => fileURLToPath(new URL(`../../${p}`, import.meta.url));
-const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC
 
 const broadcastPath = root("contracts/broadcast/Deploy.s.sol/84532/run-latest.json");
 if (!existsSync(broadcastPath)) {
@@ -43,7 +42,6 @@ const envPath = root("server/.env");
 const upserts = {
   RELAYER_PRIVATE_KEY: key,
   QUEST_CONTRACT_ADDRESS: address,
-  USDC_ADDRESS: USDC,
   CHAIN_ID: "84532",
   CHAIN_RPC_URL: "https://sepolia.base.org",
 };

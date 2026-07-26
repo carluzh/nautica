@@ -8,14 +8,10 @@ import type {
   GalleryItem,
   LeaderboardEntry,
   LevelInfo,
-  Payment,
   PlausibilityVerdict,
   Quest,
   QuestStatus,
-  SpeciesId,
   SubmitResult,
-  Verification,
-  VerifyStep,
 } from "@/lib/game/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -34,61 +30,15 @@ export function assetUrl(path: string | undefined): string | undefined {
 export type ApiProfile = {
   userId: string;
   handle: string;
-  wallet: string | null;
+  wallet: string | null; // read-only derived on-chain address
   xp: number;
   level: number;
   streak: number;
-  verification: Verification;
-  balanceUsd: number;
 };
 
-/** RP context the backend signs; handed to the IDKit widget (mirrors idkit-core RpContext). */
-export type RpContext = {
-  rp_id: string;
-  nonce: string;
-  created_at: number;
-  expires_at: number;
-  signature: string;
-};
-
-/** Everything the IDKit widget needs for a request, fetched from the backend. */
-export type WorldContext = {
-  app_id: string;
-  action: string;
-  rp_context: RpContext;
-  environment: "production" | "staging" | "sandbox";
-  allow_legacy_proofs: boolean;
-  /** true when the backend is in dev-mock mode (no real World ID app configured). */
-  simulated: boolean;
-};
-
-/** The IDKit proof result, forwarded verbatim to the backend v4 verifier. */
-export type IdkitResponse = Record<string, unknown>;
-
-/** What the frontend POSTs after IDKit returns a proof. */
-export type WorldProofSubmission = { rp_id: string; idkitResponse: IdkitResponse };
-
-export type LoginResponse = { token: string; profile: ApiProfile; simulated: boolean };
-export type QuestsResponse = { quests: (Quest & { status: QuestStatus })[]; paidUnlocked: boolean };
+export type LoginResponse = { token: string; profile: ApiProfile };
+export type QuestsResponse = { quests: (Quest & { status: QuestStatus })[] };
 export type ChallengeResponse = { nonce: string; expiresAt: number };
-
-/** What a research partner POSTs to create + fund a quest. `reward` is XP, `usdc`
- *  the per-completion payout, `funding` the USDC escrowed now. */
-export type CreateQuestBody = {
-  title: string;
-  species: SpeciesId;
-  spec: string;
-  requirements?: string[];
-  reward: number;
-  usdc: number;
-  funding: number;
-  partner: string;
-};
-export type CreateQuestResponse = {
-  quest: Quest & { status: QuestStatus };
-  txHash?: string;
-  simulated: boolean;
-};
 
 export class ApiError extends Error {}
 
@@ -113,82 +63,19 @@ async function req<T>(
   return data as T;
 }
 
-/**
- * Dev proof for local login without a real World ID app. The backend accepts it
- * in dev-mock mode (app_id/rp_id/signing key unset). Used only when the fetched
- * WorldContext says `simulated: true`; a real app opens the IDKit widget instead.
- */
-export function devIdkitResponse(
-  credential: "selfie" | "passport" | "proof_of_human" = "selfie",
-): WorldProofSubmission {
-  const rand = Math.random().toString(16).slice(2, 10);
-  return {
-    rp_id: "rp_dev",
-    idkitResponse: {
-      protocol_version: credential === "selfie" ? "3.0" : "4.0",
-      responses: [{ identifier: credential, nullifier: `0xdev_${credential}_${rand}` }],
-      // Identity Check attests attributes; mirror that so the paid tier unlocks in dev.
-      ...(credential === "passport" ? { identity_attested: true } : {}),
-    },
-  };
-}
-
-/** Dev placeholders for Google / SIWE; the backend accepts them in dev-mock mode. */
-export function devIdToken(): string {
-  return `dev.google.${Math.random().toString(16).slice(2, 10)}`;
-}
-export function devSiwe(address: string, nonce: string): { message: string; signature: string } {
-  const r = Math.random().toString(16).slice(2, 10);
-  return {
-    message: `Nautica dev SIWE\naddress: ${address}\nnonce: ${nonce}`,
-    signature: `0xdevsig${r}`,
-  };
-}
-
 export const api = {
-  /** Step 1: fetch a backend-signed RP context for the requested credential. */
-  getWorldContext(credential: VerifyStep = "face") {
-    return req<WorldContext>(`/auth/worldid/context?credential=${credential}`, {});
+  /** Guest sign-in: mints a fresh account + session (no credentials). */
+  loginGuest() {
+    return req<LoginResponse>("/auth/guest", { method: "POST" });
   },
-  /** Step 2 (login): submit the IDKit proof - Selfie Check one-human sign-in. */
-  loginWorldId(submission: WorldProofSubmission) {
-    return req<LoginResponse>("/auth/worldid", { method: "POST", body: submission });
-  },
-  /** Step 2 (upgrade): submit the IDKit proof to raise a tier. */
-  verifyTier(token: string, submission: WorldProofSubmission, credential: VerifyStep = "passport") {
-    return req<{ tiers: string[]; profile: ApiProfile; simulated: boolean }>("/auth/verify", {
-      method: "POST",
-      token,
-      body: { ...submission, credential },
-    });
-  },
-  loginGoogle(idToken: string) {
-    return req<LoginResponse>("/auth/google", { method: "POST", body: { idToken } });
-  },
-  walletNonce(address: string) {
-    return req<{ nonce: string }>(`/auth/nonce?address=${address}`, {});
-  },
-  loginWallet(message: string, signature: string) {
-    return req<LoginResponse>("/auth/wallet", { method: "POST", body: { message, signature } });
-  },
-  attachWallet(token: string, message: string, signature: string) {
-    return req<{ profile: ApiProfile }>("/me/wallet", {
-      method: "POST",
-      token,
-      body: { message, signature },
-    });
-  },
-  /** Demo shortcut: floor the caller to Level 5 (paid unlock). */
-  demoLevel(token: string) {
-    return req<{ profile: ApiProfile }>("/me/demo-level", { method: "POST", token });
+  /** Email + password sign-in. Find-or-create: the same endpoint registers a new
+   *  account or logs into an existing one (the UI toggle is cosmetic). Password is
+   *  sent plaintext over HTTPS; the server hashes it with scrypt. */
+  loginEmail(email: string, password: string) {
+    return req<LoginResponse>("/auth/email", { method: "POST", body: { email, password } });
   },
   getQuests(token: string) {
     return req<QuestsResponse>("/quests", { token });
-  },
-  /** Partner: create + fund a quest. Server errors (underfunded, insufficient
-   *  relayer USDC) surface verbatim via the thrown ApiError. */
-  createQuest(token: string, body: CreateQuestBody) {
-    return req<CreateQuestResponse>("/quests", { method: "POST", token, body });
   },
   challenge(token: string, questId: string) {
     return req<ChallengeResponse>(`/quests/${questId}/challenge`, { method: "POST", token });
@@ -209,6 +96,20 @@ export const api = {
     // Submit always returns 200 with a SubmitResult (ok:true or ok:false).
     return req<SubmitResult>(`/quests/${questId}/submit`, { method: "POST", token, body });
   },
+  /** Free-form logging: photo + free-text description -> 0G-verified sighting. */
+  submitLog(
+    token: string,
+    body: {
+      imageDataUrl: string;
+      description: string;
+      species?: string;
+      lat?: number;
+      lng?: number;
+      radiusM?: number;
+    },
+  ) {
+    return req<SubmitResult>("/log", { method: "POST", token, body });
+  },
   getMe(token: string) {
     return req<ApiProfile>("/me", { token });
   },
@@ -219,13 +120,6 @@ export const api = {
   },
   getActivity(token: string) {
     return req<ActivityEvent[]>("/me/activity", { token });
-  },
-  getPayments(token: string) {
-    return req<Payment[]>("/me/payments", { token });
-  },
-  /** The connected wallet's live on-chain USDC balance (Base Sepolia). */
-  getWalletUsdc(token: string) {
-    return req<{ wallet: string | null; usdc: number | null }>("/me/wallet-usdc", { token });
   },
   /** Plausibility agent verdict for a sighting (species-range/season check via the subgraph). */
   getPlausibility(token: string, sightingId: string) {

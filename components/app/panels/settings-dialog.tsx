@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import {
-  Check,
-  ChevronRight,
-  Database,
-  FileDown,
-  LogOut,
-  Sparkles,
-  Wallet,
-  Zap,
-} from "lucide-react";
+import { Database, FileDown, LogOut, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TIERS } from "@/lib/game/content";
-import { PAID_UNLOCK_LEVEL } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
 import { cn } from "@/lib/utils";
 import { AccountHeader } from "./account-header";
@@ -79,15 +68,15 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 }
 
 export function SettingsDialog() {
-  const { openPanel, setOpenPanel, user, level, paidUnlocked, grantXp, demoLevel, attachWallet, signOut } = useGame();
-  const [notify, setNotify] = useState({ quests: true, payouts: true, streak: false });
+  const { openPanel, setOpenPanel, level, grantXp, signOut } = useGame();
+  const [notify, setNotify] = useState({ quests: true, streak: false });
 
   return (
     <Dialog open={openPanel === "settings"} onOpenChange={(o) => !o && setOpenPanel(null)}>
       <DialogContent className="max-h-[88svh] gap-0 overflow-hidden">
         <DialogHeader className="pr-8">
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Manage your account, verification, and alerts.</DialogDescription>
+          <DialogDescription>Manage your account, data, and alerts.</DialogDescription>
         </DialogHeader>
 
         <div className="-mr-2 mt-3 max-h-[70svh] space-y-5 overflow-y-auto pr-2">
@@ -113,65 +102,6 @@ export function SettingsDialog() {
             </div>
           </Section>
 
-          {/* Payout wallet */}
-          <Section title="Payout wallet">
-            <div className="space-y-2 rounded-lg border p-3">
-              {user.wallet ? (
-                <p className="tnum flex items-center gap-2 text-sm">
-                  <Wallet className="size-4 text-muted-foreground" />
-                  {user.wallet}
-                </p>
-              ) : (
-                <>
-                  <p className="text-xs text-muted-foreground">
-                    Attach a wallet to receive USDC from paid quests.
-                  </p>
-                  <Button size="sm" className="w-full" onClick={attachWallet}>
-                    <Wallet className="size-3.5" />
-                    Connect wallet
-                  </Button>
-                </>
-              )}
-            </div>
-          </Section>
-
-          {/* Verification */}
-          <Section title="Verification">
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">
-                World ID tiers gate payouts, separate from your XP level.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {TIERS.map((t) => {
-                  const on = user.verification[t.step];
-                  return (
-                    <span
-                      key={t.step}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
-                        on
-                          ? "border-success/30 text-success"
-                          : "border-border text-muted-foreground",
-                      )}
-                    >
-                      {on ? <Check className="size-3" /> : <t.icon className="size-3" />}
-                      {t.name}
-                    </span>
-                  );
-                })}
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full justify-between"
-                onClick={() => setOpenPanel("profile")}
-              >
-                Manage verification
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </Section>
-
           {/* Notifications */}
           {/* mock: these toggles are local-only UI state - there is no backend endpoint
               to persist notification preferences (or deliver the alerts) yet. */}
@@ -181,12 +111,6 @@ export function SettingsDialog() {
                 <Toggle
                   checked={notify.quests}
                   onClick={() => setNotify((n) => ({ ...n, quests: !n.quests }))}
-                />
-              </Row>
-              <Row label="Payout alerts" sub="When USDC settles on Base">
-                <Toggle
-                  checked={notify.payouts}
-                  onClick={() => setNotify((n) => ({ ...n, payouts: !n.payouts }))}
                 />
               </Row>
               <Row label="Streak warnings" sub="Before your daily streak lapses">
@@ -222,7 +146,7 @@ export function SettingsDialog() {
                 </Button>
               </Row>
               <div className="px-3 py-2.5 text-xs text-muted-foreground">
-                World ID proves you are a unique human without revealing your identity.
+                Every sighting carries a 0G TEE attestation - open, auditable biodiversity data.
               </div>
             </div>
           </Section>
@@ -233,41 +157,12 @@ export function SettingsDialog() {
               <div className="flex items-center gap-2 text-xs font-medium text-warning">
                 <Zap className="size-3.5" />
                 Demo controls
-                <span className="ml-auto font-normal text-muted-foreground">
-                  Level {level.level}
-                </span>
+                <span className="ml-auto font-normal text-muted-foreground">Level {level.level}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Honest time-skip. Real play reaches Level {PAID_UNLOCK_LEVEL} in about a week.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  disabled={paidUnlocked}
-                  onClick={() => {
-                    demoLevel();
-                    toast.success(`Skipped to Level ${PAID_UNLOCK_LEVEL}`, {
-                      description: "Paid research quests are now unlocked.",
-                    });
-                  }}
-                >
-                  {paidUnlocked ? (
-                    <>
-                      <Check className="size-3.5" />
-                      Level {PAID_UNLOCK_LEVEL} reached
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="size-3.5" />
-                      Skip to Level {PAID_UNLOCK_LEVEL}
-                    </>
-                  )}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => grantXp(25)}>
-                  +25 XP
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">Grant XP to preview leveling.</p>
+              <Button variant="secondary" size="sm" onClick={() => grantXp(25)}>
+                +25 XP
+              </Button>
             </div>
           </Section>
         </div>

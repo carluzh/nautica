@@ -38,7 +38,7 @@ export function Solution() {
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Turn a beach walk or a dive into something that counts. Log what
                 you find, build a verified field gallery, climb the leaderboard,
-                and earn USDC from Level 5.
+                and level up as you go.
               </p>
             </div>
 
@@ -48,9 +48,9 @@ export function Solution() {
               </p>
               <h3 className="mt-1 text-xl font-semibold">Data you can act on</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Post a quest and verified people go collect it. Every record
-                arrives with World ID and 0G provenance, GBIF-ready - biodiversity
-                data you can audit, act on, and fund.
+                Post a quest and people go collect it. Every record arrives with
+                0G provenance, GBIF-ready - biodiversity data you can audit, act
+                on, and fund.
               </p>
             </div>
 
@@ -65,26 +65,15 @@ export function Solution() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-3xl bg-[#0a1017] p-5 ring-1 ring-[#FF6F61]/20">
-              <LogoBadge src="/worldcoin-logo.png" alt="World ID" />
-              <div>
-                <p className="font-semibold text-white">Verified real human</p>
-                <p className="mt-0.5 text-sm text-white/60">
-                  World ID proves every contributor is a unique, real person - no
-                  bots, no wallet, no KYC.
-                </p>
-              </div>
-            </div>
-
-            {/* sm:col-span-2 - full-width banner below the two proof pillars. */}
+            {/* sm:col-span-2 - full-width banner below the proof pillar. */}
             <div className="flex items-center gap-4 rounded-3xl bg-[#0a1017] p-5 ring-1 ring-[#FF6F61]/20 sm:col-span-2">
               <LogoBadge src="/thegraph-logo.png" alt="The Graph" />
               <div>
                 <p className="font-semibold text-white">Indexed on The Graph</p>
                 <p className="mt-0.5 text-sm text-white/60">
-                  A custom subgraph indexes every on-chain quest, USDC escrow, and
-                  species stat on Base Sepolia - so the app reads live biodiversity
-                  and reward data in milliseconds.
+                  A custom subgraph indexes every on-chain quest and species stat
+                  on Base Sepolia - so the app reads live biodiversity data in
+                  milliseconds.
                 </p>
               </div>
             </div>

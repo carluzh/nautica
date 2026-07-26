@@ -1,32 +1,50 @@
-import { createHash } from "node:crypto";
+import { randomUUID, scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import type { UserRecord } from "./store";
-import type { Verification } from "../types";
+import { deriveAddress } from "./address";
 
-/** Deterministic user id from a namespaced external identity. */
-export function userIdFor(externalKey: string): string {
-  return "u_" + createHash("sha256").update(externalKey).digest("hex").slice(0, 16);
+/** A fresh guest user id (no external identity). */
+export function guestUserId(): string {
+  return "guest:" + randomUUID();
 }
 
-/** A fresh user record with sane defaults. */
+/** Deterministic user id for an email account (case/space-normalized). */
+export function emailUserId(email: string): string {
+  return "email:" + email.trim().toLowerCase();
+}
+
+/** scrypt password hash, stored as `scrypt$<saltHex>$<hashHex>` (no new dep). */
+export function hashPassword(pw: string): string {
+  const salt = randomBytes(16);
+  const hash = scryptSync(pw, salt, 64);
+  return `scrypt$${salt.toString("hex")}$${hash.toString("hex")}`;
+}
+
+export function verifyPassword(pw: string, stored: string): boolean {
+  const [scheme, saltHex, hashHex] = stored.split("$");
+  if (scheme !== "scrypt" || !saltHex || !hashHex) return false;
+  const expected = Buffer.from(hashHex, "hex");
+  const actual = scryptSync(pw, Buffer.from(saltHex, "hex"), expected.length);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** A fresh user record with sane defaults. `wallet` is the deterministic derived
+ *  on-chain address (the leaderboard/index key). */
 export function newUser(opts: {
   userId: string;
   handle: string;
-  wallet?: string | null;
-  verification?: Partial<Verification>;
+  passwordHash?: string;
   xp?: number;
 }): UserRecord {
   const now = Date.now();
   return {
     userId: opts.userId,
     handle: opts.handle,
-    wallet: opts.wallet ?? null,
+    wallet: deriveAddress(opts.userId),
     xp: opts.xp ?? 0,
     streak: 0,
-    verification: { face: false, passport: false, orb: false, ...opts.verification },
-    balanceUsd: 0,
+    passwordHash: opts.passwordHash,
     createdAt: now,
     gallery: [],
     activity: [{ id: `a_${now}`, kind: "join", title: "Joined Nautica", at: now }],
-    payments: [],
   };
 }

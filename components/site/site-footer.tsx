@@ -21,8 +21,8 @@ export function SiteFooter() {
           <div className="max-w-sm">
             <Wordmark href="/" size={26} className="text-[15px]" />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Nautica is a citizen-science platform that rewards verified humans
-              for photographing nature and proves every shot with World ID and 0G.
+              Nautica is a citizen-science platform that rewards people for
+              photographing nature and proves every shot with 0G.
             </p>
             <div className="mt-5 flex items-center gap-4">
               <a

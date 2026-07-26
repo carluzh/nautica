@@ -1,13 +1,6 @@
 // API/domain types for the server. These mirror the frontend game domain
 // (lib/game/types.ts) so the subgraph broker returns frontend-ready shapes.
 
-export type VerifyStep = "face" | "passport" | "orb";
-
-/** World ID 4.0 credential identifiers (issuer_schema_id: 1 / 11 / 9303 / 9310). */
-export type WorldCredential = "proof_of_human" | "selfie" | "passport" | "mnc";
-
-export type Verification = { face: boolean; passport: boolean; orb: boolean };
-
 export type SpeciesId =
   | "Physalia"
   | "Jellyfish"
@@ -19,18 +12,12 @@ export type SpeciesId =
   | "Turtle"
   | "Other";
 
-export type QuestKind = "free" | "paid";
-
 export type Quest = {
   id: string;
-  kind: QuestKind;
   title: string;
   spec: string; // the 0G check / what the photo must show
   species: SpeciesId;
   reward: number; // XP
-  usdc?: number;
-  partner?: string;
-  requirements?: string[];
 };
 
 /** Record of a 0G TEE classification; verifiable fields come from x_0g_trace. */
@@ -67,12 +54,10 @@ export type Attestation = {
 export type Profile = {
   userId: string;
   handle: string;
-  wallet: string | null;
+  wallet: string; // deterministic derived on-chain address, always set
   xp: number;
   level: number;
   streak: number;
-  verification: Verification;
-  balanceUsd: number;
 };
 
 export type GalleryItem = {
@@ -84,7 +69,6 @@ export type GalleryItem = {
   photo?: string;
   attestation: Attestation;
   xp: number;
-  usdc?: number;
   lat: number;
   lng: number;
   /** Precision radius (m) the user set around the spot; off-chain, may be absent. */
@@ -99,11 +83,10 @@ export type GalleryItem = {
 
 export type ActivityEvent = {
   id: string;
-  kind: "quest" | "levelup" | "verify" | "payout" | "join";
+  kind: "quest" | "levelup" | "join";
   title: string;
   detail?: string;
   xp?: number;
-  usdc?: number;
   species?: SpeciesId;
   at: number;
 };
@@ -114,16 +97,6 @@ export type LeaderboardEntry = {
   xp: number;
   level: number;
   you?: boolean;
-};
-
-export type Payment = {
-  id: string;
-  partner: string;
-  quest: string;
-  usdc: number;
-  status: "pending" | "settled";
-  txHash?: string;
-  at: number;
 };
 
 /** An independent species-recognition signal - a second model cross-checking 0G's
@@ -167,7 +140,6 @@ export type SubmitResult =
       attestation: Attestation;
       xp: number;
       leveledTo?: number;
-      usdc?: number;
       txHash?: string;
     }
   | { ok: false; reason: string; attestation?: Attestation };

@@ -35,36 +35,30 @@ cp .env.local.example .env.local             # keep NEXT_PUBLIC_API_URL=http://l
 npm run dev                                  # :3000
 ```
 
-Sign in → the app calls `POST /auth/worldid`, stores the session token, and
-hydrates from the server. Everything after (quests, submit, gallery, leaderboard)
-flows through the API.
+Sign in → the app calls `POST /auth/guest` or `POST /auth/email`, stores the
+session token, and hydrates from the server. Everything after (quests, submit,
+log, gallery, leaderboard) flows through the API.
 
-## Login / World ID (IDKit 4.0)
+## Login (guest + email/password)
 
-Real World ID is wired. The frontend reads **no** World env var: it calls
-`GET /auth/worldid/context?credential=…`, and the backend returns the `app_id`,
-pinned `action`, signed `rp_context`, and a `simulated` flag. That flag is the
-single source of truth for mode:
+Auth is guest or email/password. There is no auth-provider env var:
 
-- `simulated: true` (backend has no real World app) → the client submits a
-  `devIdkitResponse()` and the dev-mock backend accepts it.
-- `simulated: false` → the client opens the real `IDKitRequestWidget`
-  (`components/app/worldid-widget.tsx`) with the credential's preset
-  (`selfieCheckLegacy` / `orbLegacy` / `identityCheck`) and forwards the proof to
-  `POST /auth/worldid` (login) or `POST /auth/verify` (tier upgrade).
+- **Guest** - `POST /auth/guest` mints a fresh account + session (no credentials).
+- **Email** - `POST /auth/email { email, password }` is find-or-create: the same
+  endpoint registers a new account or logs into an existing one (the UI toggle is
+  cosmetic). The password is sent plaintext over HTTPS; the server hashes it with
+  scrypt.
 
-Real mode needs `WORLD_APP_ID` + `WORLD_RP_ID` + `WORLD_RP_SIGNING_KEY` set on the
-backend (see `server/.env.example`).
+Every account gets a deterministic, read-only derived on-chain address used as the
+leaderboard/index key. The relayer is the sole on-chain caller.
 
 ## The API surface (frozen)
 
 See `client.ts` for the typed methods and `server/README.md` for the routes:
 
-- **Auth** - `GET /auth/worldid/context`, `POST /auth/worldid`, `POST /auth/verify`,
-  `POST /auth/google`, `GET /auth/nonce` (SIWE), `POST /auth/wallet` (SIWE)
-- **Quests** - `GET /quests`, `POST /quests` (partner create + fund),
-  `POST /quests/:id/challenge`, `POST /quests/:id/submit`
-- **Me** - `GET /me`, `POST /me/wallet`, `POST /me/demo-level` (demo skip to L5),
-  `GET /me/gallery`, `GET /me/activity`, `GET /me/payments`,
+- **Auth** - `POST /auth/guest`, `POST /auth/email`
+- **Quests** - `GET /quests`, `POST /quests/:id/challenge`, `POST /quests/:id/submit`
+- **Log** - `POST /log` (free-form photo + description → 0G-verified sighting)
+- **Me** - `GET /me`, `GET /me/gallery`, `GET /me/activity`,
   `GET /me/sightings/:id/plausibility` (The Graph plausibility agent)
 - **Leaderboard** - `GET /leaderboard`

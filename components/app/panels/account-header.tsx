@@ -18,7 +18,7 @@ export function AccountHeader() {
         <p className="truncate text-sm font-medium">{user.handle || "Guest"}</p>
         <p className="tnum flex items-center gap-1 truncate text-xs text-muted-foreground">
           <Wallet className="size-3 shrink-0" />
-          {user.wallet ? user.wallet : "No payout wallet connected"}
+          {user.wallet ? user.wallet : "No on-chain address yet"}
         </p>
       </div>
     </div>

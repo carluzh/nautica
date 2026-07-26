@@ -117,12 +117,7 @@ function Card({ item }: { item: GalleryItem }) {
         <p className="truncate text-sm font-medium">{item.title}</p>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-muted-foreground">{meta.short}</span>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="tnum text-xs font-medium text-primary">+{item.xp}</span>
-            {item.usdc ? (
-              <span className="tnum text-xs font-medium text-success">${item.usdc}</span>
-            ) : null}
-          </div>
+          <span className="tnum text-xs font-medium text-primary">+{item.xp}</span>
         </div>
         <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">

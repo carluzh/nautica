@@ -3,18 +3,15 @@ import {
   Bug,
   createLucideIcon,
   Droplets,
-  Eye,
   Fish,
   FishSymbol,
-  IdCard,
-  ScanFace,
   Star,
   Turtle,
   Umbrella,
   Wheat,
   Zap,
 } from "lucide-react";
-import type { Quest, SpeciesId, VerifyStep } from "./types";
+import type { Quest, SpeciesId } from "./types";
 
 // Lucide has no jellyfish glyph, so we build one; rendered filled to match the icon style.
 const Jellyfish = createLucideIcon("Jellyfish", [
@@ -84,59 +81,10 @@ export function mapIcon(species: SpeciesId): LucideIcon {
   return CATEGORY_META[m.category].icon;
 }
 
-// World ID verification ladder, separate from the XP level.
-export type TierDef = {
-  step: VerifyStep;
-  name: string;
-  method: string;
-  icon: LucideIcon;
-  unlocks: string;
-  detail: string;
-  color: string;
-};
-
-export const TIERS: TierDef[] = [
-  {
-    step: "face",
-    name: "Face",
-    method: "Selfie Check",
-    icon: ScanFace,
-    unlocks: "Play, earn XP, log verified sightings",
-    detail: "Confirms a live, unique human on-device. Fast and free.",
-    color: "var(--primary)",
-  },
-  {
-    step: "passport",
-    name: "Passport",
-    method: "Identity / Document Check",
-    icon: IdCard,
-    unlocks: "Eligible for paid research quests",
-    detail: "Document-backed uniqueness before any money moves.",
-    color: "var(--chart-2)",
-  },
-  {
-    step: "orb",
-    name: "Orb",
-    method: "World ID Orb · iris",
-    icon: Eye,
-    unlocks: "Payouts above the daily threshold",
-    detail: "Strongest proof of unique personhood.",
-    color: "var(--warning)",
-  },
-];
-
-// Research partners that fund paid quests.
-export const PARTNERS = [
-  "MARE · Marine Sciences Institute",
-  "Oceanário de Lisboa",
-  "IPMA Coastal Program",
-] as const;
-
-// Daily quests: 3 free + 1 paid.
+// Daily quests: three free XP quests.
 export const DAILY_QUESTS: Quest[] = [
   {
     id: "q-crab",
-    kind: "free",
     title: "Photograph a crab",
     spec: "One clear photo of a crab, whole body visible.",
     species: "Crab",
@@ -145,7 +93,6 @@ export const DAILY_QUESTS: Quest[] = [
   },
   {
     id: "q-plant",
-    kind: "free",
     title: "Photograph a shore plant",
     spec: "A coastal or intertidal plant, in focus, filling most of the frame.",
     species: "ShorePlant",
@@ -154,23 +101,10 @@ export const DAILY_QUESTS: Quest[] = [
   },
   {
     id: "q-jelly",
-    kind: "free",
     title: "Log a jellyfish sighting",
     spec: "Any jellyfish or Physalia, close enough to identify the bell.",
     species: "Jellyfish",
     reward: 25,
     status: "available",
-  },
-  {
-    id: "q-paid-seastar",
-    kind: "paid",
-    title: "Starfish survey",
-    spec: "One clear, well-lit photo of a starfish.",
-    species: "SeaStar",
-    reward: 40,
-    status: "available",
-    usdc: 1,
-    partner: PARTNERS[0],
-    requirements: ["One clear photo of a starfish"],
   },
 ];

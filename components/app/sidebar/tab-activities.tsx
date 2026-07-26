@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Coins, Flag, ShieldCheck, Sparkles } from "lucide-react";
+import { Flag, ShieldCheck, Sparkles } from "lucide-react";
 import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 const KIND_ICON: Record<string, { Icon: LucideIcon; tint: string }> = {
   levelup: { Icon: Sparkles, tint: "text-warning" },
   verify: { Icon: ShieldCheck, tint: "text-success" },
-  payout: { Icon: Coins, tint: "text-success" },
   join: { Icon: Flag, tint: "text-muted-foreground" },
 };
 
@@ -62,7 +61,6 @@ function Row({ e }: { e: ActivityEvent }) {
           <p className="truncate text-sm leading-snug font-medium">{e.title}</p>
           <div className="flex shrink-0 flex-col items-end leading-tight">
             {e.xp ? <span className="tnum text-xs font-medium text-primary">+{e.xp}</span> : null}
-            {e.usdc ? <span className="tnum text-xs font-medium text-success">${e.usdc}</span> : null}
           </div>
         </div>
 

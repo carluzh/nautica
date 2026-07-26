@@ -8,26 +8,8 @@ const Env = z.object({
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   SESSION_SECRET: z.string().default("dev-insecure-session-secret-change-me"),
 
-  // World ID 4.0. app_id + rp_id + rp signing key are all required for the real
-  // RP-signature flow; without them the server runs dev-mock World ID.
-  WORLD_APP_ID: z.string().optional(),
-  WORLD_RP_ID: z.string().optional(),
-  // The RP signing key (secp256k1 hex). Server-only secret - signs rp_context.
-  // NEVER expose to the client. GET /auth/worldid/context signs with it.
-  WORLD_RP_SIGNING_KEY: z.string().optional(),
-  // Pinned actions (uniqueness scopes). The client never chooses these.
-  WORLD_ACTION: z.string().default("nautica-login"), // Selfie Check one-human login
-  WORLD_ACTION_PAID: z.string().default("nautica-unlock-paid"), // Identity Check paid gate
-  WORLD_VERIFY_URL: z.string().default("https://developer.world.org/api/v4/verify"),
-  WORLD_ENV: z.enum(["production", "staging", "sandbox"]).default("production"),
-
-  // Google sign-in. Without GOOGLE_CLIENT_ID the server runs dev-mock Google auth.
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  // SIWE (wallet sign-in) - the domain a signed message must bind to.
-  SIWE_DOMAIN: z.string().default("localhost:3000"),
-  // Accept dev placeholder wallet signatures (parity with World ID/Google dev-mock).
-  // Set to "false" in production so only real SIWE signatures pass.
-  SIWE_DEV_BYPASS: z.string().default("true"),
+  // Auth is guest + email/password (server-side scrypt) with a deterministic derived
+  // on-chain address. No auth-provider env vars are required.
 
   ZEROG_ROUTER: z.string().default("https://router-api.0g.ai/v1"),
   ZEROG_API_KEY: z.string().optional(),
@@ -52,7 +34,6 @@ const Env = z.object({
   CHAIN_ID: z.coerce.number().default(84532),
   RELAYER_PRIVATE_KEY: z.string().optional(),
   QUEST_CONTRACT_ADDRESS: z.string().optional(),
-  USDC_ADDRESS: z.string().optional(),
 });
 
 const parsed = Env.parse(process.env);
@@ -60,14 +41,10 @@ const parsed = Env.parse(process.env);
 export const config = {
   ...parsed,
   corsOrigins: parsed.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean),
-  siweDevBypass: parsed.SIWE_DEV_BYPASS !== "false",
 };
 
 /** Which integrations are wired vs. stubbed - surfaced at GET /health. */
 export const integrations = {
-  // Real World ID 4.0 needs all three: the app, the registered RP, and its key.
-  worldId: Boolean(parsed.WORLD_APP_ID && parsed.WORLD_RP_ID && parsed.WORLD_RP_SIGNING_KEY),
-  google: Boolean(parsed.GOOGLE_CLIENT_ID),
   zeroG: Boolean(parsed.ZEROG_API_KEY),
   subgraph: Boolean(parsed.SUBGRAPH_URL),
   chain: Boolean(parsed.RELAYER_PRIVATE_KEY && parsed.QUEST_CONTRACT_ADDRESS),

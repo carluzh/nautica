@@ -2,15 +2,11 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import {
-  Building2,
   Camera,
   Check,
-  Circle,
-  Coins,
   Crosshair,
   ExternalLink,
   Fingerprint,
-  IdCard,
   Loader2,
   MapPin,
   RotateCcw,
@@ -38,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 type Phase = "idle" | "submitting" | "success" | "error";
 type Step = 1 | 2 | 3;
-type OkResult = { attestation: Attestation; leveledTo?: number; usdc?: number; txHash?: string };
+type OkResult = { attestation: Attestation; leveledTo?: number; txHash?: string };
 
 const STEPS: { n: Step; label: string }[] = [
   { n: 1, label: "Photo" },
@@ -56,10 +52,9 @@ function fmtRadius(m: number): string {
 
 /** Quest submission wizard: photo -> location (full-canvas map) -> 0G verify. */
 export function QuestSubmitDialog() {
-  const { openPanel, setOpenPanel, activeQuestId, quests, submitQuest, user } = useGame();
+  const { openPanel, setOpenPanel, activeQuestId, quests, submitQuest } = useGame();
   const quest = quests.find((q) => q.id === activeQuestId);
   const open = openPanel === "quest";
-  const isPaid = quest?.kind === "paid";
   // Use the consolidated map/category icon (e.g. crab shows the Marine-life fish, not a beetle).
   const QuestIcon = quest ? mapIcon(quest.species) : null;
 
@@ -124,13 +119,10 @@ export function QuestSubmitDialog() {
     setPhase("submitting");
     const res = await submitQuest(quest.id, file, place ?? undefined);
     if (res.ok) {
-      setOk({ attestation: res.attestation, leveledTo: res.leveledTo, usdc: res.usdc, txHash: res.txHash });
+      setOk({ attestation: res.attestation, leveledTo: res.leveledTo, txHash: res.txHash });
       setPhase("success");
       toast.success("Verified by 0G", {
-        description:
-          isPaid && res.usdc
-            ? `+${quest.reward} XP · $${res.usdc} USDC on Base`
-            : `+${quest.reward} XP logged to the dataset`,
+        description: `+${quest.reward} XP logged to the dataset`,
       });
     } else {
       setErr(res.reason);
@@ -167,7 +159,7 @@ export function QuestSubmitDialog() {
             </DialogHeader>
 
             {success ? (
-              <SuccessView quest={quest} ok={ok} isPaid={isPaid} onClose={close} />
+              <SuccessView quest={quest} ok={ok} onClose={close} />
             ) : phase === "error" ? (
               <FailureView
                 reason={err}
@@ -208,28 +200,15 @@ export function QuestSubmitDialog() {
                       </div>
                     ))}
                   </div>
-                  {isPaid ? (
-                    <span className="tnum inline-flex shrink-0 items-center rounded-md bg-success/15 px-2 py-1 text-xs font-semibold text-success">
-                      ${quest.usdc}
-                    </span>
-                  ) : (
-                    <span className="tnum inline-flex shrink-0 items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                      +{quest.reward} XP
-                    </span>
-                  )}
+                  <span className="tnum inline-flex shrink-0 items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                    +{quest.reward} XP
+                  </span>
                 </div>
 
                 {/* step body - sizes to each step's content so the modal height adapts */}
                 <div className="px-5 pb-5">
                   {step === 1 ? (
-                    <PhotoStep
-                      quest={quest}
-                      isPaid={isPaid}
-                      passport={user.verification.face}
-                      nonce={nonce}
-                      preview={preview}
-                      onPick={onPick}
-                    />
+                    <PhotoStep nonce={nonce} preview={preview} onPick={onPick} />
                   ) : step === 2 ? (
                     <div className="flex flex-col gap-2">
                       <span className="text-xs font-medium text-muted-foreground">
@@ -240,13 +219,7 @@ export function QuestSubmitDialog() {
                       </div>
                     </div>
                   ) : (
-                    <ReviewStep
-                      quest={quest}
-                      isPaid={isPaid}
-                      passport={user.verification.face}
-                      preview={preview}
-                      place={place}
-                    />
+                    <ReviewStep quest={quest} preview={preview} place={place} />
                   )}
                 </div>
 
@@ -300,18 +273,12 @@ export function QuestSubmitDialog() {
   );
 }
 
-/** Step 1 - freshness nonce, paid requirements, and the camera capture. */
+/** Step 1 - freshness nonce + the camera capture. */
 function PhotoStep({
-  quest,
-  isPaid,
-  passport,
   nonce,
   preview,
   onPick,
 }: {
-  quest: Quest;
-  isPaid: boolean;
-  passport: boolean;
   nonce: string;
   preview: string | null;
   onPick: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -330,34 +297,6 @@ function PhotoStep({
           </p>
         </div>
       </div>
-
-      {isPaid ? (
-        <div className="flex flex-col gap-2 rounded-lg border bg-background/60 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-              <Building2 className="size-3.5 shrink-0" />
-              <span className="truncate">{quest.partner}</span>
-            </span>
-            <span className="tnum shrink-0 text-sm font-semibold text-success">${quest.usdc}</span>
-          </div>
-          {quest.requirements?.length ? (
-            <ul className="flex flex-col gap-1">
-              {quest.requirements.map((r) => (
-                <li key={r} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Circle className="size-3 shrink-0 text-primary/70" />
-                  {r}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {!passport ? (
-            <div className="mt-1 flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
-              <IdCard className="size-3.5 shrink-0" />
-              Selfie (Face) verification needed to receive USDC.
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
       {/* photo capture + preview */}
       <label className="group relative flex h-[220px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed bg-background/50 transition-colors hover:border-primary/50">
@@ -389,14 +328,10 @@ function PhotoStep({
 /** Step 3 - a compact review of the capture + location before 0G verification. */
 function ReviewStep({
   quest,
-  isPaid,
-  passport,
   preview,
   place,
 }: {
   quest: Quest;
-  isPaid: boolean;
-  passport: boolean;
   preview: string | null;
   place: PickedPlace | null;
 }) {
@@ -435,13 +370,6 @@ function ReviewStep({
         </div>
       </div>
 
-      {isPaid && !passport ? (
-        <div className="flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
-          <IdCard className="size-3.5 shrink-0" />
-          Passport (Identity Check) needed to receive USDC.
-        </div>
-      ) : null}
-
       <div className="rounded-lg bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         Your photo is classified in a 0G TEE (qwen3-vl-30b · Intel TDX). Only a verified pass awards XP.
       </div>
@@ -452,12 +380,10 @@ function ReviewStep({
 function SuccessView({
   quest,
   ok,
-  isPaid,
   onClose,
 }: {
   quest: Quest;
   ok: OkResult;
-  isPaid: boolean;
   onClose: () => void;
 }) {
   const meta = SPECIES_META[quest.species];
@@ -479,16 +405,9 @@ function SuccessView({
         <AttestationDetail attestation={ok.attestation} />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="tnum inline-flex items-center rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
-          +{quest.reward} XP
-        </span>
-        {isPaid && ok.usdc ? (
-          <span className="tnum inline-flex items-center gap-1 rounded-lg bg-success/15 px-3 py-1.5 text-sm font-semibold text-success">
-            <Coins className="size-4" /> +${ok.usdc} USDC
-          </span>
-        ) : null}
-      </div>
+      <span className="tnum inline-flex items-center rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
+        +{quest.reward} XP
+      </span>
 
       {ok.txHash ? (
         <a
@@ -498,7 +417,7 @@ function SuccessView({
           className="tnum inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
         >
           <ExternalLink className="size-3" />
-          {isPaid && ok.usdc ? "Recorded + paid on Base" : "Recorded on Base"} · {shortAddr(ok.txHash)}
+          Recorded on Base · {shortAddr(ok.txHash)}
         </a>
       ) : null}
 

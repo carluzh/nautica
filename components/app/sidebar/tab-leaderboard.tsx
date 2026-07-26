@@ -58,8 +58,8 @@ export function TabLeaderboard() {
                 <Badge variant="secondary" className="tnum shrink-0">
                   L{e.level}
                 </Badge>
-                <span className="tnum w-12 shrink-0 text-right text-xs font-semibold text-success">
-                  +${(e.earnings ?? 0).toLocaleString()}
+                <span className="tnum w-14 shrink-0 text-right text-xs font-semibold text-primary">
+                  {e.xp.toLocaleString()} XP
                 </span>
               </li>
             );

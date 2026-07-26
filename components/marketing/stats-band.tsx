@@ -63,8 +63,8 @@ export function StatsBand() {
                 100%
               </div>
               <p className="mt-1 text-sm font-medium text-white/80">
-                of records carry World ID proof and a 0G attestation - open,
-                auditable biodiversity data.
+                of records carry a 0G attestation - open, auditable biodiversity
+                data.
               </p>
             </div>
           </div>

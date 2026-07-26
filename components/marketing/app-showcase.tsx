@@ -57,7 +57,7 @@ export function AppShowcase() {
           <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-white/70 sm:text-xl">
             Join a global network of ocean explorers <em className="italic">mapping marine biodiversity</em>.
             Complete daily photo quests, verify your sightings with AI, and earn
-            USDC as you level up.
+            XP as you level up.
           </p>
           <div className="pointer-events-auto mt-8 flex flex-wrap items-center gap-3">
             <Link

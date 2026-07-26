@@ -26,7 +26,6 @@ import { LevelDialog } from "./panels/level-dialog";
 import { ProfileDialog } from "./panels/profile-dialog";
 import { GalleryDialog } from "./panels/gallery-dialog";
 import { SettingsDialog } from "./panels/settings-dialog";
-import { PaymentsDialog } from "./panels/payments-dialog";
 
 // Pre-render each category's Lucide icon to an SVG string once; markers embed it,
 // and `currentColor` lets each pin tint the icon by category color.
@@ -249,7 +248,7 @@ function Hub() {
           lat: g.lat,
           lng: g.lng,
           photo: g.photo,
-          reward: `+${g.xp} XP${g.usdc ? ` · $${g.usdc}` : ""} · 0G verified`,
+          reward: `+${g.xp} XP · 0G verified`,
         }),
       }));
 
@@ -306,7 +305,6 @@ function Hub() {
       <ProfileDialog />
       <GalleryDialog />
       <SettingsDialog />
-      <PaymentsDialog />
 
       <LevelUpOverlay />
       {!user.connected && <LoginGate />}
