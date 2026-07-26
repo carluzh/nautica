@@ -20,6 +20,19 @@ import type { ActivityEvent, GalleryItem, SubmitResult } from "../types";
 
 const MIN_CONFIDENCE = 0.6; // a weak "pass" (low model confidence) does not award XP
 
+// Daily rotation: the registry holds the full quest pool; the board shows just three
+// quests - one from each difficulty tier (easy <=5 XP, medium <=20, hard >20) - and
+// rotates every UTC day, so players get a fresh, balanced trio and everyone sees the
+// same board. Completing a quest is still permanent (recorded per player on-chain).
+function dailyBoard<T extends { reward: number }>(all: T[]): T[] {
+  const day = Math.floor(Date.now() / 86_400_000);
+  const easy: T[] = [];
+  const medium: T[] = [];
+  const hard: T[] = [];
+  for (const q of all) (q.reward <= 5 ? easy : q.reward <= 20 ? medium : hard).push(q);
+  return [easy, medium, hard].filter((t) => t.length > 0).map((t) => t[day % t.length]!);
+}
+
 const submitSchema = z.object({
   imageDataUrl: z.string().min(16),
   nonce: z.string(),
@@ -39,9 +52,9 @@ questRoutes.get("/", async (c) => {
   const done = new Set((u?.gallery ?? []).map((g) => g.questId));
   const onchain = await getQuests();
   return c.json({
-    // Dynamic board: driven by the registry (seeded quests), joined with on-chain
-    // state. Empty registry -> quests: [] (board renders empty).
-    quests: questRegistry.all().map((q) => {
+    // Dynamic board: three quests from the registry pool (daily-rotated, balanced by
+    // difficulty), joined with on-chain state. Empty registry -> quests: [].
+    quests: dailyBoard(questRegistry.all()).map((q) => {
       const { createdAt, ...rest } = q;
       const oc = onchain[q.id];
       return {
