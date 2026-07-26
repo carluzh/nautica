@@ -17,6 +17,7 @@ import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { GalleryItem, PlausibilityVerdict } from "@/lib/game/types";
 import { basescanTx, shortAddr, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: string; label: string }> = {
   plausible: { dot: "bg-success", text: "text-success", label: "Plausible" },
@@ -26,6 +27,7 @@ const VERDICT_TONE: Record<PlausibilityVerdict["verdict"], { dot: string; text: 
 
 /** Plausibility agent verdict - a small chip reasoning over the subgraph record. */
 function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
+  const t = useT();
   const tone = VERDICT_TONE[verdict.verdict];
   return (
     <div className="flex items-center gap-1.5" title={verdict.narrative ?? verdict.reasons.join(" ")}>
@@ -33,7 +35,7 @@ function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
       <span className={`text-[11px] font-medium ${tone.text}`}>{tone.label}</span>
       {verdict.notable ? (
         <span className="rounded-full bg-warning/15 px-1.5 py-px text-[10px] font-medium text-warning">
-          Invasive here
+          {t("Invasive here")}
         </span>
       ) : null}
     </div>
@@ -45,6 +47,7 @@ function PlausibilityChip({ verdict }: { verdict: PlausibilityVerdict }) {
 const flagged = new Set<string>();
 
 function Card({ item }: { item: GalleryItem }) {
+  const t = useT();
   const meta = SPECIES_META[item.species];
   const { plausibility, plausibilityPending, loadPlausibility, focusSighting, setOpenPanel } = useGame();
   const verdict = plausibility[item.id];
@@ -71,7 +74,7 @@ function Card({ item }: { item: GalleryItem }) {
     <div className="group overflow-hidden rounded-lg border bg-card">
       <div
         role="button"
-        title="Show on map"
+        title={t("Show on map")}
         onClick={() => {
           focusSighting({
             lng: item.lng,
@@ -133,7 +136,7 @@ function Card({ item }: { item: GalleryItem }) {
         ) : checking ? (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Loader2 className="size-3 animate-spin" />
-            Checking plausibility…
+            {t("Checking plausibility…")}
           </div>
         ) : null}
         {verdict?.recognition ? (
@@ -183,6 +186,7 @@ function Card({ item }: { item: GalleryItem }) {
 }
 
 export function GalleryDialog() {
+  const t = useT();
   const { openPanel, setOpenPanel, gallery } = useGame();
 
   return (
@@ -191,7 +195,7 @@ export function GalleryDialog() {
         <DialogHeader className="pr-8">
           <DialogTitle className="flex items-center gap-2">
             <Images className="size-4 text-muted-foreground" />
-            Field gallery
+            {t("Field gallery")}
             {gallery.length > 0 ? (
               <span className="tnum rounded-full bg-secondary px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
                 {gallery.length}
@@ -199,7 +203,7 @@ export function GalleryDialog() {
             ) : null}
           </DialogTitle>
           <DialogDescription>
-            Your verified sightings. Every photo carries a 0G TEE attestation.
+            {t("Your verified sightings. Every photo carries a 0G TEE attestation.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -209,13 +213,13 @@ export function GalleryDialog() {
               <Images className="size-5 text-muted-foreground" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">No sightings yet</p>
+              <p className="text-sm font-medium">{t("No sightings yet")}</p>
               <p className="mx-auto max-w-xs text-sm text-muted-foreground">
-                Complete a daily quest to add your first verified photo to the collection.
+                {t("Complete a daily quest to add your first verified photo to the collection.")}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setOpenPanel(null)}>
-              Find a quest
+              {t("Find a quest")}
             </Button>
           </div>
         ) : (

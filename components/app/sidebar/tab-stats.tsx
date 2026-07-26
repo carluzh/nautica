@@ -5,11 +5,13 @@ import { SpeciesBadge } from "@/components/app/species-badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import type { SpeciesId } from "@/lib/game/types";
 
 /** Stats tab: the community "Total stats" board, computed live from the real
  *  sightings store (iNaturalist seed + newly logged captures), not per-player. */
 export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) => void }) {
+  const t = useT();
   const { sightings } = useGame();
 
   const { total, observers, top } = useMemo(() => {
@@ -31,15 +33,15 @@ export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) =>
   }, [sightings]);
 
   const pills = [
-    { value: observers, label: "Citizen scientists" },
-    { value: total, label: "Marine sightings" },
+    { value: observers, label: t("Citizen scientists") },
+    { value: total, label: t("Marine sightings") },
   ];
 
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-5 p-4">
         {/* Season header */}
-        <p className="text-xs font-medium text-muted-foreground">Total stats</p>
+        <p className="text-xs font-medium text-muted-foreground">{t("Total stats")}</p>
 
         {/* Big-number totals - two side-by-side pills */}
         <div className="flex gap-3">
@@ -53,7 +55,7 @@ export function TabStats({ onFocusSpecies }: { onFocusSpecies: (s: SpeciesId) =>
 
         {/* Most sighted species - live counts */}
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Most sighted species</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">{t("Most sighted species")}</p>
           <ul className="flex flex-col gap-1.5">
             {top.map((s, i) => (
               <li key={s.species}>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { LangProvider } from "@/lib/i18n";
 import "./globals.css";
 
 // Plus Jakarta Sans - a warm, rounded, geometric humanist sans. Friendly and
@@ -25,8 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={jakarta.variable}>
       <body>
-        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
-        <Toaster position="top-center" />
+        <LangProvider>
+          <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          <Toaster position="top-center" />
+        </LangProvider>
       </body>
     </html>
   );

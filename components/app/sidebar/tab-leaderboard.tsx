@@ -5,16 +5,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** Leaderboard tab: The Graph-powered ranking. Data is illustrative in the skeleton. */
 export function TabLeaderboard() {
+  const t = useT();
   const { leaderboard } = useGame();
 
   return (
     <div className="flex h-full flex-col">
       <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
-        Top divers this season
+        {t("Top divers this season")}
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -51,7 +53,7 @@ export function TabLeaderboard() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {e.handle}
-                    {e.you && <span className="ml-1 text-xs font-normal text-primary">(you)</span>}
+                    {e.you && <span className="ml-1 text-xs font-normal text-primary">{t("(you)")}</span>}
                   </p>
                 </div>
 

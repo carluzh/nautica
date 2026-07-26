@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { basescanTx, shortAddr } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { SPECIES_META } from "@/lib/game/content";
 import { useGame } from "@/lib/game/provider";
 import type { Attestation, PickedPlace, SpeciesId } from "@/lib/game/types";
@@ -55,6 +56,7 @@ function fileToDataUrl(file: File): Promise<string> {
 /** Free-form logging: photo + free-text description + optional species / location,
  *  verified by 0G. Mirrors the quest submit flow, minus the quest constraints. */
 export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useT();
   const { addLog } = useGame();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -117,14 +119,14 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       if (res.ok) {
         setOk({ attestation: res.attestation, leveledTo: res.leveledTo, txHash: res.txHash });
         setPhase("success");
-        toast.success("Verified by 0G", { description: `+15 XP logged to the dataset` });
+        toast.success(t("Verified by 0G"), { description: t("+15 XP logged to the dataset") });
       } else {
         setErr(res.reason);
         setPhase("error");
-        toast.error("Not verified", { description: res.reason });
+        toast.error(t("Not verified"), { description: res.reason });
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Log failed");
+      setErr(e instanceof Error ? e.message : t("Log failed"));
       setPhase("error");
     }
   }
@@ -135,9 +137,9 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92svh] gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="p-5">
-          <DialogTitle className="text-left text-base leading-tight">Add a sighting</DialogTitle>
+          <DialogTitle className="text-left text-base leading-tight">{t("Add a sighting")}</DialogTitle>
           <DialogDescription className="text-left">
-            Photograph what you see and describe it. 0G verifies the photo against your description.
+            {t("Photograph what you see and describe it. 0G verifies the photo against your description.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -161,9 +163,9 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                 {preview ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="Sighting preview" className="size-full object-cover" />
+                    <img src={preview} alt={t("Sighting preview")} className="size-full object-cover" />
                     <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm">
-                      <RotateCcw className="size-3" /> Retake
+                      <RotateCcw className="size-3" /> {t("Retake")}
                     </span>
                   </>
                 ) : (
@@ -172,8 +174,8 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                       <Camera className="size-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-medium">Take a photo</p>
-                      <p className="text-[11px] text-muted-foreground">Rear camera · JPEG or PNG</p>
+                      <p className="text-sm font-medium">{t("Take a photo")}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("Rear camera · JPEG or PNG")}</p>
                     </div>
                   </div>
                 )}
@@ -182,11 +184,11 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               {/* free-text description (the 0G assertion) */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="log-description" className="px-0.5 text-xs font-medium text-muted-foreground">
-                  What did you see?
+                  {t("What did you see?")}
                 </label>
                 <Textarea
                   id="log-description"
-                  placeholder="e.g. A shore crab on the rocks at low tide, whole body visible."
+                  placeholder={t("e.g. A shore crab on the rocks at low tide, whole body visible.")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -195,7 +197,7 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
               {/* optional species */}
               <div className="flex flex-col gap-1.5">
-                <label className="px-0.5 text-xs font-medium text-muted-foreground">Species (optional)</label>
+                <label className="px-0.5 text-xs font-medium text-muted-foreground">{t("Species (optional)")}</label>
                 <Select value={species} onValueChange={(v) => setSpecies(v as SpeciesId)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -213,7 +215,7 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               {/* optional location */}
               <div className="flex flex-col gap-1.5">
                 <span className="px-0.5 text-xs font-medium text-muted-foreground">
-                  Where did you see it? (optional)
+                  {t("Where did you see it? (optional)")}
                 </span>
                 <div className="h-[280px]">
                   <LocationPicker onChange={setPlace} />
@@ -229,11 +231,11 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" /> 0G TEE classifying…
+                    <Loader2 className="size-4 animate-spin" /> {t("0G TEE classifying…")}
                   </>
                 ) : (
                   <span className="inline-flex items-center gap-1">
-                    Verify with
+                    {t("Verify with")}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/0g-logo.png" alt="0G" className="h-4 w-auto brightness-0 invert" />
                   </span>
@@ -248,14 +250,15 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 }
 
 function SuccessView({ ok, onClose }: { ok: OkResult; onClose: () => void }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center gap-4 p-5 text-center">
       <div className="flex size-14 items-center justify-center rounded-full bg-success/15 text-success">
         <Check className="size-7" />
       </div>
       <div className="space-y-1">
-        <p className="text-base font-semibold">Verified by 0G</p>
-        <p className="max-w-[18rem] text-xs text-muted-foreground">Sighting logged to the open dataset.</p>
+        <p className="text-base font-semibold">{t("Verified by 0G")}</p>
+        <p className="max-w-[18rem] text-xs text-muted-foreground">{t("Sighting logged to the open dataset.")}</p>
       </div>
 
       <AttestationBadge attestation={ok.attestation} />
@@ -276,18 +279,18 @@ function SuccessView({ ok, onClose }: { ok: OkResult; onClose: () => void }) {
           className="tnum inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
         >
           <ExternalLink className="size-3" />
-          Recorded on Base · {shortAddr(ok.txHash)}
+          {t("Recorded on Base ·")} {shortAddr(ok.txHash)}
         </a>
       ) : null}
 
       {ok.leveledTo ? (
         <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Sparkles className="size-3.5 text-primary" /> Reached Level {ok.leveledTo}
+          <Sparkles className="size-3.5 text-primary" /> {t("Reached Level")} {ok.leveledTo}
         </p>
       ) : null}
 
       <Button className="mt-1 w-full" onClick={onClose}>
-        Done
+        {t("Done")}
       </Button>
     </div>
   );
@@ -302,23 +305,24 @@ function FailureView({
   onRetry: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center gap-4 p-5 text-center">
       <div className="flex size-14 items-center justify-center rounded-full bg-destructive/15 text-destructive">
         <TriangleAlert className="size-7" />
       </div>
       <div className="space-y-1">
-        <p className="text-base font-semibold">Not verified</p>
+        <p className="text-base font-semibold">{t("Not verified")}</p>
         <p className="max-w-[18rem] text-xs text-muted-foreground">
-          {reason ?? "0G could not verify this submission. Retake the photo and try again."}
+          {reason ?? t("0G could not verify this submission. Retake the photo and try again.")}
         </p>
       </div>
       <div className="mt-1 flex w-full gap-2">
         <Button variant="outline" className="flex-1" onClick={onClose}>
-          Close
+          {t("Close")}
         </Button>
         <Button className="flex-1" onClick={onRetry}>
-          Try again
+          {t("Try again")}
         </Button>
       </div>
     </div>

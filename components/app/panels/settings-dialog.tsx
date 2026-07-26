@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGame } from "@/lib/game/provider";
+import { LangToggle, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AccountHeader } from "./account-header";
 
@@ -70,50 +71,60 @@ function Toggle({ checked, onClick }: { checked: boolean; onClick: () => void })
 export function SettingsDialog() {
   const { openPanel, setOpenPanel, level, grantXp, signOut } = useGame();
   const [notify, setNotify] = useState({ quests: true, streak: false });
+  const t = useT();
 
   return (
     <Dialog open={openPanel === "settings"} onOpenChange={(o) => !o && setOpenPanel(null)}>
       <DialogContent className="max-h-[88svh] gap-0 overflow-hidden">
         <DialogHeader className="pr-8">
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Manage your account, data, and alerts.</DialogDescription>
+          <DialogTitle>{t("Settings")}</DialogTitle>
+          <DialogDescription>{t("Manage your account, data, and alerts.")}</DialogDescription>
         </DialogHeader>
 
         <div className="-mr-2 mt-3 max-h-[70svh] space-y-5 overflow-y-auto pr-2">
           {/* Account */}
-          <Section title="Account">
+          <Section title={t("Account")}>
             <div className="space-y-2">
               <AccountHeader />
               <div className="rounded-lg border">
-                <Row label="Sign out" sub="Ends this session">
+                <Row label={t("Sign out")} sub={t("Ends this session")}>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
                       signOut();
-                      toast("Signed out");
+                      toast(t("Signed out"));
                     }}
                   >
                     <LogOut className="size-3.5" />
-                    Sign out
+                    {t("Sign out")}
                   </Button>
                 </Row>
               </div>
             </div>
           </Section>
 
+          {/* Language */}
+          <Section title={t("Language")}>
+            <div className="rounded-lg border">
+              <Row label={t("Language")} sub={t("Switch between English and German")}>
+                <LangToggle />
+              </Row>
+            </div>
+          </Section>
+
           {/* Notifications */}
           {/* mock: these toggles are local-only UI state - there is no backend endpoint
               to persist notification preferences (or deliver the alerts) yet. */}
-          <Section title="Notifications">
+          <Section title={t("Notifications")}>
             <div className="divide-y rounded-lg border">
-              <Row label="Quest reminders" sub="A nudge when new dailies drop">
+              <Row label={t("Quest reminders")} sub={t("A nudge when new dailies drop")}>
                 <Toggle
                   checked={notify.quests}
                   onClick={() => setNotify((n) => ({ ...n, quests: !n.quests }))}
                 />
               </Row>
-              <Row label="Streak warnings" sub="Before your daily streak lapses">
+              <Row label={t("Streak warnings")} sub={t("Before your daily streak lapses")}>
                 <Toggle
                   checked={notify.streak}
                   onClick={() => setNotify((n) => ({ ...n, streak: !n.streak }))}
@@ -123,43 +134,43 @@ export function SettingsDialog() {
           </Section>
 
           {/* Data & privacy */}
-          <Section title="Data & privacy">
+          <Section title={t("Data & privacy")}>
             <div className="divide-y rounded-lg border">
               <Row
                 label={
                   <span className="flex items-center gap-2">
                     <Database className="size-3.5 text-muted-foreground" />
-                    Export contributions
+                    {t("Export contributions")}
                   </span>
                 }
-                sub="Your verified sightings as a GBIF-compatible dataset"
+                sub={t("Your verified sightings as a GBIF-compatible dataset")}
               >
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    toast("Preparing export", { description: "A GBIF-compatible CSV will download." })
+                    toast(t("Preparing export"), { description: t("A GBIF-compatible CSV will download.") })
                   }
                 >
                   <FileDown className="size-3.5" />
-                  Export
+                  {t("Export")}
                 </Button>
               </Row>
               <div className="px-3 py-2.5 text-xs text-muted-foreground">
-                Every sighting carries a 0G TEE attestation - open, auditable biodiversity data.
+                {t("Every sighting carries a 0G TEE attestation - open, auditable biodiversity data.")}
               </div>
             </div>
           </Section>
 
           {/* Demo */}
-          <Section title="Demo">
+          <Section title={t("Demo")}>
             <div className="space-y-2.5 rounded-lg border border-dashed border-warning/40 bg-warning/5 p-3">
               <div className="flex items-center gap-2 text-xs font-medium text-warning">
                 <Zap className="size-3.5" />
-                Demo controls
-                <span className="ml-auto font-normal text-muted-foreground">Level {level.level}</span>
+                {t("Demo controls")}
+                <span className="ml-auto font-normal text-muted-foreground">{t("Level")} {level.level}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Grant XP to preview leveling.</p>
+              <p className="text-xs text-muted-foreground">{t("Grant XP to preview leveling.")}</p>
               <Button variant="secondary" size="sm" onClick={() => grantXp(25)}>
                 +25 XP
               </Button>

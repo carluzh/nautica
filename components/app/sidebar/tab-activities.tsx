@@ -6,6 +6,7 @@ import { AttestationBadge } from "@/components/app/attestation";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
 import type { ActivityEvent } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ function Row({ e }: { e: ActivityEvent }) {
 
 /** Default sidebar tab: the live sightings feed. */
 export function TabActivities() {
+  const t = useT();
   const { history } = useGame();
   // Quest-kind events are the logged sightings.
   const sightings = history.filter((e) => e.kind === "quest");
@@ -86,19 +88,19 @@ export function TabActivities() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground">
-        <span>Sightings</span>
+        <span>{t("Sightings")}</span>
         <span className="inline-flex items-center gap-1.5">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             <span className="relative inline-flex size-1.5 rounded-full bg-success" />
           </span>
-          Live
+          {t("Live")}
         </span>
       </div>
 
       {sightings.length === 0 ? (
         <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-          No sightings yet. Complete a daily quest to log one.
+          {t("No sightings yet. Complete a daily quest to log one.")}
         </p>
       ) : (
         <ScrollArea className="min-h-0 flex-1">

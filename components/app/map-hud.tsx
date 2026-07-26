@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useGame } from "@/lib/game/provider";
 import type { PanelId } from "@/lib/game/types";
+import { useT } from "@/lib/i18n";
 import { LevelRing } from "./level-ring";
 
 // Floating top-right HUD over the map. The logo and category tabs live in the
 // left sidebar, not here.
 export function MapHud() {
   const { user, level, setOpenPanel } = useGame();
+  const t = useT();
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
 
   const nav: { id: PanelId; icon: LucideIcon; label: string }[] = [
-    { id: "gallery", icon: Images, label: "Gallery" },
-    { id: "settings", icon: Settings, label: "Settings" },
+    { id: "gallery", icon: Images, label: t("Gallery") },
+    { id: "settings", icon: Settings, label: t("Settings") },
   ];
 
   return (
@@ -29,7 +31,7 @@ export function MapHud() {
           >
             <LevelRing level={level.level} progress={level.progress} />
             <span className="hidden flex-col leading-tight sm:flex">
-              <span className="text-xs font-medium">Level {level.level}</span>
+              <span className="text-xs font-medium">{t("Level")} {level.level}</span>
               <span className="tnum text-[10px] text-muted-foreground">
                 {level.xpInto}/{level.xpSpan} XP
               </span>
@@ -37,7 +39,7 @@ export function MapHud() {
           </button>
         </TooltipTrigger>
         <TooltipContent>
-          {level.nextUnlock ? `${level.xpToNext} XP to Level ${level.level + 1}` : "Top level reached"}
+          {level.nextUnlock ? `${level.xpToNext} XP to Level ${level.level + 1}` : t("Top level reached")}
         </TooltipContent>
       </Tooltip>
 
@@ -48,7 +50,7 @@ export function MapHud() {
             <span className="tnum font-medium">{user.streak}d</span>
           </span>
         </TooltipTrigger>
-        <TooltipContent>{user.streak}-day streak</TooltipContent>
+        <TooltipContent>{user.streak}{t("-day streak")}</TooltipContent>
       </Tooltip>
 
       <div className="mx-0.5 h-6 w-px bg-border" />
@@ -75,7 +77,7 @@ export function MapHud() {
             </Avatar>
           </button>
         </TooltipTrigger>
-        <TooltipContent>Profile</TooltipContent>
+        <TooltipContent>{t("Profile")}</TooltipContent>
       </Tooltip>
     </div>
   );

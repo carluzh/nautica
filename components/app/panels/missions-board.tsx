@@ -7,6 +7,7 @@ import { AddLogDialog } from "@/components/app/panels/add-log-dialog";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { useGame } from "@/lib/game/provider";
 import type { Quest, SpeciesId } from "@/lib/game/types";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // ---- countdown to the next local midnight (daily quest reset) ----------------
@@ -26,13 +27,14 @@ function fmtCountdown(ms: number): string {
  *  cross-fades to "Log" (white) on row hover. The two labels are grid-stacked so
  *  the swap fades smoothly instead of jumping. */
 function LogPill({ amount }: { amount: string }) {
+  const t = useT();
   return (
     <span className="tnum relative inline-grid shrink-0 place-items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold transition-colors duration-200 group-hover:bg-primary">
       <span className="col-start-1 row-start-1 text-primary transition-opacity duration-200 group-hover:opacity-0">
         {amount}
       </span>
       <span className="col-start-1 row-start-1 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        Log
+        {t("Log")}
       </span>
     </span>
   );
@@ -41,6 +43,7 @@ function LogPill({ amount }: { amount: string }) {
 /** Bottom-right floating glass panel: the daily quest board. */
 export function MissionsBoard() {
   const { quests, openQuest, user } = useGame();
+  const t = useT();
 
   // Mount-gated so the live clock never mismatches the server render.
   const [reset, setReset] = useState<string>("··");
@@ -81,7 +84,7 @@ export function MissionsBoard() {
             <ChevronDown
               className={cn("size-4 transition-transform duration-200", collapsed && "-rotate-90")}
             />
-            Daily quests
+            {t("Daily quests")}
           </span>
           <span className="inline-flex shrink-0 items-center gap-0.5 text-black">
             <Flame className="size-4" fill="currentColor" />
@@ -96,9 +99,9 @@ export function MissionsBoard() {
               {quests.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
                   <Compass className="size-8 text-muted-foreground/60" />
-                  <p className="text-sm font-medium">No quests right now</p>
+                  <p className="text-sm font-medium">{t("No quests right now")}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    New research quests appear here as they go live.
+                    {t("New research quests appear here as they go live.")}
                   </p>
                 </div>
               ) : (
@@ -114,10 +117,11 @@ export function MissionsBoard() {
                 onClick={() => setLogOpen(true)}
                 className="inline-flex items-center gap-1 rounded text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Plus className="size-3" /> Add a sighting
+                <Plus className="size-3" /> {t("Add a sighting")}
               </button>
               <span className="inline-flex shrink-0 items-center gap-1">
-                <Timer className="size-3 shrink-0" /> Refresh in <span className="tnum">{reset}</span>
+                <Timer className="size-3 shrink-0" /> {t("Refresh in")}{" "}
+                <span className="tnum">{reset}</span>
               </span>
             </div>
           </>
@@ -135,12 +139,15 @@ function IconTile({ quest, muted }: { quest: Quest; muted?: boolean }) {
 /** A mocked, non-functional preview of a partner-funded paid quest: it advertises the
  *  paid tier (partner + USDC) without any real payout wiring; tapping just explains it. */
 function PaidPreviewRow() {
+  const t = useT();
   return (
     <ClickableRow
       clickable
       onStart={() =>
-        toast("Partner-funded quests are coming soon", {
-          description: "Research partners will fund quests that pay USDC on Base for verified sightings.",
+        toast(t("Partner-funded quests are coming soon"), {
+          description: t(
+            "Research partners will fund quests that pay USDC on Base for verified sightings.",
+          ),
         })
       }
       className="group flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0 hover:bg-muted/40"
@@ -148,13 +155,13 @@ function PaidPreviewRow() {
       <SpeciesBadge species={"Lionfish" as SpeciesId} className="size-9" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-medium">Lionfish removal survey</p>
+          <p className="truncate text-sm font-medium">{t("Lionfish removal survey")}</p>
           <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-px text-[9px] font-semibold text-primary">
-            <Building2 className="size-2.5" /> Partner
+            <Building2 className="size-2.5" /> {t("Partner")}
           </span>
         </div>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          MARE · Marine Sciences Institute · preview
+          {t("MARE · Marine Sciences Institute · preview")}
         </p>
       </div>
       <span className="tnum inline-flex shrink-0 items-center gap-1 rounded-md bg-success/10 px-2 py-1 text-xs font-semibold text-success">
@@ -196,6 +203,7 @@ function ClickableRow({
 }
 
 function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
+  const t = useT();
   const done = quest.status === "done";
   const verifying = quest.status === "verifying";
   const notLive = quest.onchain === false;
@@ -207,11 +215,11 @@ function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
     </span>
   ) : verifying ? (
     <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-      <Loader2 className="size-3.5 animate-spin" /> Checking
+      <Loader2 className="size-3.5 animate-spin" /> {t("Checking")}
     </span>
   ) : notLive ? (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">
-      <Lock className="size-3" /> Not yet live
+      <Lock className="size-3" /> {t("Not yet live")}
     </span>
   ) : (
     <LogPill amount={`+${quest.reward} XP`} />
@@ -230,9 +238,9 @@ function FreeRow({ quest, onStart }: { quest: Quest; onStart: () => void }) {
       <IconTile quest={quest} muted={done} />
       <div className="min-w-0 flex-1">
         <p className={cn("truncate text-sm font-medium", done && "text-muted-foreground")}>
-          {quest.title}
+          {t(quest.title)}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{quest.spec}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{t(quest.spec)}</p>
       </div>
       {right}
     </ClickableRow>

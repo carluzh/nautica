@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LevelRing } from "@/components/app/level-ring";
 import { LEVEL_UNLOCKS } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -22,6 +23,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 /** Level: XP total, quick stats, and the level ladder with per-level unlocks. */
 export function LevelDialog() {
   const { openPanel, setOpenPanel, user, level, gallery, leaderboard } = useGame();
+  const t = useT();
 
   const initials = user.handle ? user.handle.slice(0, 2).toUpperCase() : "NA";
   const rank = leaderboard.find((e) => e.you)?.rank ?? null;
@@ -35,7 +37,7 @@ export function LevelDialog() {
     <Dialog open={openPanel === "level"} onOpenChange={(o) => !o && setOpenPanel(null)}>
       <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
         <DialogDescription className="sr-only">
-          Your XP total, quick stats, and the level ladder with its unlocks.
+          {t("Your XP total, quick stats, and the level ladder with its unlocks.")}
         </DialogDescription>
 
         {/* Header */}
@@ -44,10 +46,10 @@ export function LevelDialog() {
             <AvatarFallback className="text-sm">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <DialogTitle className="truncate text-base leading-tight">{user.handle || "Guest"}</DialogTitle>
+            <DialogTitle className="truncate text-base leading-tight">{user.handle || t("Guest")}</DialogTitle>
             <p className="tnum flex items-center gap-1 truncate text-xs text-muted-foreground">
               <Wallet className="size-3 shrink-0" />
-              {user.wallet ? user.wallet : "No on-chain address yet"}
+              {user.wallet ? user.wallet : t("No on-chain address yet")}
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1">
@@ -58,9 +60,9 @@ export function LevelDialog() {
 
         {/* Quick stats */}
         <div className="grid grid-cols-3 divide-x divide-border border-y">
-          <Stat label="Sightings" value={gallery.length} />
-          <Stat label="Day streak" value={user.streak} />
-          <Stat label="Rank" value={rank ? `#${rank}` : "Unranked"} />
+          <Stat label={t("Sightings")} value={gallery.length} />
+          <Stat label={t("Day streak")} value={user.streak} />
+          <Stat label={t("Rank")} value={rank ? `#${rank}` : t("Unranked")} />
         </div>
 
         <ScrollArea className="flex-1">
@@ -73,16 +75,16 @@ export function LevelDialog() {
                 {level.nextUnlock ? (
                   <>
                     <p className="text-sm">
-                      <span className="tnum font-semibold text-primary">{level.xpToNext}</span> XP to Level{" "}
+                      <span className="tnum font-semibold text-primary">{level.xpToNext}</span> {t("XP to Level")}{" "}
                       {level.level + 1}
                     </p>
                     <p className="tnum mt-0.5 text-[11px] text-muted-foreground">
                       {level.xpInto}/{level.xpSpan} XP this level
                     </p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Next up: {level.nextUnlock}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{t("Next up:")} {level.nextUnlock}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Top level reached</p>
+                  <p className="text-sm text-muted-foreground">{t("Top level reached")}</p>
                 )}
               </div>
             </div>
@@ -90,7 +92,7 @@ export function LevelDialog() {
             {/* Unlocks ladder. */}
             {nextLockedLevel !== null ? (
               <>
-                <p className="mt-5 mb-2 text-xs font-medium text-muted-foreground">Unlocks</p>
+                <p className="mt-5 mb-2 text-xs font-medium text-muted-foreground">{t("Unlocks")}</p>
                 <ul className="flex flex-col gap-1.5">
                   {unlockLevels.map((lvl) => {
                     const unlocked = level.level >= lvl;
@@ -115,13 +117,13 @@ export function LevelDialog() {
                           {LEVEL_UNLOCKS[lvl]}
                         </p>
                         {unlocked ? (
-                          <span className="shrink-0 text-[10px] font-medium text-success">Unlocked</span>
+                          <span className="shrink-0 text-[10px] font-medium text-success">{t("Unlocked")}</span>
                         ) : isNext ? (
                           <Badge variant="outline" className="shrink-0 border-primary/40 text-[10px] text-primary">
-                            Next
+                            {t("Next")}
                           </Badge>
                         ) : (
-                          <span className="tnum shrink-0 text-[10px] text-muted-foreground">Level {lvl}</span>
+                          <span className="tnum shrink-0 text-[10px] text-muted-foreground">{t("Level")} {lvl}</span>
                         )}
                       </li>
                     );

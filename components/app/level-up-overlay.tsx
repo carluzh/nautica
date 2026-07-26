@@ -4,10 +4,12 @@ import { useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import { LEVEL_UNLOCKS } from "@/lib/game/levels";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 
 /** Brief celebration when the player crosses a level. Auto-dismisses. */
 export function LevelUpOverlay() {
   const { lastLevelUp, dismissLevelUp } = useGame();
+  const t = useT();
 
   useEffect(() => {
     if (lastLevelUp == null) return;
@@ -27,10 +29,10 @@ export function LevelUpOverlay() {
         <div className="flex size-14 items-center justify-center rounded-full bg-primary/15 text-primary">
           <Sparkles className="size-7" />
         </div>
-        <p className="text-xs font-medium uppercase tracking-widest text-primary">Level up</p>
-        <p className="tnum text-4xl font-semibold">Level {lastLevelUp}</p>
+        <p className="text-xs font-medium uppercase tracking-widest text-primary">{t("Level up")}</p>
+        <p className="tnum text-4xl font-semibold">{t("Level")} {lastLevelUp}</p>
         {unlock ? (
-          <p className="max-w-[16rem] text-sm text-muted-foreground">Unlocked: {unlock}</p>
+          <p className="max-w-[16rem] text-sm text-muted-foreground">{t("Unlocked:")} {unlock}</p>
         ) : null}
       </div>
     </button>

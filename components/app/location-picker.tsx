@@ -8,6 +8,7 @@ import { Crosshair, Loader2, MapPin } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { PickedPlace } from "@/lib/game/types";
+import { useT } from "@/lib/i18n";
 
 export type { PickedPlace };
 
@@ -79,6 +80,7 @@ export function LocationPicker({
   onChange: (place: PickedPlace) => void;
   className?: string;
 }) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -243,15 +245,15 @@ export function LocationPicker({
           <span className="inline-flex items-center gap-1 text-muted-foreground">
             {gpsState === "locating" ? (
               <>
-                <Loader2 className="size-3 animate-spin" /> Locating…
+                <Loader2 className="size-3 animate-spin" /> {t("Locating…")}
               </>
             ) : gpsState === "ok" ? (
               <>
-                <Crosshair className="size-3 text-primary" /> Within {MAX_PLACEMENT_KM} km of you
+                <Crosshair className="size-3 text-primary" /> {t("Within")} {MAX_PLACEMENT_KM} {t("km of you")}
               </>
             ) : (
               <>
-                <MapPin className="size-3 text-warning" /> GPS off · pick a spot
+                <MapPin className="size-3 text-warning" /> {t("GPS off · pick a spot")}
               </>
             )}
           </span>
@@ -261,7 +263,7 @@ export function LocationPicker({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="shrink-0 text-[11px] text-muted-foreground">Radius</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">{t("Radius")}</span>
         <Slider
           value={[radiusM]}
           min={MIN_RADIUS_M}
@@ -273,7 +275,7 @@ export function LocationPicker({
         <span className="tnum w-14 shrink-0 text-right text-[11px] font-medium">{fmtRadius(radiusM)}</span>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        Drag the pin to where you saw it. The circle sets how precise you want to be.
+        {t("Drag the pin to where you saw it. The circle sets how precise you want to be.")}
       </p>
     </div>
   );

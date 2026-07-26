@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { SpeciesBadge } from "@/components/app/species-badge";
 import { CATEGORY_META, SPECIES_GROUPS, SPECIES_META, type Category } from "@/lib/game/content";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { FilterState, TimePeriod } from "./types";
 
@@ -26,6 +27,7 @@ const PERIODS: { value: TimePeriod; label: string }[] = [
 /** Filter tab: search a place (pans the map), pick a time window, toggle the 4 map
  *  categories in a 2x2 grid, and refine by species via a searchable, grouped checklist. */
 export function TabFilter({ filter }: { filter: FilterState }) {
+  const t = useT();
   const { categories } = filter;
   const allHidden = categories.every((c) => filter.hidden.has(c.category));
 
@@ -62,12 +64,12 @@ export function TabFilter({ filter }: { filter: FilterState }) {
       <div className="flex flex-col">
         {/* Category grid - 2x2, all on by default. */}
         <div className="flex items-center justify-between px-3 pt-3 pb-2">
-          <span className="text-xs font-medium text-muted-foreground">Categories</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("Categories")}</span>
           <button
             onClick={allHidden ? filter.onShowAll : filter.onHideAll}
             className="text-[11px] font-medium text-primary transition-opacity hover:opacity-80"
           >
-            {allHidden ? "Show all" : "Hide all"}
+            {allHidden ? t("Show all") : t("Hide all")}
           </button>
         </div>
         <ul className="grid grid-cols-2 gap-2 px-2 pb-3">
@@ -106,7 +108,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{meta.label}</span>
                     <span className="tnum text-[11px] text-muted-foreground">
-                      {count} sighting{count !== 1 ? "s" : ""}
+                      {count} {t("sighting")}{count !== 1 ? "s" : ""}
                     </span>
                   </span>
                 </button>
@@ -117,7 +119,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
 
         {/* Time & Place - location search (pans the map) + a time-window filter. */}
         <div className="px-3 pt-3 pb-3">
-          <span className="text-xs font-medium text-muted-foreground">Time &amp; Place</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("Time & Place")}</span>
           <div className="mt-2 flex items-center gap-2">
             <form onSubmit={onSearch} className="min-w-0 flex-1">
               <div className="relative">
@@ -125,13 +127,13 @@ export function TabFilter({ filter }: { filter: FilterState }) {
                 <Input
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
-                  placeholder="Search a place… (e.g. Cascais)"
+                  placeholder={t("Search a place… (e.g. Cascais)")}
                   className="h-8 pr-8 pl-8 text-sm"
                   enterKeyHint="search"
                 />
                 <button
                   type="submit"
-                  aria-label="Search location"
+                  aria-label={t("Search location")}
                   className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                 >
                   {filter.searching ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
@@ -159,12 +161,12 @@ export function TabFilter({ filter }: { filter: FilterState }) {
         {/* Species checklist - grouped, searchable. */}
         <div className="px-3 pt-3 pb-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Species</span>
+            <span className="text-xs font-medium text-muted-foreground">{t("Species")}</span>
             <button
               onClick={() => filter.onToggleGroup(allSpecies, !allSpeciesOn)}
               className="text-[11px] font-medium text-primary transition-opacity hover:opacity-80"
             >
-              {allSpeciesOn ? "None" : "All"}
+              {allSpeciesOn ? t("None") : t("All")}
             </button>
           </div>
           <div className="relative mt-2">
@@ -172,7 +174,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
             <Input
               value={speciesQuery}
               onChange={(e) => setSpeciesQuery(e.target.value)}
-              placeholder="Search species…"
+              placeholder={t("Search species…")}
               className="h-8 pl-8 text-sm"
             />
           </div>
@@ -180,7 +182,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
 
         <div className="flex flex-col gap-3 px-3 pb-4">
           {groups.length === 0 ? (
-            <p className="px-1 py-4 text-center text-xs text-muted-foreground">No species match.</p>
+            <p className="px-1 py-4 text-center text-xs text-muted-foreground">{t("No species match.")}</p>
           ) : (
             groups.map((group) => {
               const groupOn = group.species.every((s) => !filter.hiddenSpecies.has(s));
