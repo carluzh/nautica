@@ -60,7 +60,6 @@ export function QuestSubmitDialog() {
   const quest = quests.find((q) => q.id === activeQuestId);
   const open = openPanel === "quest";
   const isPaid = quest?.kind === "paid";
-  const meta = quest ? SPECIES_META[quest.species] : null;
   // Use the consolidated map/category icon (e.g. crab shows the Marine-life fish, not a beetle).
   const QuestIcon = quest ? mapIcon(quest.species) : null;
 

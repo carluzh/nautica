@@ -11,7 +11,6 @@ import type {
 const BASE = 1_784_836_000_000;
 const min = 60_000;
 const hr = 60 * min;
-const day = 24 * hr;
 
 export const INITIAL_USER: UserState = {
   connected: false,
