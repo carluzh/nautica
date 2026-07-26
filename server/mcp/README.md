@@ -19,7 +19,7 @@ standardized via MCP.
 ```bash
 cd server/mcp
 npm install
-SUBGRAPH_URL=https://api.studio.thegraph.com/query/114962/nautica/v0.0.2 node subgraph-mcp.mjs
+SUBGRAPH_URL=https://api.studio.thegraph.com/query/114962/nautica/v0.0.4 node subgraph-mcp.mjs
 ```
 
 `SUBGRAPH_URL` defaults to the deployed Studio endpoint if unset;
@@ -35,7 +35,7 @@ Add to `claude_desktop_config.json`:
     "nautica-subgraph": {
       "command": "node",
       "args": ["/absolute/path/to/nautica/server/mcp/subgraph-mcp.mjs"],
-      "env": { "SUBGRAPH_URL": "https://api.studio.thegraph.com/query/114962/nautica/v0.0.2" }
+      "env": { "SUBGRAPH_URL": "https://api.studio.thegraph.com/query/114962/nautica/v0.0.4" }
     }
   }
 }

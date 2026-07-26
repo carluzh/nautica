@@ -14,7 +14,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const SUBGRAPH_URL =
-  process.env.SUBGRAPH_URL || "https://api.studio.thegraph.com/query/114962/nautica/v0.0.2";
+  process.env.SUBGRAPH_URL || "https://api.studio.thegraph.com/query/114962/nautica/v0.0.4";
 
 export async function querySubgraph(query, variables = {}) {
   const res = await fetch(SUBGRAPH_URL, {
