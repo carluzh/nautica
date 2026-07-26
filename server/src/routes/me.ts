@@ -7,6 +7,7 @@ import { verifySiwe } from "../services/siwe";
 import { PAID_UNLOCK_LEVEL, xpForLevel } from "../lib/levels";
 import { getActivity, getGallery, getProfile } from "../services/subgraph";
 import { assessSighting } from "../services/plausibility";
+import { walletUsdcBalance } from "../services/chain";
 import type { PlausibilityVerdict } from "../types";
 
 export const meRoutes = new Hono<AppEnv>();
@@ -36,6 +37,13 @@ meRoutes.get("/activity", async (c) => {
 /** GET /me/payments - paid-quest settlements. */
 meRoutes.get("/payments", (c) => {
   return c.json(store.getUser(c.get("userId"))?.payments ?? []);
+});
+
+/** GET /me/wallet-usdc - the connected wallet's live USDC balance on Base Sepolia. */
+meRoutes.get("/wallet-usdc", async (c) => {
+  const u = store.getUser(c.get("userId"));
+  const usdc = await walletUsdcBalance(u?.wallet ?? null);
+  return c.json({ wallet: u?.wallet ?? null, usdc });
 });
 
 /** Assess (or return the cached) plausibility verdict for one sighting, scoped to

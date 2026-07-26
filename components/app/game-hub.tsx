@@ -248,6 +248,7 @@ function Hub() {
           place: "Your capture",
           lat: g.lat,
           lng: g.lng,
+          photo: g.photo,
           reward: `+${g.xp} XP${g.usdc ? ` · $${g.usdc}` : ""} · 0G verified`,
         }),
       }));

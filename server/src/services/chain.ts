@@ -68,6 +68,22 @@ export async function relayerUsdcBalance(): Promise<number | null> {
   return Number(raw) / 10 ** USDC_DECIMALS;
 }
 
+/** Any wallet's USDC balance in whole USDC (live, read-only), or null in stub mode. */
+export async function walletUsdcBalance(wallet: string | null): Promise<number | null> {
+  if (!integrations.chain || !config.USDC_ADDRESS || !wallet) return null;
+  try {
+    const raw = await publicClient().readContract({
+      address: config.USDC_ADDRESS as Hex,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [wallet as Hex],
+    });
+    return Number(raw) / 10 ** USDC_DECIMALS;
+  } catch {
+    return null;
+  }
+}
+
 /** Partner-side create + fund. In live mode approves the reward escrow then calls
  *  createQuest (relayer as caller/funder). A FREE quest (funding 0) skips approval
  *  entirely, so it works at a zero USDC balance. Stub mode returns a simulated tx. */

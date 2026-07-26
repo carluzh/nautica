@@ -223,6 +223,10 @@ export const api = {
   getPayments(token: string) {
     return req<Payment[]>("/me/payments", { token });
   },
+  /** The connected wallet's live on-chain USDC balance (Base Sepolia). */
+  getWalletUsdc(token: string) {
+    return req<{ wallet: string | null; usdc: number | null }>("/me/wallet-usdc", { token });
+  },
   /** Plausibility agent verdict for a sighting (species-range/season check via the subgraph). */
   getPlausibility(token: string, sightingId: string) {
     return req<PlausibilityVerdict>(`/me/sightings/${sightingId}/plausibility`, { token });

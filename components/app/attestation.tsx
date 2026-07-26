@@ -101,7 +101,10 @@ export function AttestationDetail({ attestation: a }: { attestation: Attestation
       {status === "simulated" ? (
         <p className="border-t pt-1.5 text-warning/90">Simulated · no TEE proof (0G key not set).</p>
       ) : null}
-      <div className="tnum break-all border-t pt-1.5 text-muted-foreground/80">{a.hash}</div>
+      <div className="border-t pt-1.5">
+        <span className="text-muted-foreground">0G output digest</span>
+        <div className="tnum break-all text-muted-foreground/80">{a.hash}</div>
+      </div>
     </div>
   );
 }

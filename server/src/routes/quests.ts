@@ -329,6 +329,7 @@ questRoutes.post("/:id/submit", async (c) => {
     xp: quest.reward,
     leveledTo: after > before ? after : undefined,
     usdc: quest.usdc,
-    txHash: chainRes.txHash,
+    // Only surface a real, broadcast Base tx (a simulated record never lands on-chain).
+    txHash: chainRes.simulated ? undefined : chainRes.txHash,
   } satisfies SubmitResult);
 });

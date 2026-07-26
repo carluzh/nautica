@@ -15,15 +15,15 @@ export const DAILY_QUESTS: Quest[] = [
   { id: "q-plant", kind: "free", title: "Photograph a shore plant", spec: "A coastal or intertidal plant, in focus, filling most of the frame.", species: "ShorePlant", reward: 10 },
   { id: "q-jelly", kind: "free", title: "Log a jellyfish sighting", spec: "Any jellyfish or Physalia, close enough to identify the bell.", species: "Jellyfish", reward: 25 },
   {
-    id: "q-paid-lionfish",
+    id: "q-paid-seastar",
     kind: "paid",
-    title: "Lionfish survey (paid)",
-    spec: "Invasive lionfish for a removal study. Match the partner spec.",
-    species: "Lionfish",
+    title: "Sea star survey (paid)",
+    spec: "One clear, well-lit photo of a sea star.",
+    species: "SeaStar",
     reward: 40,
-    usdc: 6,
+    usdc: 1,
     partner: PARTNERS[0],
-    requirements: ["Dorsal view", "Ventral view", "Size reference in frame"],
+    requirements: ["One clear photo of a sea star"],
   },
 ];
 

@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ArrowUpRight, Banknote, Check, Clock, Eye, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { api, apiEnabled, sessionToken } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +68,33 @@ function PaymentRow({ p }: { p: Payment }) {
 export function PaymentsDialog() {
   const { openPanel, setOpenPanel, paidUnlocked, level, user, payments, withdraw } = useGame();
 
+  // Live on-chain USDC balance of the connected wallet, so the demo never leaves the
+  // app to an external wallet. Polls, and re-reads immediately when a payout lands.
+  const [walletUsdc, setWalletUsdc] = useState<number | null>(null);
+  useEffect(() => {
+    if (!apiEnabled || !user.wallet) {
+      setWalletUsdc(null);
+      return;
+    }
+    let alive = true;
+    const read = async () => {
+      const token = sessionToken.get();
+      if (!token) return;
+      try {
+        const r = await api.getWalletUsdc(token);
+        if (alive) setWalletUsdc(r.usdc);
+      } catch {
+        /* transient RPC blip — keep the last value */
+      }
+    };
+    read();
+    const t = setInterval(read, 8000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [user.wallet, payments.length]);
+
   const l5Xp = xpForLevel(PAID_UNLOCK_LEVEL);
   const progressToL5 = Math.min(1, level.totalXp / l5Xp);
   const xpLeft = Math.max(0, l5Xp - level.totalXp);
@@ -120,6 +149,21 @@ export function PaymentsDialog() {
         ) : (
           // UNLOCKED state: earnings header plus payout history.
           <div className="-mr-2 mt-4 max-h-[72svh] space-y-4 overflow-y-auto pr-2">
+            {user.wallet ? (
+              <div className="rounded-xl border bg-card p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Wallet balance · Base Sepolia</p>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-success">
+                    <span className="size-1.5 animate-pulse rounded-full bg-success" />
+                    live
+                  </span>
+                </div>
+                <p className="tnum mt-1 text-3xl leading-none font-semibold">
+                  {walletUsdc == null ? "—" : `$${walletUsdc.toFixed(2)}`}
+                </p>
+                <p className="tnum mt-2 truncate text-xs text-muted-foreground">USDC · {user.wallet}</p>
+              </div>
+            ) : null}
             <div className="rounded-xl border bg-card p-4">
               <p className="text-xs text-muted-foreground">Claimable balance</p>
               <div className="mt-1 flex items-end justify-between gap-3">
