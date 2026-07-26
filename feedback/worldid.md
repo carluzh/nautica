@@ -67,10 +67,10 @@ example (register RP, `signRequest`, open widget, v4 verify).
 
 ## User feedback
 
-*Scope note (honest): our user testing is from the team running the full flow
-repeatedly during the build and the live demo, via the World ID staging/simulator
-path — not yet a large public cohort. Observations are about the end-to-end sign-in
-UX as a first-time user would meet it.*
+*Scope note (honest): our user testing is the team running the full flow **many times
+on real devices** during the build and the live demo — repeated hands-on use, though
+not a broad public cohort. Observations are about the end-to-end sign-in UX a
+first-time user meets.*
 
 - **Comprehension is good when framed as "prove you're a real person," less so as a
   raw "selfie."** In our login gate, users immediately understood *sign in with World
@@ -82,6 +82,13 @@ UX as a first-time user would meet it.*
 - **The capture flow is fast and low-friction** — the strongest UX point for an
   onboarding step. For a casual game, a sub-few-second check that doesn't require a
   wallet or documents is exactly the right first gate; it did not feel like a KYC wall.
+- **The one recurring failure mode was low light.** Across many runs the flow was
+  reliable, but in dark rooms the Selfie Check's own screen-illumination lit the face
+  too much and the check rejected it as *face too light* (over-exposed), forcing a
+  retry; moving to a brighter, evenly-lit spot fixed it every time. Worth surfacing to
+  users up front ("find even lighting, avoid a dark room"), and worth tuning the
+  liveness capture's exposure so its own fill-light doesn't blow out the face in an
+  otherwise dark environment.
 - **The unique-human promise is itself a trust feature for users**, not just for us:
   "you can't be outnumbered by bots on the leaderboard / in the reward pool" is a
   benefit users *liked*, so we surfaced it in copy rather than hiding the verification.
