@@ -164,28 +164,6 @@ export function PaymentsDialog() {
                 <p className="tnum mt-2 truncate text-xs text-muted-foreground">USDC · {user.wallet}</p>
               </div>
             ) : null}
-            <div className="rounded-xl border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Claimable balance</p>
-              <div className="mt-1 flex items-end justify-between gap-3">
-                <p className="tnum text-3xl leading-none font-semibold">
-                  ${user.balanceUsd.toFixed(2)}
-                </p>
-                <Button onClick={handleWithdraw} disabled={user.balanceUsd <= 0}>
-                  <ArrowUpRight className="size-4" />
-                  Withdraw
-                </Button>
-              </div>
-              <p className="tnum mt-2 text-xs text-muted-foreground">
-                USDC on Base · settles to {user.wallet}
-              </p>
-              {!user.verification.orb ? (
-                <p className="mt-2 flex items-center gap-1.5 border-t pt-2 text-xs text-muted-foreground">
-                  <Eye className="size-3" />
-                  Orb verification lifts the daily payout limit.
-                </p>
-              ) : null}
-            </div>
-
             <div className="space-y-2">
               <div className="flex items-center justify-between px-0.5">
                 <h3 className="text-xs font-medium text-muted-foreground">Payout history</h3>

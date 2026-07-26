@@ -155,6 +155,10 @@ export async function recordQuestCompletion(input: {
     functionName: "recordCompletion",
     args: [input.wallet as Hex, questIdToBytes32(input.questId), toE6(input.lat), toE6(input.lng), attestation],
   });
+  // Wait for it to land so a follow-on settlePayout estimates against fresh state
+  // (and the returned hash is a real, mined Base tx, not just a broadcast one).
+  const receipt = await publicClient().waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") throw new Error("recordCompletion reverted on-chain");
   return { txHash, simulated: false };
 }
 
@@ -172,5 +176,8 @@ export async function settlePayout(input: {
     functionName: "settlePayout",
     args: [input.wallet as Hex, questIdToBytes32(input.questId)],
   });
+  // Confirm the payout actually settled before the caller marks it settled.
+  const receipt = await publicClient().waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") throw new Error("settlePayout reverted on-chain");
   return { txHash, simulated: false };
 }

@@ -17,7 +17,7 @@ export const DAILY_QUESTS: Quest[] = [
   {
     id: "q-paid-seastar",
     kind: "paid",
-    title: "Sea star survey (paid)",
+    title: "Sea star survey",
     spec: "One clear, well-lit photo of a sea star.",
     species: "SeaStar",
     reward: 40,

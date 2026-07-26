@@ -46,7 +46,7 @@ const flagged = new Set<string>();
 
 function Card({ item }: { item: GalleryItem }) {
   const meta = SPECIES_META[item.species];
-  const { plausibility, plausibilityPending, loadPlausibility } = useGame();
+  const { plausibility, plausibilityPending, loadPlausibility, focusSighting, setOpenPanel } = useGame();
   const verdict = plausibility[item.id];
   const checking = plausibilityPending[item.id];
 
@@ -69,7 +69,22 @@ function Card({ item }: { item: GalleryItem }) {
 
   return (
     <div className="group overflow-hidden rounded-lg border bg-card">
-      <div className="relative aspect-square w-full overflow-hidden">
+      <div
+        role="button"
+        title="Show on map"
+        onClick={() => {
+          focusSighting({
+            lng: item.lng,
+            lat: item.lat,
+            species: item.species,
+            title: item.title,
+            place: "Your capture",
+            photo: item.photo,
+          });
+          setOpenPanel(null);
+        }}
+        className="relative aspect-square w-full cursor-pointer overflow-hidden"
+      >
         {item.photo ? (
           // Captured photo is a runtime object URL (blob:), so a plain img is correct here.
           // eslint-disable-next-line @next/next/no-img-element
@@ -90,10 +105,12 @@ function Card({ item }: { item: GalleryItem }) {
           </span>
         ) : null}
 
-        <AttestationBadge
-          attestation={item.attestation}
-          className="absolute bottom-1.5 left-1.5 h-5 gap-1 bg-background/80 px-1.5 text-[10px] backdrop-blur-sm"
-        />
+        <span className="absolute bottom-1.5 left-1.5" onClick={(e) => e.stopPropagation()}>
+          <AttestationBadge
+            attestation={item.attestation}
+            className="h-5 gap-1 bg-background/80 px-1.5 text-[10px] backdrop-blur-sm"
+          />
+        </span>
       </div>
 
       <div className="space-y-1 p-2.5">
