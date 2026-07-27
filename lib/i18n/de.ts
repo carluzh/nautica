@@ -82,6 +82,16 @@ export const DE: Record<string, string> = {
   Language: "Sprache",
   "Switch between English and German": "Zwischen Englisch und Deutsch wechseln",
   "Nautica player": "Nautica-Spieler",
+  "Close menu": "Menü schließen",
+  "Open menu": "Menü öffnen",
+  Filter: "Filter",
+  Activities: "Aktivitäten",
+  Stats: "Statistiken",
+  Divers: "Taucher",
+  "Last 24 hours": "Letzte 24 Stunden",
+  "Last 7 days": "Letzte 7 Tage",
+  "Last month": "Letzter Monat",
+  "All time": "Gesamter Zeitraum",
 
   // --- add-a-sighting 2-step dialog ---
   "1/2 Photo": "1/2 Foto",

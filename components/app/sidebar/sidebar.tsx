@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SPECIES_META } from "@/lib/game/content";
 import { REAL_SIGHTINGS } from "@/sightings";
 import { useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { TabActivities } from "./tab-activities";
 import { TabFilter } from "./tab-filter";
@@ -38,6 +39,7 @@ export function Sidebar({
   onClose?: () => void;
   className?: string;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<TabId>("filter");
 
   const handleFocusSpecies = (species: SpeciesId) => {
@@ -82,12 +84,12 @@ export function Sidebar({
       </div>
 
       <div className="grid grid-cols-4 gap-1 p-2">
-        {TABS.map((t) => {
-          const active = t.id === tab;
+        {TABS.map((tb) => {
+          const active = tb.id === tab;
           return (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tb.id}
+              onClick={() => setTab(tb.id)}
               aria-pressed={active}
               className={cn(
                 "flex items-center justify-center gap-1.5 min-w-0 rounded-lg px-1 py-2 text-[11px] font-semibold transition-colors",
@@ -96,8 +98,8 @@ export function Sidebar({
                   : "text-muted-foreground hover:bg-primary/5 hover:text-primary",
               )}
             >
-              <t.icon className="size-4 shrink-0" />
-              <span className="truncate">{t.label}</span>
+              <tb.icon className="size-4 shrink-0" />
+              <span className="truncate">{t(tb.label)}</span>
             </button>
           );
         })}

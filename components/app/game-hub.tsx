@@ -15,6 +15,7 @@ import {
 } from "@/lib/game/content";
 import type { GalleryItem, SpeciesId } from "@/lib/game/types";
 import { GameProvider, useGame } from "@/lib/game/provider";
+import { useT } from "@/lib/i18n";
 import { Sidebar } from "./sidebar/sidebar";
 import { MapHud } from "./map-hud";
 import type { FilterState, TimePeriod } from "./sidebar/types";
@@ -92,6 +93,7 @@ function popupHtml(opts: {
 
 function Hub() {
   const { gallery, sightings, user, focusTarget, clearFocus } = useGame();
+  const t = useT();
   const [hidden, setHidden] = useState<Set<Category>>(new Set());
   const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -272,7 +274,7 @@ function Hub() {
       {mobileOpen ? (
         <div className="absolute inset-0 z-40 lg:hidden">
           <button
-            aria-label="Close menu"
+            aria-label={t("Close menu")}
             className="absolute inset-0 bg-background/50 backdrop-blur-sm duration-200 animate-in fade-in"
             onClick={() => setMobileOpen(false)}
           />
@@ -288,8 +290,10 @@ function Hub() {
           dark
           clusterCategories={CLUSTER_CATEGORIES}
           className="absolute inset-0"
-          center={[-9.31, 38.67]}
-          zoom={9}
+          // Wide fallback view framing the data regions (Europe, Vietnam, Australia);
+          // with geolocation granted the map flies to the user right after mount.
+          center={[62, 18]}
+          zoom={2}
           markers={markers}
           showUserLocation
         />
@@ -298,7 +302,7 @@ function Hub() {
           size="icon"
           onClick={() => setMobileOpen(true)}
           className="absolute top-3 left-3 z-10 shadow-lg lg:hidden"
-          aria-label="Open menu"
+          aria-label={t("Open menu")}
         >
           <Menu className="size-4" />
         </Button>

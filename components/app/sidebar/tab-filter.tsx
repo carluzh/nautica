@@ -150,7 +150,7 @@ export function TabFilter({ filter }: { filter: FilterState }) {
               <SelectContent>
                 {PERIODS.map((p) => (
                   <SelectItem key={p.value} value={p.value}>
-                    {p.label}
+                    {t(p.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
