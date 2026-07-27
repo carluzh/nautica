@@ -12,6 +12,7 @@ import { leaderboardRoutes } from "./routes/leaderboard";
 import { logRoutes } from "./routes/log";
 import { meRoutes } from "./routes/me";
 import { questRoutes } from "./routes/quests";
+import { sightingsRoutes } from "./routes/sightings";
 
 const app = new Hono<AppEnv>();
 
@@ -39,6 +40,7 @@ app.route("/log", logRoutes);
 app.route("/images", imageRoutes);
 app.route("/me", meRoutes);
 app.route("/leaderboard", leaderboardRoutes);
+app.route("/sightings", sightingsRoutes);
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   log.info("nautica-server listening", { port: info.port, integrations });

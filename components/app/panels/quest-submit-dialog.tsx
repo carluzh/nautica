@@ -124,7 +124,7 @@ export function QuestSubmitDialog() {
       setOk({ attestation: res.attestation, leveledTo: res.leveledTo, txHash: res.txHash });
       setPhase("success");
       toast.success(t("Verified by 0G"), {
-        description: `+${quest.reward} XP logged to the dataset`,
+        description: `+${quest.reward} XP ${t("logged to the open dataset.")}`,
       });
     } else {
       setErr(res.reason);
@@ -154,8 +154,8 @@ export function QuestSubmitDialog() {
                   </span>
                 ) : null}
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-left text-base leading-tight">{quest.title}</DialogTitle>
-                  <DialogDescription className="mt-1 text-left">{quest.spec}</DialogDescription>
+                  <DialogTitle className="text-left text-base leading-tight">{t(quest.title)}</DialogTitle>
+                  <DialogDescription className="mt-1 text-left">{t(quest.spec)}</DialogDescription>
                 </div>
               </div>
             </DialogHeader>

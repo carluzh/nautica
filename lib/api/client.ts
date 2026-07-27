@@ -11,6 +11,7 @@ import type {
   PlausibilityVerdict,
   Quest,
   QuestStatus,
+  Sighting,
   SubmitResult,
 } from "@/lib/game/types";
 
@@ -34,6 +35,13 @@ export type ApiProfile = {
   xp: number;
   level: number;
   streak: number;
+};
+
+/** A public community-feed sighting: the map's Sighting shape plus who logged it. */
+export type CommunitySighting = Sighting & {
+  wallet: string | null;
+  handle: string;
+  xp: number;
 };
 
 export type LoginResponse = { token: string; profile: ApiProfile };
@@ -127,6 +135,12 @@ export const api = {
   },
   getLeaderboard(token: string | null) {
     return req<LeaderboardEntry[]>("/leaderboard", { token });
+  },
+  /** Public community feed (no auth): every player's verified sightings for the map. */
+  getCommunitySightings() {
+    return req<CommunitySighting[]>("/sightings").then((items) =>
+      items.map((it) => ({ ...it, photo: assetUrl(it.photo) })),
+    );
   },
 };
 

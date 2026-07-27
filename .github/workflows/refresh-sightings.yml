@@ -1,12 +1,12 @@
 name: Refresh sightings
 
-# Daily refresh of the committed iNaturalist community-sightings dataset. Re-runs the
-# puller (same marine filters, plants capped low), commits the JSON if it changed, and
-# the push triggers the Vercel production deploy. Manual runs available via the
-# "Run workflow" button (workflow_dispatch).
+# Refresh of the committed iNaturalist community-sightings dataset every 6 hours.
+# Re-runs the puller (same marine filters, plants capped low), commits the JSON if it
+# changed, and the push triggers the Vercel production deploy. Manual runs available
+# via the "Run workflow" button (workflow_dispatch).
 on:
   schedule:
-    - cron: "0 5 * * *" # 05:00 UTC daily
+    - cron: "0 */6 * * *" # every 6 hours (00/06/12/18 UTC)
   workflow_dispatch: {}
 
 permissions:

@@ -3,25 +3,30 @@
  *
  *     npx tsx sightings/pull-sightings.ts
  *
- * Pulls research-grade iNaturalist observations (open, keyless) for the Lisbon
- * coast + Mallorca, normalizes them onto the `Sighting` type, and writes a
- * committed JSON the map ingests. Querying PER CATEGORY by taxon_id (descendants
- * included) makes every observation correct-by-construction on SpeciesId and
- * keeps the coastal box from flooding with terrestrial taxa; each group is capped
- * for a balanced, smoothly-clustering map.
+ * Pulls research-grade iNaturalist observations (open, keyless) for three
+ * worldwide regions (Europe, Vietnam, Australia), normalizes them onto the
+ * `Sighting` type, and writes a committed JSON the map ingests. Querying PER
+ * CATEGORY by taxon_id (descendants included) makes every observation
+ * correct-by-construction on SpeciesId and keeps the bounding boxes from
+ * flooding with terrestrial taxa; each group is capped for a balanced,
+ * smoothly-clustering map (Europe gets double caps, it is the biggest box).
  */
 import { writeFileSync } from "node:fs";
 import type { Sighting, SpeciesId } from "../lib/game/types";
 
+// `capScale` multiplies each group's cap for that region (iNat pages max out
+// at 200, so the effective per_page is min(cap * capScale, 200)).
 const REGIONS = [
-  { name: "Lisbon coast", swlat: 38.4, swlng: -9.6, nelat: 39.0, nelng: -9.05 },
-  { name: "Mallorca", swlat: 39.2, swlng: 2.3, nelat: 40.0, nelng: 3.5 },
+  { name: "Europe", swlat: 34, swlng: -11, nelat: 71, nelng: 32, capScale: 2 },
+  { name: "Vietnam", swlat: 8.2, swlng: 102, nelat: 23.5, nelng: 110.5, capScale: 1 },
+  { name: "Australia", swlat: -44, swlng: 112, nelat: -9.5, nelng: 154.5, capScale: 1 },
 ];
 
 const UA = "Nautica/0.1 (ETHGlobal Lisbon hackathon; contact: lerhinox@gmail.com)";
 
 // taxon_id lists from the iNaturalist taxonomy (comma = union, descendants
-// included); `cap` is the max pulled per region, most recent first.
+// included); `cap` is the base max pulled per region (scaled by the region's
+// `capScale`), most recent first.
 const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
   { species: "ShoreFish", taxa: "47178", cap: 42 }, // Actinopterygii (ray-finned fish)
   { species: "Crab", taxa: "121639", cap: 26 }, // Brachyura (true crabs)
@@ -31,7 +36,7 @@ const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
   { species: "Turtle", taxa: "39657,39619", cap: 12 }, // Cheloniidae + Dermochelyidae (sea turtles only)
   // Seagrass + marine algae. Capped small: plants otherwise dominate the map.
   { species: "ShorePlant", taxa: "118944,52616,48220,50863,57774", cap: 6 },
-  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (invasive); likely 0 here
+  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (lionfish)
 ];
 
 // Only surface a photo when it carries a Creative-Commons license (occurrence
@@ -70,7 +75,7 @@ async function fetchGroup(
     quality_grade: "research",
     geoprivacy: "open",
     photos: "true",
-    per_page: String(Math.min(g.cap, 200)),
+    per_page: String(Math.min(g.cap * r.capScale, 200)),
     order_by: "observed_on",
     order: "desc",
   });

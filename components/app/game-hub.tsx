@@ -169,11 +169,20 @@ function Hub() {
     () => ({
       hidden,
       categories: categoryCounts,
+      // Solo semantics: tapping a hidden category unhides it (additive); tapping
+      // a visible one solos it (hides the rest); tapping the only visible one
+      // brings every category back.
       onToggle: (c) =>
         setHidden((prev) => {
-          const next = new Set(prev);
-          next.has(c) ? next.delete(c) : next.add(c);
-          return next;
+          if (prev.has(c)) {
+            const next = new Set(prev);
+            next.delete(c);
+            return next;
+          }
+          const isOnlyVisible = prev.size === CATEGORY_ORDER.length - 1;
+          return isOnlyVisible
+            ? new Set<Category>()
+            : new Set(CATEGORY_ORDER.filter((other) => other !== c));
         }),
       onShowAll: () => setHidden(new Set()),
       onHideAll: () => setHidden(new Set(CATEGORY_ORDER)),

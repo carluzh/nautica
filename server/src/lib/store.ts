@@ -1,4 +1,11 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import type { ActivityEvent, GalleryItem } from "../types";
 
@@ -41,29 +48,64 @@ export interface Store {
 }
 
 const STORE_FILE = process.env.STORE_FILE ?? "./.data/store.json";
+const BACKUP_FILE = `${STORE_FILE}.bak`;
 
 class PersistentStore implements Store {
   private users = new Map<string, UserRecord>();
   private nonces = new Map<string, NonceRecord>();
 
   constructor() {
+    if (this.load(STORE_FILE)) {
+      // The file just proved readable; snapshot it so there is always a
+      // one-generation backup to fall back to on the next boot.
+      try {
+        copyFileSync(STORE_FILE, BACKUP_FILE);
+      } catch {
+        /* backup is best-effort */
+      }
+      return;
+    }
+    const hadStoreFile = existsSync(STORE_FILE);
+    if (this.load(BACKUP_FILE)) {
+      console.warn(
+        `store: ${STORE_FILE} ${hadStoreFile ? "unreadable" : "missing"}, recovered from ${BACKUP_FILE}`,
+      );
+      return;
+    }
+    if (hadStoreFile) {
+      console.error(`store: failed to parse ${STORE_FILE} and no usable backup, starting empty`);
+    }
+    /* else: no store file yet - start empty */
+  }
+
+  /** Load the durable maps from one store file; false if missing/unparseable. */
+  private load(file: string): boolean {
     try {
-      const d = JSON.parse(readFileSync(STORE_FILE, "utf8")) as {
+      const d = JSON.parse(readFileSync(file, "utf8")) as {
         users?: [string, UserRecord][];
       };
-      if (d.users) this.users = new Map(d.users);
+      // Require the expected shape: valid-but-wrong JSON (e.g. `{}` after external
+      // corruption) must NOT count as a successful load, or the boot snapshot would
+      // clobber the only good backup with it.
+      if (!Array.isArray(d.users)) return false;
+      this.users = new Map(d.users);
+      return true;
     } catch {
-      /* no store file yet — start empty */
+      return false;
     }
   }
 
-  /** Best-effort synchronous persist of the durable maps (low write volume). */
+  /** Best-effort synchronous persist of the durable maps (low write volume).
+   *  Writes to a temp file then renames over the real one, so a crash mid-write
+   *  can never leave a half-written store.json behind. */
   private save() {
     try {
       mkdirSync(dirname(STORE_FILE), { recursive: true });
-      writeFileSync(STORE_FILE, JSON.stringify({ users: [...this.users] }));
+      const tmp = `${STORE_FILE}.tmp`;
+      writeFileSync(tmp, JSON.stringify({ users: [...this.users] }));
+      renameSync(tmp, STORE_FILE);
     } catch {
-      /* disk write failed — keep serving from memory */
+      /* disk write failed - keep serving from memory */
     }
   }
 

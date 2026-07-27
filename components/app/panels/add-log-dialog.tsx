@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   Camera,
   Check,
   ExternalLink,
+  Images,
   Loader2,
   RotateCcw,
   Sparkles,
@@ -58,6 +59,7 @@ function fileToDataUrl(file: File): Promise<string> {
 export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useT();
   const { addLog } = useGame();
+  const [step, setStep] = useState<1 | 2>(1);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -66,10 +68,15 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const [phase, setPhase] = useState<Phase>("idle");
   const [ok, setOk] = useState<OkResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Two pick paths: camera capture vs library. The library input has NO capture
+  // attribute so mobile browsers offer the photo gallery instead of camera-only.
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   // Reset whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
+    setStep(1);
     setFile(null);
     setDescription("");
     setSpecies("Other");
@@ -137,6 +144,11 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92svh] gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="p-5">
+          {phase === "idle" || phase === "submitting" ? (
+            <p className="tnum text-left text-[11px] font-medium text-muted-foreground">
+              {step === 1 ? t("1/2 Photo") : t("2/2 Details")}
+            </p>
+          ) : null}
           <DialogTitle className="text-left text-base leading-tight">{t("Add a sighting")}</DialogTitle>
           <DialogDescription className="text-left">
             {t("Photograph what you see and describe it. 0G verifies the photo against your description.")}
@@ -156,91 +168,148 @@ export function AddLogDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           />
         ) : (
           <>
+            {/* Hidden pickers. Camera forces capture; library omits `capture` so
+                mobile browsers open the gallery instead of camera-only. */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={onPick}
+            />
+            <input ref={libraryInputRef} type="file" accept="image/*" className="sr-only" onChange={onPick} />
+
             <div className="flex max-h-[64svh] flex-col gap-3 overflow-y-auto px-5 pb-5">
-              {/* photo capture + preview */}
-              <label className="group relative flex h-[220px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed bg-background/50 transition-colors hover:border-primary/50">
-                <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPick} />
-                {preview ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt={t("Sighting preview")} className="size-full object-cover" />
-                    <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm">
-                      <RotateCcw className="size-3" /> {t("Retake")}
+              {step === 1 ? (
+                /* step 1: photo pick + preview */
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-dashed bg-background/50">
+                  {preview ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={preview} alt={t("Sighting preview")} className="size-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm"
+                        onClick={() => setFile(null)}
+                      >
+                        <RotateCcw className="size-3" /> {t("Retake")}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+                      <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Camera className="size-5" />
+                      </span>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button type="button" size="sm" onClick={() => cameraInputRef.current?.click()}>
+                          <Camera className="size-4" /> {t("Take a photo")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => libraryInputRef.current?.click()}
+                        >
+                          <Images className="size-4" /> {t("Choose from library")}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{t("JPEG or PNG")}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* step 2: details */
+                <>
+                  {/* photo thumbnail strip */}
+                  <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-2">
+                    {preview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={preview}
+                        alt={t("Sighting preview")}
+                        className="h-14 w-[74px] shrink-0 rounded-md object-cover"
+                      />
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{t("Your photo")}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setStep(1)}>
+                      {t("Change")}
+                    </Button>
+                  </div>
+
+                  {/* free-text description (the 0G assertion) */}
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="log-description" className="px-0.5 text-xs font-medium text-muted-foreground">
+                      {t("What did you see?")}
+                    </label>
+                    <Textarea
+                      id="log-description"
+                      placeholder={t("e.g. A shore crab on the rocks at low tide, whole body visible.")}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* optional species */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="px-0.5 text-xs font-medium text-muted-foreground">{t("Species (optional)")}</label>
+                    <Select value={species} onValueChange={(v) => setSpecies(v as SpeciesId)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SPECIES_OPTIONS.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {SPECIES_META[s].label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* optional location */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="px-0.5 text-xs font-medium text-muted-foreground">
+                      {t("Where did you see it? (optional)")}
                     </span>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Camera className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium">{t("Take a photo")}</p>
-                      <p className="text-[11px] text-muted-foreground">{t("Rear camera · JPEG or PNG")}</p>
+                    <div className="h-[280px]">
+                      <LocationPicker onChange={setPlace} />
                     </div>
                   </div>
-                )}
-              </label>
-
-              {/* free-text description (the 0G assertion) */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="log-description" className="px-0.5 text-xs font-medium text-muted-foreground">
-                  {t("What did you see?")}
-                </label>
-                <Textarea
-                  id="log-description"
-                  placeholder={t("e.g. A shore crab on the rocks at low tide, whole body visible.")}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {/* optional species */}
-              <div className="flex flex-col gap-1.5">
-                <label className="px-0.5 text-xs font-medium text-muted-foreground">{t("Species (optional)")}</label>
-                <Select value={species} onValueChange={(v) => setSpecies(v as SpeciesId)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIES_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {SPECIES_META[s].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* optional location */}
-              <div className="flex flex-col gap-1.5">
-                <span className="px-0.5 text-xs font-medium text-muted-foreground">
-                  {t("Where did you see it? (optional)")}
-                </span>
-                <div className="h-[280px]">
-                  <LocationPicker onChange={setPlace} />
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             <DialogFooter className="flex-row gap-2 p-4">
-              <Button
-                className="flex-1 bg-[#B75FFF] text-white hover:bg-[#B75FFF]/90"
-                onClick={onSubmit}
-                disabled={!canSubmit}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" /> {t("0G TEE classifying…")}
-                  </>
-                ) : (
-                  <span className="inline-flex items-center gap-1">
-                    {t("Verify with")}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/0g-logo.png" alt="0G" className="h-4 w-auto brightness-0 invert" />
-                  </span>
-                )}
-              </Button>
+              {step === 1 ? (
+                <Button className="flex-1" onClick={() => setStep(2)} disabled={!file}>
+                  {t("Next")}
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setStep(1)} disabled={submitting}>
+                    {t("Back")}
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#B75FFF] text-white hover:bg-[#B75FFF]/90"
+                    onClick={onSubmit}
+                    disabled={!canSubmit}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> {t("0G TEE classifying…")}
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1">
+                        {t("Verify with")}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/0g-logo.png" alt="0G" className="h-4 w-auto brightness-0 invert" />
+                      </span>
+                    )}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </>
         )}

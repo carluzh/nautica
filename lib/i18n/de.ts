@@ -16,8 +16,10 @@ export const DE: Record<string, string> = {
   "Already have an account?": "Schon ein Konto?",
   "New to Nautica?": "Neu bei Nautica?",
   "Enter a valid email address.": "Gib eine gültige E-Mail-Adresse ein.",
-  "Password must be at least ${MIN_PASSWORD} characters.":
+  "Password must be at least 8 characters.":
     "Das Passwort muss mindestens 8 Zeichen lang sein.",
+  "No confirmation email is sent. Your password is the only key to this account.":
+    "Es wird keine Bestätigungsmail verschickt. Dein Passwort ist der einzige Schlüssel zu diesem Konto.",
 
   // --- missions board ---
   "Daily quests": "Tägliche Quests",
@@ -79,6 +81,15 @@ export const DE: Record<string, string> = {
   "Find a quest": "Finde eine Quest",
   Language: "Sprache",
   "Switch between English and German": "Zwischen Englisch und Deutsch wechseln",
+  "Nautica player": "Nautica-Spieler",
+
+  // --- add-a-sighting 2-step dialog ---
+  "1/2 Photo": "1/2 Foto",
+  "2/2 Details": "2/2 Details",
+  "Choose from library": "Aus der Galerie wählen",
+  "JPEG or PNG": "JPEG oder PNG",
+  "Your photo": "Dein Foto",
+  Change: "Ändern",
 
   // --- swept app UI (dialogs, sidebar, HUD, gallery, settings, profile) ---
   "Verified by 0G": "Von 0G verifiziert",

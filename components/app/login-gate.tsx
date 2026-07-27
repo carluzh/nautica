@@ -30,7 +30,7 @@ export function LoginGate() {
       return;
     }
     if (!passwordValid) {
-      setFormError(t("Password must be at least ${MIN_PASSWORD} characters."));
+      setFormError(t("Password must be at least 8 characters."));
       return;
     }
     try {
@@ -107,6 +107,10 @@ export function LoginGate() {
             {mode === "register" ? t("Create account") : t("Sign in")}
           </Button>
         </form>
+
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          {t("No confirmation email is sent. Your password is the only key to this account.")}
+        </p>
 
         {formError || error ? (
           <p className="mt-3 text-center text-xs text-destructive">{formError ?? error}</p>

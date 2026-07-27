@@ -16,6 +16,7 @@ import {
   sessionToken,
   type ApiProfile,
 } from "@/lib/api/client";
+import { useT } from "@/lib/i18n";
 import { DAILY_QUESTS } from "./content";
 import { levelInfo as computeLevel } from "./levels";
 import { INITIAL_USER, LEADERBOARD } from "./mock";
@@ -155,6 +156,38 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const level = useMemo(() => computeLevel(user.xp), [user.xp]);
 
+  // Latest translator via a ref, so refreshCommunity (and hydrate, which the
+  // session-resume effect depends on) keeps a stable identity across renders.
+  const t = useT();
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  // API mode: pull the public community feed and merge it into the sightings
+  // store (base iNaturalist seed + other players' captures). Our own captures are
+  // excluded - they already render from the gallery's "mine" layer. Failures are
+  // silent so the map keeps working when the feed is unreachable.
+  const refreshCommunity = useCallback(async (myWallet: string | null) => {
+    if (!apiEnabled) return;
+    try {
+      const items = await api.getCommunitySightings();
+      const community: Sighting[] = items
+        .filter((it) => !(it.wallet && myWallet && it.wallet === myWallet))
+        .map((it) => ({
+          id: it.id,
+          species: it.species,
+          lng: it.lng,
+          lat: it.lat,
+          label: it.label,
+          at: it.at,
+          photo: it.photo,
+          attribution: `${it.handle} · ${tRef.current("Nautica player")}`,
+        }));
+      setSightings([...community, ...REAL_SIGHTINGS]);
+    } catch {
+      // Offline / endpoint unavailable - keep whatever the map already shows.
+    }
+  }, []);
+
   // API mode: pull the full player state from the server.
   const hydrate = useCallback(async (tok: string) => {
     const [profile, questsRes, g, activity, board] = await Promise.all([
@@ -169,7 +202,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGallery(g);
     setHistory(activity);
     setLeaderboard(board);
-  }, []);
+    // Non-blocking: the community layer refreshes alongside every hydrate
+    // (sign-in, session resume, successful quest submit or log).
+    void refreshCommunity(profile.wallet);
+  }, [refreshCommunity]);
 
   // API mode: resume an existing session on load.
   useEffect(() => {
