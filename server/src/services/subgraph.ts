@@ -206,13 +206,39 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function getGallery(userId: string): Promise<GalleryItem[]> {
-  if (!integrations.subgraph) return store.getUser(userId)?.gallery ?? [];
+  const stored = store.getUser(userId)?.gallery ?? [];
+  if (!integrations.subgraph) return stored;
   const wallet = walletKey(userId);
-  if (!wallet) return store.getUser(userId)?.gallery ?? [];
-  const data = await query<{ player: { sightings: Record<string, unknown>[] } | null }>(PLAYER_QUERY, {
-    id: wallet,
-  });
-  return (data.player?.sightings ?? []).map(normalizeSighting);
+  if (!wallet) return stored;
+  try {
+    const data = await query<{ player: { sightings: Record<string, unknown>[] } | null }>(PLAYER_QUERY, {
+      id: wallet,
+    });
+    // The subgraph is the canonical index, but photo/radius/title live off-chain
+    // (the contract never carries them). Recover those from the user's persisted
+    // store items - matched by recording tx - so a restart (which used to wipe the
+    // in-memory sighting-meta maps) can never blank out gallery photos again. The
+    // store title also reflects the live quest board, not the immutable on-chain
+    // title from creation time.
+    const byTx = new Map(
+      stored.filter((g) => g.txHash).map((g) => [g.txHash!.toLowerCase(), g]),
+    );
+    return (data.player?.sightings ?? []).map((s) => {
+      const item = normalizeSighting(s);
+      const local = item.txHash ? byTx.get(item.txHash.toLowerCase()) : undefined;
+      if (!local) return item;
+      return {
+        ...item,
+        photo: item.photo ?? local.photo,
+        radiusM: item.radiusM ?? local.radiusM,
+        storageRoot: item.storageRoot ?? local.storageRoot,
+        title: local.title || item.title,
+      };
+    });
+  } catch (err) {
+    log.error("subgraph: getGallery failed", { err: String(err) });
+    return stored;
+  }
 }
 
 export async function getActivity(userId: string): Promise<ActivityEvent[]> {
