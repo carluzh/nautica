@@ -10,9 +10,27 @@
  * correct-by-construction on SpeciesId and keeps the bounding boxes from
  * flooding with terrestrial taxa; each group is capped for a balanced,
  * smoothly-clustering map (Europe gets double caps, it is the biggest box).
+ *
+ * Covers 15 marine species groups: Physalia, Jellyfish, Anemone, Crab, Octopus,
+ * SeaStar, Urchin, Nudibranch, Seahorse, Shark, Lionfish, Turtle, Dolphin,
+ * ShorePlant, and the catch-all ShoreFish. Groups are deduped by observation id
+ * in ARRAY ORDER (first group to claim an observation wins), so the more
+ * specific ray-finned fish groups (Seahorse, Lionfish) MUST precede the broad
+ * ShoreFish group (Actinopterygii), which is kept as the VERY LAST entry.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { Sighting, SpeciesId } from "../lib/game/types";
+
+const OUT_FILE = new URL("./sightings.real.json", import.meta.url);
+// Accumulate by default: each pull is UNIONED with the committed dataset (keyed by
+// observation id) so no prior sighting is ever dropped by a later, differently-capped
+// pull. This is what keeps hotspots (Mallorca, Lisbon) from thinning out over refreshes.
+// Set FRESH=1 to bootstrap a clean base (used once to discard bad data).
+const FRESH = process.env.FRESH === "1";
+// Safety valve so the committed file cannot grow without bound; keeps the most recently
+// observed. Set very high so ordinary accumulation never trims (dedup by stable iNat id
+// means growth only comes from genuinely new observations).
+const MAX_SIGHTINGS = 8000;
 
 // `capScale` multiplies each group's cap for that region (iNat pages max out
 // at 200, so the effective per_page is min(cap * capScale, 200)).
@@ -20,6 +38,10 @@ const REGIONS = [
   { name: "Europe", swlat: 34, swlng: -11, nelat: 71, nelng: 32, capScale: 2 },
   { name: "Vietnam", swlat: 8.2, swlng: 102, nelat: 23.5, nelng: 110.5, capScale: 1 },
   { name: "Australia", swlat: -44, swlng: 112, nelat: -9.5, nelng: 154.5, capScale: 1 },
+  // Dense hotspot boxes (inside Europe) so the original demo areas stay well
+  // populated; dedup by observation id means these only ADD local points.
+  { name: "Lisbon coast", swlat: 38.4, swlng: -9.6, nelat: 39.0, nelng: -9.05, capScale: 3 },
+  { name: "Mallorca", swlat: 39.2, swlng: 2.3, nelat: 40.0, nelng: 3.5, capScale: 3 },
 ];
 
 const UA = "Nautica/0.1 (ETHGlobal Lisbon hackathon; contact: lerhinox@gmail.com)";
@@ -27,16 +49,28 @@ const UA = "Nautica/0.1 (ETHGlobal Lisbon hackathon; contact: lerhinox@gmail.com
 // taxon_id lists from the iNaturalist taxonomy (comma = union, descendants
 // included); `cap` is the base max pulled per region (scaled by the region's
 // `capScale`), most recent first.
+// ORDERING IS LOAD-BEARING: dedup runs in array order, so every more-specific
+// group must precede the broad ShoreFish (Actinopterygii) catch-all, which is
+// therefore LAST. Seahorse (Syngnathidae) and Lionfish (Pterois) are ray-finned
+// fish and would be swallowed by ShoreFish if it ran first.
 const GROUPS: { species: SpeciesId; taxa: string; cap: number }[] = [
-  { species: "ShoreFish", taxa: "47178", cap: 42 }, // Actinopterygii (ray-finned fish)
   { species: "Crab", taxa: "121639", cap: 26 }, // Brachyura (true crabs)
   { species: "Jellyfish", taxa: "48332", cap: 26 }, // Scyphozoa (true jellyfish)
   { species: "Physalia", taxa: "117305", cap: 30 }, // Physalia (Portuguese man o' war)
   { species: "SeaStar", taxa: "47668", cap: 20 }, // Asteroidea (starfish)
   { species: "Turtle", taxa: "39657,39619", cap: 12 }, // Cheloniidae + Dermochelyidae (sea turtles only)
+  { species: "Shark", taxa: "47273", cap: 16 }, // Elasmobranchii (sharks + rays)
+  { species: "Octopus", taxa: "47459", cap: 16 }, // Cephalopoda (octopus, squid, cuttlefish)
+  { species: "Nudibranch", taxa: "47113", cap: 16 }, // Nudibranchia (sea slugs)
+  { species: "Urchin", taxa: "47548", cap: 14 }, // Echinoidea (sea urchins)
+  { species: "Anemone", taxa: "47797", cap: 12 }, // Actiniaria (sea anemones)
+  { species: "Dolphin", taxa: "152871", cap: 10 }, // Cetacea (dolphins, whales)
+  { species: "Seahorse", taxa: "49106", cap: 12 }, // Syngnathidae (seahorses, pipefish) - ray-finned, precede ShoreFish
+  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (lionfish) - ray-finned, precede ShoreFish
   // Seagrass + marine algae. Capped small: plants otherwise dominate the map.
   { species: "ShorePlant", taxa: "118944,52616,48220,50863,57774", cap: 6 },
-  { species: "Lionfish", taxa: "47284", cap: 12 }, // Pterois (lionfish)
+  // MUST BE LAST: Actinopterygii is the broad ray-finned fish catch-all.
+  { species: "ShoreFish", taxa: "47178", cap: 42 }, // Actinopterygii (ray-finned fish)
 ];
 
 // Only surface a photo when it carries a Creative-Commons license (occurrence
@@ -127,12 +161,38 @@ async function build(): Promise<Sighting[]> {
 }
 
 async function main() {
-  const out = await build();
+  const pulled = await build();
+
+  // Union with the existing committed dataset (never delete). New data refreshes or
+  // adds; old entries the current pull did not re-include are preserved.
+  const byId = new Map<string, Sighting>();
+  if (!FRESH) {
+    try {
+      const existing = JSON.parse(readFileSync(OUT_FILE, "utf8")) as Sighting[];
+      for (const s of existing) if (s.photo) byId.set(s.id, s);
+    } catch {
+      /* no existing dataset yet - start from this pull */
+    }
+  }
+  const beforeMerge = byId.size;
+  for (const s of pulled) byId.set(s.id, s);
+
+  let all = [...byId.values()];
+  let trimmed = 0;
+  if (all.length > MAX_SIGHTINGS) {
+    all.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+    trimmed = all.length - MAX_SIGHTINGS;
+    all = all.slice(0, MAX_SIGHTINGS);
+  }
+
   const dist: Record<string, number> = {};
-  for (const s of out) dist[s.species] = (dist[s.species] ?? 0) + 1;
-  writeFileSync(new URL("./sightings.real.json", import.meta.url), JSON.stringify(out, null, 2));
-  const withPhoto = out.filter((s) => s.photo).length;
-  console.log(`Wrote ${out.length} sightings (withPhoto=${withPhoto})`);
+  for (const s of all) dist[s.species] = (dist[s.species] ?? 0) + 1;
+  writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
+  console.log(
+    `Pulled ${pulled.length}; dataset ${beforeMerge} -> ${all.length}` +
+      (FRESH ? " (FRESH bootstrap)" : " (accumulated)") +
+      (trimmed ? ` (trimmed ${trimmed} oldest over ${MAX_SIGHTINGS})` : ""),
+  );
   console.log("Species distribution:", dist);
 }
 

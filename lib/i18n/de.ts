@@ -212,4 +212,23 @@ export const DE: Record<string, string> = {
   "GPS off · pick a spot": "GPS aus · Ort wählen",
   "Radius": "Radius",
   "Drag the pin to where you saw it. The circle sets how precise you want to be.": "Zieh den Pin dorthin, wo du es gesehen hast. Der Kreis legt fest, wie genau du sein willst.",
+
+  // --- species + group labels (taxonomy rework) ---
+  "Anemone": "Anemone",
+  "Octopus": "Oktopus",
+  "Octopus & squid": "Oktopus & Tintenfisch",
+  "Urchin": "Seeigel",
+  "Sea urchin": "Seeigel",
+  "Nudibranch": "Nacktschnecke",
+  "Sea slug (nudibranch)": "Nacktschnecke",
+  "Seahorse": "Seepferdchen",
+  "Seahorse & pipefish": "Seepferdchen & Seenadel",
+  "Shark & ray": "Hai & Rochen",
+  "Dolphin": "Delfin",
+  "Dolphin & whale": "Delfin & Wal",
+  "Jellies & anemones": "Quallen & Anemonen",
+  "Crabs & molluscs": "Krebse & Weichtiere",
+  "Stars & urchins": "Seesterne & Seeigel",
+  "Turtles & mammals": "Schildkröten & Säugetiere",
+  "Plants": "Pflanzen",
 };

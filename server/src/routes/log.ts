@@ -15,27 +15,16 @@ import { createQuestOnchain, recordQuestCompletion } from "../services/chain";
 import { setSightingImage, setSightingRadius } from "../services/sighting-meta";
 import { enqueuePlausibility } from "../services/sighting-jobs";
 import { saveImageFromDataUrl } from "../services/image-store";
+import { SPECIES_IDS } from "../types";
 import type { ActivityEvent, GalleryItem, SpeciesId, SubmitResult } from "../types";
 
 const MIN_CONFIDENCE = 0.6; // a weak "pass" (low model confidence) does not award XP
 const LOG_XP = 15; // fixed award for a free-form logged sighting
 
-const SPECIES = [
-  "Physalia",
-  "Jellyfish",
-  "Crab",
-  "ShoreFish",
-  "ShorePlant",
-  "SeaStar",
-  "Lionfish",
-  "Turtle",
-  "Other",
-] as const;
-
 const logSchema = z.object({
   imageDataUrl: z.string().min(16),
   description: z.string().min(3), // the 0G spec / assertion the photo must show
-  species: z.enum(SPECIES).default("Other"),
+  species: z.enum(SPECIES_IDS).default("Other"),
   lat: z.number().optional(),
   lng: z.number().optional(),
   radiusM: z.number().optional(),
@@ -85,12 +74,22 @@ logRoutes.post("/", async (c) => {
   const now = Date.now();
   // Stable per-log id, kept <=24 chars so questIdToBytes32's 31-byte cap can't truncate.
   const logId = "log-" + randomUUID().replace(/-/g, "").slice(0, 20);
-  const title = description.slice(0, 80);
+  // Title with what 0G named the subject; fall back to the user's own description.
+  // Capped: the model-supplied name is untrusted free text and flows into the
+  // on-chain createQuest title string and the UI.
+  const title = (attestation.name?.trim() || description).slice(0, 80);
+  // Auto-categorize: only override the user's pick when they left it as "Other" and 0G
+  // offered a concrete category. This species drives the gallery, activity, and the
+  // on-chain createQuest below, so they stay consistent.
+  const resolvedSpecies: SpeciesId =
+    species === "Other" && attestation.suggestedSpecies && attestation.suggestedSpecies !== "Other"
+      ? attestation.suggestedSpecies
+      : (species as SpeciesId);
 
   const item: GalleryItem = {
     id: `g_${now}`,
     questId: logId,
-    species: species as SpeciesId,
+    species: resolvedSpecies,
     title,
     photo: savedImage ? `/images/${savedImage.id}` : undefined,
     attestation,
@@ -102,7 +101,7 @@ logRoutes.post("/", async (c) => {
   };
 
   const activity: ActivityEvent[] = [
-    { id: `a_${now}`, kind: "quest", title, species: species as SpeciesId, xp: LOG_XP, at: now },
+    { id: `a_${now}`, kind: "quest", title, species: resolvedSpecies, xp: LOG_XP, at: now },
   ];
   if (after > before) activity.unshift({ id: `a_${now}_lvl`, kind: "levelup", title: `Reached Level ${after}`, at: now });
 
@@ -122,11 +121,11 @@ logRoutes.post("/", async (c) => {
         id: logId,
         title,
         spec: description,
-        species: species as SpeciesId,
+        species: resolvedSpecies,
         reward: LOG_XP,
         createdAt: now,
       });
-      await createQuestOnchain({ questId: logId, species, title, xp: LOG_XP });
+      await createQuestOnchain({ questId: logId, species: resolvedSpecies, title, xp: LOG_XP });
       const chainRes = await recordQuestCompletion({
         player: u.wallet as Hex,
         questId: logId,

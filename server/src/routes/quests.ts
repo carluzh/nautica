@@ -144,11 +144,15 @@ questRoutes.post("/:id/submit", async (c) => {
   const after = levelForXp(u.xp + quest.reward);
   const now = Date.now();
 
+  // Title the sighting with what 0G actually saw (e.g. "European Green Crab"); fall
+  // back to the quest name when the classifier gave no usable name.
+  const title = (attestation.name?.trim() || quest.title).slice(0, 80);
+
   const item: GalleryItem = {
     id: `g_${now}`,
     questId: id,
     species: quest.species,
-    title: quest.title,
+    title,
     photo: savedImage ? `/images/${savedImage.id}` : undefined,
     attestation,
     xp: quest.reward,
@@ -160,7 +164,7 @@ questRoutes.post("/:id/submit", async (c) => {
   };
 
   const activity: ActivityEvent[] = [
-    { id: `a_${now}`, kind: "quest", title: quest.title, species: quest.species, xp: quest.reward, at: now },
+    { id: `a_${now}`, kind: "quest", title, species: quest.species, xp: quest.reward, at: now },
   ];
   if (after > before) activity.unshift({ id: `a_${now}_lvl`, kind: "levelup", title: `Reached Level ${after}`, at: now });
 

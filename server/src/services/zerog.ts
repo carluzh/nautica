@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { createPublicClient, getAddress, http, keccak256, toHex } from "viem";
 import { config, integrations } from "../config";
 import { log } from "../lib/logger";
-import type { Attestation } from "../types";
+import { SPECIES_IDS } from "../types";
+import type { Attestation, SpeciesId } from "../types";
 
 // 0G Compute verifiable inference via the 0G Router (OpenAI-compatible). qwen3-vl-30b
 // runs in a TEE; with verify_tee + the "verified" trust mode the Router validates
@@ -18,7 +19,18 @@ import type { Attestation } from "../types";
 
 type Trace = { tee_verified?: boolean | null; provider?: string; request_id?: string };
 type Catalog = { verifiability: string; teeType: string; teeVerifier: string };
-type Verdict = { verdict: "pass" | "fail"; confidence: number; label: string };
+type Verdict = {
+  verdict: "pass" | "fail";
+  confidence: number;
+  label: string;
+  name?: string; // classifier's common name / short description of the subject
+  species?: SpeciesId; // classifier's best-fit category (validated against SPECIES_IDS)
+};
+
+/** Coerce a model-supplied species to a valid SpeciesId, else undefined. */
+function asSpeciesId(v: unknown): SpeciesId | undefined {
+  return typeof v === "string" && (SPECIES_IDS as readonly string[]).includes(v) ? (v as SpeciesId) : undefined;
+}
 type ProviderService = {
   signer: string;
   verifiability: string;
@@ -59,7 +71,9 @@ function buildPrompt(spec: string, species: string): string {
     "FAIL if it is not a genuine real-world photograph: reject photos of a screen or monitor, screenshots, printouts or a photo of another photo, drawings, paintings, illustrations, 3D renders, toys, or obvious stock or watermarked images.",
     "Watch for signs of a re-photographed screen or print: moire patterns, an LCD pixel grid, screen glare or bezels, paper or print-dot texture, watermarks, or on-screen UI.",
     "If you are unsure whether the photo genuinely satisfies the quest, lower your confidence instead of guessing pass.",
-    'Reply with STRICT JSON only, no prose: {"verdict":"pass"|"fail","confidence":0..1,"label":"<short phrase: what you see, or why it failed>"}.',
+    'Also name the main subject: "name" = a concise real-world common name (e.g. "Loggerhead Sea Turtle", "European Green Crab", "Portuguese Man o\' War"); for a non-wildlife shot like a selfie or a stone, give a short plain description instead (e.g. "Beach selfie", "Orange pebble").',
+    `Also set "species" = the single best-fit category from EXACTLY this list [${SPECIES_IDS.join(", ")}] (use "Other" if unsure or not a living thing).`,
+    'Reply with STRICT JSON only, no prose: {"verdict":"pass"|"fail","confidence":0..1,"label":"<short phrase: what you see, or why it failed>","name":"<common name or short description>","species":"<one category from the list>"}.',
   ].filter(Boolean).join(" ");
 }
 
@@ -73,6 +87,8 @@ function parseModelJson(text: string): Verdict | null {
       verdict: j.verdict,
       confidence: typeof j.confidence === "number" ? Math.max(0, Math.min(1, j.confidence)) : 0.8,
       label: typeof j.label === "string" ? j.label : "unspecified",
+      name: typeof j.name === "string" && j.name.trim() ? j.name.trim() : undefined,
+      species: asSpeciesId(j.species),
     };
   } catch {
     return null;
@@ -229,6 +245,8 @@ export function buildAttestation(p: {
   verdict: "pass" | "fail";
   confidence: number;
   label: string;
+  name?: string;
+  suggestedSpecies?: SpeciesId;
   outputText: string;
   catalog: Catalog;
   trace?: Trace;
@@ -262,6 +280,8 @@ export function buildAttestation(p: {
     verdict: p.verdict,
     confidence: p.confidence,
     label: p.label,
+    name: p.name,
+    suggestedSpecies: p.suggestedSpecies,
     tee,
     hash,
     simulated,
@@ -321,6 +341,8 @@ export async function classifyImage(input: {
       verdict: "pass",
       confidence: 0.92,
       label: `${input.species} · matches quest spec`,
+      name: input.species, // dev-mock: no model runs, so derive the display name from the passed species
+      suggestedSpecies: asSpeciesId(input.species),
       outputText: `simulated:${input.species}`,
       catalog,
       source: "simulated",
@@ -374,6 +396,8 @@ export async function classifyImage(input: {
       verdict: parsed?.verdict ?? "fail",
       confidence: parsed?.confidence ?? 0.5,
       label: parsed?.label ?? "unclear",
+      name: parsed?.name,
+      suggestedSpecies: parsed?.species,
       outputText: text,
       catalog,
       trace: data.x_0g_trace,

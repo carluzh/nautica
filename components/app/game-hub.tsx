@@ -98,7 +98,7 @@ function Hub() {
   const [hiddenSpecies, setHiddenSpecies] = useState<Set<SpeciesId>>(new Set());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [period, setPeriod] = useState<TimePeriod>("all");
+  const [period, setPeriod] = useState<TimePeriod>("24h");
   const mapRef = useRef<SeaMapHandle>(null);
 
   // Focus a sighting clicked in the activity feed: fly there and open its popup.

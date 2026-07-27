@@ -5,9 +5,13 @@ import {
   Droplets,
   Fish,
   FishSymbol,
+  Flower2,
+  Snail,
   Star,
+  Sun,
   Turtle,
   Umbrella,
+  Waves,
   Wheat,
   Zap,
 } from "lucide-react";
@@ -19,6 +23,27 @@ const Jellyfish = createLucideIcon("Jellyfish", [
   ["path", { d: "M8 12.5c0 2.5-1 3-1 5.5", fill: "none", key: "t1" }],
   ["path", { d: "M12 13v5", fill: "none", key: "t2" }],
   ["path", { d: "M16 12.5c0 2.5 1 3 1 5.5", fill: "none", key: "t3" }],
+]);
+
+// Lucide has no octopus glyph: a domed mantle with two eyes and splayed arms.
+const Octopus = createLucideIcon("Octopus", [
+  ["path", { d: "M6 11a6 5 0 0 1 12 0v1H6z", key: "head" }],
+  ["path", { d: "M6.5 12c-.6 2.4-2 3-2 5.5", fill: "none", key: "a1" }],
+  ["path", { d: "M9.3 12.5c-.3 2.4-1 3-.8 5", fill: "none", key: "a2" }],
+  ["path", { d: "M12 13v4.5", fill: "none", key: "a3" }],
+  ["path", { d: "M14.7 12.5c.3 2.4 1 3 .8 5", fill: "none", key: "a4" }],
+  ["path", { d: "M17.5 12c.6 2.4 2 3 2 5.5", fill: "none", key: "a5" }],
+  ["path", { d: "M9.5 9h.01", fill: "none", key: "e1" }],
+  ["path", { d: "M14.5 9h.01", fill: "none", key: "e2" }],
+]);
+
+// Lucide has no seahorse glyph: an S-curved body with a snout, coronet and curled tail.
+const Seahorse = createLucideIcon("Seahorse", [
+  ["path", { d: "M13 4c-2 0-3.5 1.6-3.5 3.5 0 2 2 2.5 2 4.5s-2 2.5-2 4.5c0 1.6 1 2.8 2.5 3", fill: "none", key: "body" }],
+  ["path", { d: "M14 19.5c-1.4.3-2.4-.5-2.4-1.8", fill: "none", key: "tail" }],
+  ["path", { d: "M13 4c1.2 0 2 .8 2 2", fill: "none", key: "crown" }],
+  ["path", { d: "M9.5 6.5 7 6", fill: "none", key: "snout" }],
+  ["path", { d: "M11 6h.01", fill: "none", key: "eye" }],
 ]);
 
 /** The 4 map filter categories; drives the marker color and the filter toggles. */
@@ -50,12 +75,19 @@ export const CATEGORY_ORDER: Category[] = ["marine", "invasive", "hazard", "rare
 export const SPECIES_META: Record<SpeciesId, SpeciesMeta> = {
   Physalia: { label: "Physalia (Portuguese man-o-war)", short: "Physalia", color: "var(--destructive)", icon: Zap, hazard: true, category: "hazard" },
   Jellyfish: { label: "Jellyfish", short: "Jellyfish", color: "var(--warning)", icon: Umbrella, hazard: true, category: "hazard" },
+  Anemone: { label: "Anemone", short: "Anemone", color: "oklch(0.72 0.17 25)", icon: Flower2, category: "marine" },
   Crab: { label: "Crab", short: "Crab", color: "var(--chart-4)", icon: Bug, category: "marine" },
-  ShoreFish: { label: "Shore fish", short: "Fish", color: "var(--primary)", icon: Fish, category: "marine" },
-  ShorePlant: { label: "Shore plant", short: "Plant", color: "var(--success)", icon: Wheat, category: "marine", plant: true },
+  Octopus: { label: "Octopus & squid", short: "Octopus", color: "oklch(0.58 0.16 300)", icon: Octopus, category: "marine" },
   SeaStar: { label: "Starfish", short: "Starfish", color: "var(--chart-5)", icon: Star, category: "rare" },
+  Urchin: { label: "Sea urchin", short: "Urchin", color: "oklch(0.5 0.13 330)", icon: Sun, category: "marine" },
+  Nudibranch: { label: "Sea slug (nudibranch)", short: "Nudibranch", color: "oklch(0.68 0.2 350)", icon: Snail, category: "rare" },
+  ShoreFish: { label: "Shore fish", short: "Fish", color: "var(--primary)", icon: Fish, category: "marine" },
+  Seahorse: { label: "Seahorse & pipefish", short: "Seahorse", color: "oklch(0.78 0.13 85)", icon: Seahorse, category: "rare" },
+  Shark: { label: "Shark & ray", short: "Shark & ray", color: "oklch(0.6 0.045 240)", icon: FishSymbol, category: "rare" },
   Lionfish: { label: "Lionfish (invasive)", short: "Lionfish", color: "var(--destructive)", icon: FishSymbol, hazard: true, category: "invasive" },
   Turtle: { label: "Sea turtle", short: "Turtle", color: "var(--chart-3)", icon: Turtle, category: "rare" },
+  Dolphin: { label: "Dolphin & whale", short: "Dolphin", color: "oklch(0.66 0.1 235)", icon: Waves, category: "rare" },
+  ShorePlant: { label: "Shore plant", short: "Plant", color: "var(--success)", icon: Wheat, category: "marine", plant: true },
   Other: { label: "Other", short: "Other", color: "var(--muted-foreground)", icon: Droplets, category: "marine" },
 };
 
@@ -65,10 +97,13 @@ export function speciesCategory(species: SpeciesId): Category {
 
 /** Species grouped for the by-name filter checklist (second filter dimension). */
 export const SPECIES_GROUPS: { label: string; species: SpeciesId[] }[] = [
-  { label: "Fish", species: ["ShoreFish", "Lionfish"] },
-  { label: "Jellies", species: ["Jellyfish", "Physalia"] },
-  { label: "Crust & Stars", species: ["Crab", "SeaStar"] },
-  { label: "Others", species: ["Turtle", "ShorePlant", "Other"] },
+  { label: "Fish", species: ["ShoreFish", "Seahorse", "Shark", "Lionfish"] },
+  { label: "Jellies & anemones", species: ["Jellyfish", "Physalia", "Anemone"] },
+  { label: "Crabs & molluscs", species: ["Crab", "Octopus", "Nudibranch"] },
+  { label: "Stars & urchins", species: ["SeaStar", "Urchin"] },
+  { label: "Turtles & mammals", species: ["Turtle", "Dolphin"] },
+  { label: "Plants", species: ["ShorePlant"] },
+  { label: "Other", species: ["Other"] },
 ];
 
 // The map uses a reduced icon set chosen by category (plus plant-vs-animal for marine):

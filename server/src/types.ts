@@ -4,13 +4,40 @@
 export type SpeciesId =
   | "Physalia"
   | "Jellyfish"
+  | "Anemone"
   | "Crab"
-  | "ShoreFish"
-  | "ShorePlant"
+  | "Octopus"
   | "SeaStar"
+  | "Urchin"
+  | "Nudibranch"
+  | "ShoreFish"
+  | "Seahorse"
+  | "Shark"
   | "Lionfish"
   | "Turtle"
+  | "Dolphin"
+  | "ShorePlant"
   | "Other";
+
+/** Full ordered list of species ids, for runtime validation (mirrors SpeciesId). */
+export const SPECIES_IDS = [
+  "Physalia",
+  "Jellyfish",
+  "Anemone",
+  "Crab",
+  "Octopus",
+  "SeaStar",
+  "Urchin",
+  "Nudibranch",
+  "ShoreFish",
+  "Seahorse",
+  "Shark",
+  "Lionfish",
+  "Turtle",
+  "Dolphin",
+  "ShorePlant",
+  "Other",
+] as const satisfies readonly SpeciesId[];
 
 export type Quest = {
   id: string;
@@ -26,6 +53,8 @@ export type Attestation = {
   verdict: "pass" | "fail";
   confidence: number; // 0..1
   label: string;
+  name?: string; // classifier's concise common name for the subject (display title)
+  suggestedSpecies?: SpeciesId; // classifier's best-fit category (auto-categorizes "Other" logs)
   tee: string; // honest enclave tech when verified (e.g. "TDX · TeeTLS"), else "unverified"/"simulated"
   hash: string; // keccak256 attestation id (on-chain anchor)
   simulated: boolean; // derived: !(x_0g_trace.tee_verified === true) - the honesty-critical field

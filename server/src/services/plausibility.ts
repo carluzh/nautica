@@ -42,6 +42,18 @@ const SPECIES_RANGES: Record<SpeciesId, SpeciesRange> = {
     months: [3, 4, 5, 6, 7, 8, 9, 10], // temperate growing season
   },
   SeaStar: { habitat: "rocky and sandy sea floor, worldwide", absLatMax: 82, cosmopolitan: true },
+  Anemone: { habitat: "rocky intertidal and shallow reefs, worldwide", absLatMax: 78, cosmopolitan: true },
+  Octopus: { habitat: "rocky coasts and reefs, worldwide", absLatMax: 70, cosmopolitan: true },
+  Urchin: { habitat: "rocky sea floor and reefs, worldwide", absLatMax: 80, cosmopolitan: true },
+  Nudibranch: { habitat: "shallow reefs and rocky coasts, worldwide", absLatMax: 75, cosmopolitan: true },
+  Seahorse: {
+    habitat: "shallow seagrass, reefs and estuaries",
+    absLatMax: 50,
+    cosmopolitan: false,
+    native: [{ latMin: -50, latMax: 50, lngMin: -180, lngMax: 180 }],
+  },
+  Shark: { habitat: "coastal and open water, worldwide", absLatMax: 78, cosmopolitan: true },
+  Dolphin: { habitat: "coastal and open water, worldwide", absLatMax: 70, cosmopolitan: true },
   Lionfish: {
     habitat: "warm reefs and rocky structure",
     absLatMax: 42,

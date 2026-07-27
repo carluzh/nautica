@@ -3,12 +3,19 @@
 export type SpeciesId =
   | "Physalia"
   | "Jellyfish"
+  | "Anemone"
   | "Crab"
-  | "ShoreFish"
-  | "ShorePlant"
+  | "Octopus"
   | "SeaStar"
+  | "Urchin"
+  | "Nudibranch"
+  | "ShoreFish"
+  | "Seahorse"
+  | "Shark"
   | "Lionfish"
   | "Turtle"
+  | "Dolphin"
+  | "ShorePlant"
   | "Other";
 
 /** A tamper-proof-ish record of a 0G TEE classification. */
@@ -17,6 +24,8 @@ export type Attestation = {
   verdict: "pass" | "fail";
   confidence: number; // 0..1
   label: string; // what the model saw
+  name?: string; // classifier's concise common name for the subject (display title)
+  suggestedSpecies?: SpeciesId; // classifier's best-fit category (auto-categorizes "Other" logs)
   tee: string; // attestation tech, e.g. "Intel TDX · TeeTLS"
   hash: string; // 0x… digest of the attestation
   at: number; // epoch ms
