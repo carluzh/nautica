@@ -20,6 +20,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import type { Sighting, SpeciesId } from "../lib/game/types";
+import { fetchObservations } from "./fetch-observations.mjs";
 
 const OUT_FILE = new URL("./sightings.real.json", import.meta.url);
 // Accumulate by default: each pull is UNIONED with the committed dataset (keyed by
@@ -113,12 +114,9 @@ async function fetchGroup(
     order_by: "observed_on",
     order: "desc",
   });
-  const res = await fetch(`https://api.inaturalist.org/v1/observations?${qs}`, {
-    headers: { "User-Agent": UA },
+  return fetchObservations(`https://api.inaturalist.org/v1/observations?${qs}`, `${r.name}/${g.species}`, {
+    userAgent: UA,
   });
-  if (!res.ok) throw new Error(`iNaturalist ${res.status} ${res.statusText} for ${r.name}/${g.species}`);
-  const data = (await res.json()) as { results?: any[] };
-  return data.results ?? [];
 }
 
 async function build(): Promise<Sighting[]> {
